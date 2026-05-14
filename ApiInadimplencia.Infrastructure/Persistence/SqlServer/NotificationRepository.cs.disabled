@@ -1,0 +1,116 @@
+using ApiInadimplencia.Application.Features.Notifications;
+using ApiInadimplencia.Domain.Notifications;
+using Microsoft.EntityFrameworkCore;
+
+namespace ApiInadimplencia.Infrastructure.Persistence.SqlServer;
+
+/// <summary>
+/// EF Core implementation of the notification repository.
+/// </summary>
+public class NotificationRepository : INotificationRepository
+{
+    private readonly InadimplenciaDbContext _dbContext;
+
+    public NotificationRepository(InadimplenciaDbContext dbContext)
+    {
+        _dbContext = dbContext;
+    }
+
+    public async Task AddAsync(InadNotificacao notificacao, CancellationToken cancellationToken = default)
+    {
+        await _dbContext.InadNotificacoes.AddAsync(notificacao, cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<InadNotificacao?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.InadNotificacoes
+            .FirstOrDefaultAsync(n => n.Id == id, cancellationToken);
+    }
+
+    public async Task<InadNotificacao?> GetByDedupeKeyAsync(
+        NotificationType tipo,
+        string usuario,
+        int numVenda,
+        DateOnly? proximaAcaoDia,
+        CancellationToken cancellationToken)
+    {
+        var usuarioNormalized = usuario.ToLowerInvariant();
+        return await _dbContext.InadNotificacoes
+            .FirstOrDefaultAsync(n =>
+                n.Tipo == tipo &&
+                n.Usuario == usuarioNormalized &&
+                n.NumVenda == numVenda &&
+                n.ProximaAcaoDia == proximaAcaoDia &&
+                n.ExcluidaEm == null,
+            cancellationToken);
+    }
+
+    public async Task UpdateAsync(InadNotificacao notificacao, CancellationToken cancellationToken = default)
+    {
+        _dbContext.InadNotificacoes.Update(notificacao);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task DeleteAsync(InadNotificacao notificacao, CancellationToken cancellationToken = default)
+    {
+        _dbContext.InadNotificacoes.Remove(notificacao);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<IEnumerable<InadNotificacao>> ListAsync(
+        string username,
+        bool? lida,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken)
+    {
+        var usernameNormalized = username.ToLowerInvariant();
+        
+        var query = _dbContext.InadNotificacoes
+            .Where(n => n.Usuario == usernameNormalized && n.ExcluidaEm == null);
+
+        if (lida.HasValue)
+        {
+            query = query.Where(n => n.Lida == lida.Value);
+        }
+
+        return await query
+            .OrderByDescending(n => n.CriadaEm)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<int> CountAsync(string username, bool? lida, CancellationToken cancellationToken)
+    {
+        var usernameNormalized = username.ToLowerInvariant();
+        
+        var query = _dbContext.InadNotificacoes
+            .Where(n => n.Usuario == usernameNormalized && n.ExcluidaEm == null);
+
+        if (lida.HasValue)
+        {
+            query = query.Where(n => n.Lida == lida.Value);
+        }
+
+        return await query.CountAsync(cancellationToken);
+    }
+
+    public async Task<int> MarkAllAsReadAsync(string username, CancellationToken cancellationToken)
+    {
+        var usernameNormalized = username.ToLowerInvariant();
+        
+        var unreadNotifications = await _dbContext.InadNotificacoes
+            .Where(n => n.Usuario == usernameNormalized && !n.Lida && n.ExcluidaEm == null)
+            .ToListAsync(cancellationToken);
+
+        foreach (var notification in unreadNotifications)
+        {
+            notification.MarcarComoLida();
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return unreadNotifications.Count;
+    }
+}

@@ -1,0 +1,23 @@
+using ApiInadimplencia.Application.Abstractions.Cqrs;
+
+namespace ApiInadimplencia.Application.Features.Responsaveis.Commands;
+
+/// <summary>
+/// Handles deletion of a responsible user assignment for a sale.
+/// </summary>
+public class DeleteResponsavelCommandHandler : ICommandHandler<DeleteResponsavelCommand, bool>
+{
+    private readonly IResponsavelRepository _responsavelRepository;
+
+    public DeleteResponsavelCommandHandler(IResponsavelRepository responsavelRepository)
+    {
+        _responsavelRepository = responsavelRepository;
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> HandleAsync(DeleteResponsavelCommand command, CancellationToken cancellationToken = default)
+    {
+        await _responsavelRepository.DeleteAsync(command.NumVendaFk, cancellationToken);
+        return true;
+    }
+}

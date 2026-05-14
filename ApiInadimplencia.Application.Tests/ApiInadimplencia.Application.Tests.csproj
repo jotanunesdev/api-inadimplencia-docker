@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.0" />
+    <PackageReference Include="FluentAssertions" Version="8.10.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="Moq" Version="4.20.72" />
+    <PackageReference Include="xunit" Version="2.5.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Features\Fiadores\Queries\FiadorQueryIntegrationTests.cs" />
+    <Compile Remove="Features\Inadimplencias\Queries\InadimplenciaQueryIntegrationTests.cs" />
+    <Compile Remove="Features\Fiadores\Queries\GetFiadoresByCpfQueryHandlerTests.cs" />
+    <Compile Remove="Features\Fiadores\Queries\GetFiadoresByNumVendaQueryHandlerTests.cs" />
+    <Compile Remove="Features\Inadimplencias\Queries\GetInadimplenciaByCpfQueryHandlerTests.cs" />
+    <Compile Remove="Features\Inadimplencias\Queries\GetInadimplenciaByNumVendaQueryHandlerTests.cs" />
+    <Compile Remove="Features\Inadimplencias\Queries\ListInadimplenciasQueryHandlerTests.cs" />
+    <Compile Remove="Features\Inadimplencias\Queries\GetInadimplenciaByClienteQueryHandlerTests.cs" />
+    <Compile Remove="Features\Inadimplencias\Queries\GetInadimplenciaByResponsavelQueryHandlerTests.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ApiInadimplencia.Application\ApiInadimplencia.Application.csproj" />
+    <ProjectReference Include="..\ApiInadimplencia.Infrastructure\ApiInadimplencia.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

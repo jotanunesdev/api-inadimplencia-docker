@@ -1,0 +1,155 @@
+using ApiInadimplencia.Application.Abstractions.Integrations;
+using ApiInadimplencia.Infrastructure.Configuration;
+using ApiInadimplencia.Infrastructure.Integrations.Fluig;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using WireMock.RequestBuilders;
+using WireMock.ResponseBuilders;
+using WireMock.Server;
+using Xunit;
+
+namespace ApiInadimplencia.Infrastructure.Tests.Integrations.Fluig;
+
+public class FluigDatasetGatewayIntegrationTests : IDisposable
+{
+    private readonly WireMockServer _mockServer;
+    private readonly HttpClient _httpClient;
+    private readonly FluigOptions _fluigOptions;
+    private readonly Mock<ILogger<FluigDatasetGateway>> _loggerMock;
+
+    public FluigDatasetGatewayIntegrationTests()
+    {
+        _mockServer = WireMockServer.Start();
+        _httpClient = new HttpClient { BaseAddress = new Uri(_mockServer.Url!) };
+        _loggerMock = new Mock<ILogger<FluigDatasetGateway>>();
+        
+        _fluigOptions = new FluigOptions
+        {
+            BaseUrl = _mockServer.Url!,
+            Username = "testuser",
+            Password = "testpass",
+            TimeoutSeconds = 10
+        };
+    }
+
+    public void Dispose()
+    {
+        _mockServer.Stop();
+        _mockServer.Dispose();
+        _httpClient.Dispose();
+    }
+
+    [Fact]
+    public async Task GetDatasetAsync_ShouldReturnDataset_WhenAuthenticationSucceeds()
+    {
+        // Arrange
+        _mockServer
+            .Given(Request.Create()
+                .WithPath("/j_security_check")
+                .UsingPost())
+            .RespondWith(Response.Create()
+                .WithStatusCode(200)
+                .WithHeader("Set-Cookie", "JSESSIONID=test123"));
+
+        _mockServer
+            .Given(Request.Create()
+                .WithPath("/dataset-handle/search")
+                .UsingPost())
+            .RespondWith(Response.Create()
+                .WithStatusCode(200)
+                .WithBody("<dataset><result>success</result></dataset>"));
+
+        var client = new FluigDatasetClient(_httpClient, Options.Create(_fluigOptions), _loggerMock.Object);
+        var gateway = new FluigDatasetGateway(client, _loggerMock.Object);
+
+        var parameters = new Dictionary<string, string>
+        {
+            { "REPORT", "test-report" },
+            { "COLIGADA", "1" }
+        };
+
+        // Act
+        var result = await gateway.GetDatasetAsync("ds_paramsRel", parameters);
+
+        // Assert
+        Assert.Contains("<dataset>", result);
+        Assert.Contains("success", result);
+    }
+
+    [Fact]
+    public async Task GetDatasetAsync_ShouldRetryOnFailure_ThenSucceed()
+    {
+        // Arrange
+        var callCount = 0;
+        _mockServer
+            .Given(Request.Create()
+                .WithPath("/j_security_check")
+                .UsingPost())
+            .RespondWith(Response.Create()
+                .WithStatusCode(200)
+                .WithHeader("Set-Cookie", "JSESSIONID=test123"));
+
+        _mockServer
+            .Given(Request.Create()
+                .WithPath("/dataset-handle/search")
+                .UsingPost())
+            .RespondWith(ctx =>
+            {
+                callCount++;
+                if (callCount < 2)
+                {
+                    return Response.Create().WithStatusCode(500);
+                }
+                return Response.Create()
+                    .WithStatusCode(200)
+                    .WithBody("<dataset><result>success</result></dataset>");
+            });
+
+        var client = new FluigDatasetClient(_httpClient, Options.Create(_fluigOptions), _loggerMock.Object);
+        var gateway = new FluigDatasetGateway(client, _loggerMock.Object);
+
+        var parameters = new Dictionary<string, string>
+        {
+            { "REPORT", "test-report" }
+        };
+
+        // Act
+        var result = await gateway.GetDatasetAsync("ds_paramsRel", parameters);
+
+        // Assert
+        Assert.True(callCount >= 2);
+        Assert.Contains("<dataset>", result);
+    }
+
+    [Fact]
+    public async Task GetDatasetAsync_ShouldThrowAfterMultipleFailures()
+    {
+        // Arrange
+        _mockServer
+            .Given(Request.Create()
+                .WithPath("/j_security_check")
+                .UsingPost())
+            .RespondWith(Response.Create()
+                .WithStatusCode(200)
+                .WithHeader("Set-Cookie", "JSESSIONID=test123"));
+
+        _mockServer
+            .Given(Request.Create()
+                .WithPath("/dataset-handle/search")
+                .UsingPost())
+            .RespondWith(Response.Create()
+                .WithStatusCode(500));
+
+        var client = new FluigDatasetClient(_httpClient, Options.Create(_fluigOptions), _loggerMock.Object);
+        var gateway = new FluigDatasetGateway(client, _loggerMock.Object);
+
+        var parameters = new Dictionary<string, string>
+        {
+            { "REPORT", "test-report" }
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<Exception>(() => 
+            gateway.GetDatasetAsync("ds_paramsRel", parameters));
+    }
+}

@@ -1,0 +1,24 @@
+using ApiInadimplencia.Application.Abstractions.Cqrs;
+using ApiInadimplencia.Application.Features.Notifications.Dtos;
+
+namespace ApiInadimplencia.Application.Features.Notifications.Commands;
+
+/// <summary>
+/// Handles marking all notifications as read for a user.
+/// </summary>
+public class MarkAllNotificationsAsReadCommandHandler : ICommandHandler<MarkAllNotificationsAsReadCommand, int>
+{
+    private readonly INotificationRepository _notificationRepository;
+
+    public MarkAllNotificationsAsReadCommandHandler(INotificationRepository notificationRepository)
+    {
+        _notificationRepository = notificationRepository;
+    }
+
+    /// <inheritdoc />
+    public async Task<int> HandleAsync(MarkAllNotificationsAsReadCommand command, CancellationToken cancellationToken = default)
+    {
+        var username = command.Username.ToLowerInvariant();
+        return await _notificationRepository.MarkAllAsReadAsync(username, cancellationToken);
+    }
+}

@@ -1,0 +1,134 @@
+using ApiInadimplencia.Application.Abstractions.Integrations;
+using ApiInadimplencia.Infrastructure.Configuration;
+using ApiInadimplencia.Infrastructure.Integrations.Rm;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using WireMock.RequestBuilders;
+using WireMock.ResponseBuilders;
+using WireMock.Server;
+using Xunit;
+
+namespace ApiInadimplencia.Infrastructure.Tests.Integrations.Rm;
+
+public class RmReportGatewayIntegrationTests : IDisposable
+{
+    private readonly WireMockServer _mockServer;
+    private readonly HttpClient _httpClient;
+    private readonly RmOptions _rmOptions;
+    private readonly Mock<ILogger<RmReportGateway>> _loggerMock;
+
+    public RmReportGatewayIntegrationTests()
+    {
+        _mockServer = WireMockServer.Start();
+        _httpClient = new HttpClient { BaseAddress = new Uri(_mockServer.Url!) };
+        _loggerMock = new Mock<ILogger<RmReportGateway>>();
+        
+        _rmOptions = new RmOptions
+        {
+            BaseUrl = _mockServer.Url!,
+            TimeoutSeconds = 30
+        };
+    }
+
+    public void Dispose()
+    {
+        _mockServer.Stop();
+        _mockServer.Dispose();
+        _httpClient.Dispose();
+    }
+
+    [Fact]
+    public async Task GenerateReportAsync_ShouldReturnUrl_WhenSuccessful()
+    {
+        // Arrange
+        var expectedUrl = "https://rm.example.com/reports/Report.pdf";
+        
+        _mockServer
+            .Given(Request.Create()
+                .WithPath("/dataset-handle/search")
+                .UsingPost())
+            .RespondWith(Response.Create()
+                .WithStatusCode(200)
+                .WithBody(expectedUrl));
+
+        var client = new RmReportClient(_httpClient, Options.Create(_rmOptions), _loggerMock.Object);
+        var gateway = new RmReportGateway(client, _loggerMock.Object);
+
+        var parameters = new Dictionary<string, string>
+        {
+            { "COLIGADA", "1" },
+            { "NUMVENDA", "12345" }
+        };
+
+        // Act
+        var result = await gateway.GenerateReportAsync("test-report", parameters);
+
+        // Assert
+        Assert.Equal(expectedUrl, result);
+    }
+
+    [Fact]
+    public async Task GenerateReportAsync_ShouldRetryOnFailure_ThenSucceed()
+    {
+        // Arrange
+        var expectedUrl = "https://rm.example.com/reports/Report.pdf";
+        var callCount = 0;
+
+        _mockServer
+            .Given(Request.Create()
+                .WithPath("/dataset-handle/search")
+                .UsingPost())
+            .RespondWith(ctx =>
+            {
+                callCount++;
+                if (callCount < 2)
+                {
+                    return Response.Create().WithStatusCode(500);
+                }
+                return Response.Create()
+                    .WithStatusCode(200)
+                    .WithBody(expectedUrl);
+            });
+
+        var client = new RmReportClient(_httpClient, Options.Create(_rmOptions), _loggerMock.Object);
+        var gateway = new RmReportGateway(client, _loggerMock.Object);
+
+        var parameters = new Dictionary<string, string>
+        {
+            { "COLIGADA", "1" },
+            { "NUMVENDA", "12345" }
+        };
+
+        // Act
+        var result = await gateway.GenerateReportAsync("test-report", parameters);
+
+        // Assert
+        Assert.True(callCount >= 2);
+        Assert.Equal(expectedUrl, result);
+    }
+
+    [Fact]
+    public async Task GenerateReportAsync_ShouldThrowAfterMultipleFailures()
+    {
+        // Arrange
+        _mockServer
+            .Given(Request.Create()
+                .WithPath("/dataset-handle/search")
+                .UsingPost())
+            .RespondWith(Response.Create()
+                .WithStatusCode(500));
+
+        var client = new RmReportClient(_httpClient, Options.Create(_rmOptions), _loggerMock.Object);
+        var gateway = new RmReportGateway(client, _loggerMock.Object);
+
+        var parameters = new Dictionary<string, string>
+        {
+            { "COLIGADA", "1" },
+            { "NUMVENDA", "12345" }
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<Exception>(() => 
+            gateway.GenerateReportAsync("test-report", parameters));
+    }
+}

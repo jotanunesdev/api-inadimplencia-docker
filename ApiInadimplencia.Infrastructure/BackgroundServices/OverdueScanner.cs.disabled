@@ -1,0 +1,141 @@
+using ApiInadimplencia.Application.Abstractions.Cqrs;
+using ApiInadimplencia.Application.Features.Notifications.Dtos;
+using ApiInadimplencia.Domain.Kanban;
+using ApiInadimplencia.Domain.Notifications;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+
+namespace ApiInadimplencia.Infrastructure.BackgroundServices;
+
+/// <summary>
+/// Background service that scans for overdue sales and creates notifications.
+/// </summary>
+public class OverdueScanner : BackgroundService
+{
+    private readonly IServiceProvider _serviceProvider;
+    private readonly ILogger<OverdueScanner> _logger;
+    private readonly OverdueScannerOptions _options;
+    private readonly SemaphoreSlim _lock = new(1, 1);
+
+    public OverdueScanner(
+        IServiceProvider serviceProvider,
+        ILogger<OverdueScanner> logger,
+        IOptions<OverdueScannerOptions> options)
+    {
+        _serviceProvider = serviceProvider;
+        _logger = logger;
+        _options = options.Value;
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        _logger.LogInformation("OverdueScanner started.");
+
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                await ScanForOverdueSalesAsync(stoppingToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error scanning for overdue sales.");
+            }
+
+            await Task.Delay(_options.ScanIntervalMinutes * 60 * 1000, stoppingToken);
+        }
+
+        _logger.LogInformation("OverdueScanner stopped.");
+    }
+
+    private async Task ScanForOverdueSalesAsync(CancellationToken cancellationToken)
+    {
+        // Prevent re-entrancy
+        if (!_lock.Wait(0, cancellationToken))
+        {
+            _logger.LogWarning("OverdueScanner is already running, skipping this cycle.");
+            return;
+        }
+
+        try
+        {
+            using var scope = _serviceProvider.CreateScope();
+            var legacySqlExecutor = scope.ServiceProvider.GetRequiredService<ApiInadimplencia.Application.Abstractions.Persistence.ILegacySqlExecutor>();
+            var commandDispatcher = scope.ServiceProvider.GetRequiredService<ICommandDispatcher>();
+
+            // Query for sales with kanban status = todo and PROXIMA_ACAO < today
+            var parameters = new Dictionary<string, object?>
+            {
+                { "Today", DateOnly.FromDateTime(DateTime.UtcNow) }
+            };
+
+            var result = await legacySqlExecutor.QueryAsync(
+                "OverdueScanner.GetOverdueSales",
+                parameters,
+                false,
+                cancellationToken);
+
+            if (result == null || !result.IsConfigured || result.Data == null)
+            {
+                _logger.LogInformation("No overdue sales found.");
+                return;
+            }
+
+            var overdueSales = result.Data as IEnumerable<IDictionary<string, object?>>;
+            if (overdueSales == null)
+            {
+                _logger.LogWarning("Unable to parse overdue sales data.");
+                return;
+            }
+
+            foreach (var sale in overdueSales)
+            {
+                try
+                {
+                    var numVenda = Convert.ToInt32(sale["NUM_VENDA"]);
+                    var username = sale["USERNAME"]?.ToString();
+                    var proximaAcao = sale["PROXIMA_ACAO"]?.ToString();
+                    var proximaAcaoDia = proximaAcao != null ? DateOnly.Parse(proximaAcao) : (DateOnly?)null;
+
+                    if (string.IsNullOrEmpty(username))
+                    {
+                        _logger.LogWarning("Skipping overdue sale {NumVenda} - no responsible user assigned.", numVenda);
+                        continue;
+                    }
+
+                    // Create notification for overdue sale
+                    var command = new CreateNotificationCommand(
+                        NotificationType.VendaAtrasada,
+                        username,
+                        numVenda,
+                        proximaAcaoDia,
+                        $"Venda {numVenda} com ação atrasada: {proximaAcao}");
+
+                    await commandDispatcher.DispatchAsync(command, cancellationToken);
+                    _logger.LogInformation("Created overdue notification for sale {NumVenda} and user {Username}", numVenda, username);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error processing overdue sale.");
+                }
+            }
+
+            _logger.LogInformation("Overdue scan completed. Processed {Count} sales.", overdueSales.Count());
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+}
+
+/// <summary>
+/// Configuration options for the overdue scanner.
+/// </summary>
+public class OverdueScannerOptions
+{
+    public const string SectionName = "OverdueScanner";
+    public int ScanIntervalMinutes { get; set; } = 15; // Default: scan every 15 minutes
+}

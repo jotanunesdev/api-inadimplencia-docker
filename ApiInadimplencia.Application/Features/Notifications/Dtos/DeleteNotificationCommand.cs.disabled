@@ -1,0 +1,10 @@
+using ApiInadimplencia.Application.Abstractions.Cqrs;
+
+namespace ApiInadimplencia.Application.Features.Notifications.Dtos;
+
+/// <summary>
+/// Command to soft delete a notification.
+/// </summary>
+public record DeleteNotificationCommand(
+    Guid Id,
+    string Username) : ICommand;

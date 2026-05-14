@@ -1,0 +1,127 @@
+using ApiInadimplencia.Application.Abstractions.Integrations;
+using ApiInadimplencia.Infrastructure.Configuration;
+using ApiInadimplencia.Infrastructure.Integrations.Rm;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Moq;
+using Moq.Protected;
+using System.Net;
+using System.Net.Http;
+using Xunit;
+
+namespace ApiInadimplencia.Infrastructure.Tests.Integrations.Rm;
+
+public class RmReportGatewayTests
+{
+    private readonly Mock<HttpMessageHandler> _httpMessageHandlerMock;
+    private readonly HttpClient _httpClient;
+    private readonly Mock<ILogger<RmReportGateway>> _loggerMock;
+    private readonly RmOptions _rmOptions;
+
+    public RmReportGatewayTests()
+    {
+        _httpMessageHandlerMock = new Mock<HttpMessageHandler>();
+        _httpClient = new HttpClient(_httpMessageHandlerMock.Object);
+        _loggerMock = new Mock<ILogger<RmReportGateway>>();
+        _rmOptions = new RmOptions
+        {
+            BaseUrl = "https://rm.example.com",
+            TimeoutSeconds = 30
+        };
+    }
+
+    [Fact]
+    public async Task GenerateReportAsync_ShouldReturnUrl_WhenSuccessful()
+    {
+        // Arrange
+        var expectedUrl = "https://rm.example.com/reports/Report.pdf";
+        _httpMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(expectedUrl)
+            });
+
+        var client = new RmReportClient(_httpClient, Options.Create(_rmOptions), _loggerMock.Object);
+        var gateway = new RmReportGateway(client, _loggerMock.Object);
+
+        var parameters = new Dictionary<string, string>
+        {
+            { "COLIGADA", "1" },
+            { "NUMVENDA", "12345" }
+        };
+
+        // Act
+        var result = await gateway.GenerateReportAsync("test-report", parameters);
+
+        // Assert
+        Assert.Equal(expectedUrl, result);
+    }
+
+    [Fact]
+    public async Task GenerateReportAsync_ShouldThrowOnMissingParameters()
+    {
+        // Arrange
+        var client = new RmReportClient(_httpClient, Options.Create(_rmOptions), _loggerMock.Object);
+        var gateway = new RmReportGateway(client, _loggerMock.Object);
+
+        var parameters = new Dictionary<string, string>
+        {
+            { "COLIGADA", "1" }
+            // Missing NUMVENDA
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(() => 
+            gateway.GenerateReportAsync("test-report", parameters));
+    }
+
+    [Fact]
+    public async Task GenerateReportAsync_ShouldRetryOnFailure()
+    {
+        // Arrange
+        var expectedUrl = "https://rm.example.com/reports/Report.pdf";
+        var callCount = 0;
+
+        _httpMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() =>
+            {
+                callCount++;
+                if (callCount < 2)
+                {
+                    return new HttpResponseMessage(HttpStatusCode.ServiceUnavailable);
+                }
+                return new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent(expectedUrl)
+                };
+            });
+
+        var client = new RmReportClient(_httpClient, Options.Create(_rmOptions), _loggerMock.Object);
+        var gateway = new RmReportGateway(client, _loggerMock.Object);
+
+        var parameters = new Dictionary<string, string>
+        {
+            { "COLIGADA", "1" },
+            { "NUMVENDA", "12345" }
+        };
+
+        // Act
+        var result = await gateway.GenerateReportAsync("test-report", parameters);
+
+        // Assert
+        Assert.Equal(expectedUrl, result);
+        Assert.True(callCount >= 2, "Should have retried at least once");
+    }
+}

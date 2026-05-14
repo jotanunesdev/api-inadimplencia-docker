@@ -1,0 +1,135 @@
+using ApiInadimplencia.Application.Abstractions.Integrations;
+using ApiInadimplencia.Infrastructure.Configuration;
+using ApiInadimplencia.Infrastructure.Integrations.Fluig;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Moq;
+using Moq.Protected;
+using System.Net;
+using System.Net.Http;
+using Xunit;
+
+namespace ApiInadimplencia.Infrastructure.Tests.Integrations.Fluig;
+
+public class FluigDatasetGatewayTests
+{
+    private readonly Mock<HttpMessageHandler> _httpMessageHandlerMock;
+    private readonly HttpClient _httpClient;
+    private readonly Mock<ILogger<FluigDatasetGateway>> _loggerMock;
+    private readonly FluigOptions _fluigOptions;
+
+    public FluigDatasetGatewayTests()
+    {
+        _httpMessageHandlerMock = new Mock<HttpMessageHandler>();
+        _httpClient = new HttpClient(_httpMessageHandlerMock.Object);
+        _loggerMock = new Mock<ILogger<FluigDatasetGateway>>();
+        _fluigOptions = new FluigOptions
+        {
+            BaseUrl = "https://fluig.example.com",
+            Username = "testuser",
+            Password = "testpass",
+            TimeoutSeconds = 10
+        };
+    }
+
+    [Fact]
+    public async Task GetDatasetAsync_ShouldReturnDataset_WhenSuccessful()
+    {
+        // Arrange
+        var expectedDataset = "<dataset><result>success</result></dataset>";
+        _httpMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(expectedDataset)
+            });
+
+        var client = new FluigDatasetClient(_httpClient, Options.Create(_fluigOptions), _loggerMock.Object);
+        var gateway = new FluigDatasetGateway(client, _loggerMock.Object);
+
+        var parameters = new Dictionary<string, string>
+        {
+            { "REPORT", "test-report" },
+            { "COLIGADA", "1" }
+        };
+
+        // Act
+        var result = await gateway.GetDatasetAsync("ds_paramsRel", parameters);
+
+        // Assert
+        Assert.Equal(expectedDataset, result);
+    }
+
+    [Fact]
+    public async Task GetDatasetAsync_ShouldRetryOnFailure()
+    {
+        // Arrange
+        var expectedDataset = "<dataset><result>success</result></dataset>";
+        var callCount = 0;
+
+        _httpMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() =>
+            {
+                callCount++;
+                if (callCount < 2)
+                {
+                    return new HttpResponseMessage(HttpStatusCode.ServiceUnavailable);
+                }
+                return new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent(expectedDataset)
+                };
+            });
+
+        var client = new FluigDatasetClient(_httpClient, Options.Create(_fluigOptions), _loggerMock.Object);
+        var gateway = new FluigDatasetGateway(client, _loggerMock.Object);
+
+        var parameters = new Dictionary<string, string>
+        {
+            { "REPORT", "test-report" }
+        };
+
+        // Act
+        var result = await gateway.GetDatasetAsync("ds_paramsRel", parameters);
+
+        // Assert
+        Assert.Equal(expectedDataset, result);
+        Assert.True(callCount >= 2, "Should have retried at least once");
+    }
+
+    [Fact]
+    public async Task GetDatasetAsync_ShouldThrowOnCircuitBreakerOpen()
+    {
+        // Arrange
+        _httpMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ThrowsAsync(new HttpRequestException("Connection failed"));
+
+        var client = new FluigDatasetClient(_httpClient, Options.Create(_fluigOptions), _loggerMock.Object);
+        var gateway = new FluigDatasetGateway(client, _loggerMock.Object);
+
+        var parameters = new Dictionary<string, string>
+        {
+            { "REPORT", "test-report" }
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<HttpRequestException>(() => 
+            gateway.GetDatasetAsync("ds_paramsRel", parameters));
+    }
+}

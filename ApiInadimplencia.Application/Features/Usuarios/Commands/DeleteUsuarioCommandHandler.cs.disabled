@@ -1,0 +1,23 @@
+using ApiInadimplencia.Application.Abstractions.Cqrs;
+
+namespace ApiInadimplencia.Application.Features.Usuarios.Commands;
+
+/// <summary>
+/// Handles deletion of a user.
+/// </summary>
+public class DeleteUsuarioCommandHandler : ICommandHandler<DeleteUsuarioCommand, bool>
+{
+    private readonly IUsuarioRepository _usuarioRepository;
+
+    public DeleteUsuarioCommandHandler(IUsuarioRepository usuarioRepository)
+    {
+        _usuarioRepository = usuarioRepository;
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> HandleAsync(DeleteUsuarioCommand command, CancellationToken cancellationToken = default)
+    {
+        await _usuarioRepository.DeleteAsync(command.UserCode, cancellationToken);
+        return true;
+    }
+}

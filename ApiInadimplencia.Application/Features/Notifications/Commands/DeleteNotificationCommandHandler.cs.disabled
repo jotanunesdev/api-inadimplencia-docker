@@ -1,0 +1,37 @@
+using ApiInadimplencia.Application.Abstractions.Cqrs;
+using ApiInadimplencia.Application.Features.Notifications.Dtos;
+
+namespace ApiInadimplencia.Application.Features.Notifications.Commands;
+
+/// <summary>
+/// Handles soft deletion of a notification.
+/// </summary>
+public class DeleteNotificationCommandHandler : ICommandHandler<DeleteNotificationCommand>
+{
+    private readonly INotificationRepository _notificationRepository;
+
+    public DeleteNotificationCommandHandler(INotificationRepository notificationRepository)
+    {
+        _notificationRepository = notificationRepository;
+    }
+
+    /// <inheritdoc />
+    public async Task HandleAsync(DeleteNotificationCommand command, CancellationToken cancellationToken = default)
+    {
+        var notificacao = await _notificationRepository.GetByIdAsync(command.Id, cancellationToken);
+        if (notificacao == null)
+        {
+            throw new InvalidOperationException($"Notificação com ID {command.Id} não encontrada.");
+        }
+
+        // Validate that the notification belongs to the user
+        if (notificacao.Usuario != command.Username.ToLowerInvariant())
+        {
+            throw new UnauthorizedAccessException("Você não tem permissão para excluir esta notificação.");
+        }
+
+        // Soft delete will throw if notification is not read
+        notificacao.Excluir();
+        await _notificationRepository.DeleteAsync(notificacao, cancellationToken);
+    }
+}

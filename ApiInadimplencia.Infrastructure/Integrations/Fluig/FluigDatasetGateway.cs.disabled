@@ -1,0 +1,97 @@
+using ApiInadimplencia.Application.Abstractions.Integrations;
+using Microsoft.Extensions.Logging;
+using Polly;
+using Polly.CircuitBreaker;
+using Polly.Retry;
+
+namespace ApiInadimplencia.Infrastructure.Integrations.Fluig;
+
+/// <summary>
+/// Implementação do gateway Fluig com Polly para resiliência
+/// </summary>
+public class FluigDatasetGateway : IFluigDatasetGateway
+{
+    private readonly FluigDatasetClient _client;
+    private readonly AsyncRetryPolicy _retryPolicy;
+    private readonly AsyncCircuitBreakerPolicy _circuitBreakerPolicy;
+    private readonly ILogger<FluigDatasetGateway> _logger;
+
+    public FluigDatasetGateway(
+        FluigDatasetClient client,
+        ILogger<FluigDatasetGateway> logger)
+    {
+        _client = client;
+        _logger = logger;
+
+        // Retry policy: 3 tentativas com exponential backoff
+        _retryPolicy = Policy
+            .Handle<HttpRequestException>()
+            .Or<TaskCanceledException>()
+            .OrResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
+            .WaitAndRetryAsync(
+                retryCount: 3,
+                sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                onRetry: (outcome, timeSpan, retryCount, context) =>
+                {
+                    _logger.LogWarning(
+                        "Tentativa {RetryCount} falhou. Tentando novamente em {TimeSpan}s. Erro: {Error}",
+                        retryCount, timeSpan.TotalSeconds, outcome.Exception?.Message);
+                });
+
+        // Circuit breaker: 5 falhas consecutivas abre o circuito por 30s
+        _circuitBreakerPolicy = Policy
+            .Handle<HttpRequestException>()
+            .Or<TaskCanceledException>()
+            .OrResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
+            .CircuitBreakerAsync(
+                exceptionsAllowedBeforeBreaking: 5,
+                durationOfBreak: TimeSpan.FromSeconds(30),
+                onBreak: (exception, breakDelay) =>
+                {
+                    _logger.LogError(
+                        "Circuit breaker aberto por {BreakDuration}s devido a falhas consecutivas. Erro: {Error}",
+                        breakDelay.TotalSeconds, exception?.Message);
+                },
+                onReset: () =>
+                {
+                    _logger.LogInformation("Circuit breaker resetado e pronto para novas requisições");
+                });
+    }
+
+    public async Task<string> GetDatasetAsync(string datasetName, Dictionary<string, string> parameters, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await _circuitBreakerPolicy.ExecuteAsync(async () =>
+            {
+                return await _retryPolicy.ExecuteAsync(async () =>
+                {
+                    // Autenticar se necessário
+                    await _client.AuthenticateAsync(cancellationToken);
+
+                    // Buscar dataset
+                    var datasetContent = await _client.GetDatasetAsync(datasetName, parameters, cancellationToken);
+
+                    // Mascarar cookies em logs (não logar conteúdo bruto)
+                    _logger.LogDebug(
+                        "Dataset {DatasetName} obtido com sucesso. Parâmetros: {Parameters}",
+                        datasetName, string.Join(", ", parameters.Select(p => $"{p.Key}=***")));
+
+                    return datasetContent;
+                }, cancellationToken);
+            }, cancellationToken);
+
+            return result;
+        }
+        catch (BrokenCircuitException)
+        {
+            _logger.LogError("Circuit breaker está aberto. Requisição ao Fluig não foi executada.");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao buscar dataset {DatasetName} no Fluig", datasetName);
+            throw;
+        }
+    }
+}

@@ -1,0 +1,71 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq-inadimplencia
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: unless-stopped
+    healthcheck:
+      # check_port_connectivity só retorna OK quando o listener AMQP (5672)
+      # está realmente aceitando conexões, evitando que a API suba antes do
+      # RabbitMQ estar pronto e receba "Connection refused".
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q check_port_connectivity"]
+      interval: 5s
+      timeout: 15s
+      retries: 20
+      start_period: 30s
+
+  api-inadimplencia:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - HTTP_PROXY=${HTTP_PROXY}
+        - HTTPS_PROXY=${HTTPS_PROXY}
+        - NO_PROXY=${NO_PROXY}
+    image: api-inadimplencia:local
+    container_name: api-inadimplencia
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      SqlServer__ConnectionString: Server=${INAD_DB_SERVER},${INAD_DB_PORT};Database=${INAD_DB_DATABASE};User Id=${INAD_DB_USER};Password=${INAD_DB_PASSWORD};Encrypt=${INAD_DB_ENCRYPT};TrustServerCertificate=${INAD_DB_TRUST_CERT}
+      SqlServer__CommandTimeoutSeconds: 30
+      RabbitMQ__Host: rabbitmq
+      RabbitMQ__Port: 5672
+      RabbitMQ__Username: guest
+      RabbitMQ__Password: guest
+      RabbitMQ__VirtualHost: /
+      Fluig__Url: ${INAD_FLUIG_URL}
+      Fluig__User: ${INAD_FLUIG_USER}
+      Fluig__Password: ${INAD_FLUIG_PASSWORD}
+      Rm__Coligada: ${INAD_RM_COLIGADA}
+      Rm__ReportColigada: ${INAD_RM_REPORT_COLIGADA}
+      Rm__ParamColigada: ${INAD_RM_PARAM_COLIGADA}
+      Rm__ReportId: ${INAD_RM_REPORT_ID}
+      Rm__Debug: ${INAD_RM_DEBUG}
+      SerasaPefin__Env: ${INAD_SERASA_ENV}
+      SerasaPefin__AuthUrl: ${INAD_SERASA_AUTH_URL}
+      SerasaPefin__CollectionBaseUrl: ${INAD_SERASA_COLLECTION_BASE_URL}
+      SerasaPefin__ClientId: ${INAD_SERASA_CLIENT_ID}
+      SerasaPefin__ClientSecret: ${INAD_SERASA_CLIENT_SECRET}
+      SerasaPefin__LogonVinculado: ${INAD_SERASA_LOGON_VINCULADO}
+      SerasaPefin__CnpjContrato: ${INAD_SERASA_CNPJ_CONTRATO}
+      SerasaPefin__UseUatDefaults: ${INAD_SERASA_USE_UAT_DEFAULTS}
+      SerasaPefin__CreditorDocument: ${INAD_SERASA_CREDITOR_DOCUMENT}
+      SerasaPefin__AreaInformante: ${INAD_SERASA_AREA_INFORMANTE}
+    ports:
+      - "${INAD_PORT:-8080}:8080"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+

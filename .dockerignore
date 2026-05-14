@@ -1,0 +1,14 @@
+.git
+.vs
+.vscode
+**/bin
+**/obj
+**/.user
+**/*.user
+**/*.suo
+logs
+documentos/**/*.tmp
+Dockerfile
+docker-compose*.yml
+.env
+

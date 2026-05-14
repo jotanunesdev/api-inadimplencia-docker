@@ -1,0 +1,70 @@
+using ApiInadimplencia.Application.Abstractions.Cqrs;
+using ApiInadimplencia.Application.Features.Notifications.Dtos;
+using ApiInadimplencia.Domain.Events;
+using ApiInadimplencia.Domain.Notifications;
+using ApiInadimplencia.Infrastructure.Notifications;
+using MassTransit;
+
+namespace ApiInadimplencia.Application.Features.Notifications.EventHandlers;
+
+/// <summary>
+/// Handles the VendaAtribuidoEvent by creating a notification and broadcasting via SSE.
+/// </summary>
+public class VendaAtribuidaEventHandler : IConsumer<ResponsavelAtribuidoEvent>
+{
+    private readonly ICommandDispatcher _commandDispatcher;
+    private readonly SseHub _sseHub;
+    private readonly ILogger<VendaAtribuidaEventHandler> _logger;
+
+    public VendaAtribuidaEventHandler(
+        ICommandDispatcher commandDispatcher,
+        SseHub sseHub,
+        ILogger<VendaAtribuidaEventHandler> logger)
+    {
+        _commandDispatcher = commandDispatcher;
+        _sseHub = sseHub;
+        _logger = logger;
+    }
+
+    public async Task Consume(ConsumeContext<ResponsavelAtribuidoEvent> context)
+    {
+        var @event = context.Message;
+
+        // Only create notification if there's a new responsible user
+        if (string.IsNullOrEmpty(@event.CurrentUsername))
+        {
+            _logger.LogWarning("VendaAtribuidoEvent has no CurrentUsername, skipping notification creation.");
+            return;
+        }
+
+        // Create notification for the new responsible user
+        var command = new CreateNotificationCommand(
+            NotificationType.VendaAtribuida,
+            @event.CurrentUsername,
+            @event.NumVenda,
+            null,
+            $"Venda {@event.NumVenda} foi atribuída a você.");
+
+        var notificationId = await _commandDispatcher.DispatchAsync(command, context.CancellationToken);
+
+        _logger.LogInformation(
+            "Created notification {NotificationId} for sale {NumVenda} assigned to {Username}",
+            notificationId,
+            @event.NumVenda,
+            @event.CurrentUsername);
+
+        // Broadcast via SSE
+        var notificationDto = new
+        {
+            Id = notificationId,
+            Tipo = NotificationType.VendaAtribuida.ToString(),
+            Usuario = @event.CurrentUsername,
+            NumVenda = @event.NumVenda,
+            Mensagem = $"Venda {@event.NumVenda} foi atribuída a você.",
+            Lida = false,
+            CriadaEm = DateTime.UtcNow
+        };
+
+        await _sseHub.BroadcastNotificationAsync(@event.CurrentUsername, notificationDto, context.CancellationToken);
+    }
+}
