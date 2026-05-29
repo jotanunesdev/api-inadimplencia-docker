@@ -89,7 +89,7 @@ public class InadimplenciaDbContextTests
 
         using var context = new InadimplenciaDbContext(options, configuration);
         var atendimento = ApiInadimplencia.Domain.Atendimentos.Atendimento.Criar(
-            protocolo: "20250112000001",
+            protocolo: "2025011200001",
             cpf: "12345678901",
             numVendaFk: 12345,
             dadosVendaJson: "{\"teste\": \"valor\"}");
@@ -101,7 +101,7 @@ public class InadimplenciaDbContextTests
         // Assert
         var retrieved = await context.Atendimentos.FirstOrDefaultAsync(a => a.NumVendaFk == 12345);
         retrieved.Should().NotBeNull();
-        retrieved!.Protocolo.Should().Be("20250112000001");
+        retrieved!.Protocolo.Should().Be("2025011200001");
         retrieved.Cpf.Should().Be("12345678901");
     }
 

@@ -23,8 +23,7 @@ public static class InadimplenciaRouteCatalog
     /// <summary>
     /// Gets the contract endpoints known from the source module.
     /// </summary>
-    public static IReadOnlyList<EndpointDescriptor> Endpoints { get; } =
-    [
+    public static IReadOnlyList<EndpointDescriptor> Endpoints { get; } = BuildEndpoints([
         new("GET", "/health", "Health", "migrated", "Global API health."),
         new("GET", "/inadimplencia/health", "Health", "migrated", "Module health."),
         new("GET", "/inadimplencia/contracts", "Documentation", "migrated", "Returns this route catalog."),
@@ -78,6 +77,12 @@ public static class InadimplenciaRouteCatalog
         new("GET", "/serasa-pefin/acompanhamento/{transactionId}", "Serasa PEFIN", "migrated", "Typed query handler for tracking."),
         new("GET", "/serasa-pefin/negativacoes/{id}", "Serasa PEFIN", "migrated", "Typed query handler for details."),
         new("POST", "/serasa-pefin/webhooks/{tipo}/{resultado}", "Serasa PEFIN", "partial", "Webhook idempotency pending implementation."),
-    ];
-}
+    ]);
 
+    private static IReadOnlyList<EndpointDescriptor> BuildEndpoints(IEnumerable<EndpointDescriptor> endpoints)
+        => endpoints
+            .Select(endpoint => endpoint.Path == "/health" || endpoint.Path.StartsWith("/inadimplencia", StringComparison.OrdinalIgnoreCase)
+                ? endpoint
+                : endpoint with { Path = $"/inadimplencia{endpoint.Path}" })
+            .ToList();
+}

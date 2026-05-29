@@ -1,4 +1,5 @@
 using ApiInadimplencia.Application.Abstractions;
+using ApiInadimplencia.Application.Abstractions.Auth;
 using ApiInadimplencia.Application.Abstractions.Cqrs;
 using ApiInadimplencia.Application.Abstractions.Integrations;
 using ApiInadimplencia.Application.Abstractions.Persistence;
@@ -9,11 +10,13 @@ using ApiInadimplencia.Application.Features.Fiadores.Queries;
 using ApiInadimplencia.Application.Features.Inadimplencias.Dtos;
 using ApiInadimplencia.Application.Features.Inadimplencias.Queries;
 using ApiInadimplencia.Application.Features.Legacy;
-// using ApiInadimplencia.Application.Features.Notifications;
-// using ApiInadimplencia.Application.Features.Notifications.Commands;
-// using ApiInadimplencia.Application.Features.Notifications.Dtos;
-// using ApiInadimplencia.Application.Features.Notifications.EventHandlers;
-// using ApiInadimplencia.Application.Features.Notifications.Queries;
+using ApiInadimplencia.Application.Features.Notifications;
+using ApiInadimplencia.Application.Features.Notifications.Commands;
+using ApiInadimplencia.Application.Features.Notifications.Dtos;
+using ApiInadimplencia.Application.Features.Notifications.Queries;
+using ApiInadimplencia.Application.Features.Negativacao.Commands;
+using ApiInadimplencia.Application.Features.Negativacao.Dtos;
+using ApiInadimplencia.Application.Features.Negativacao.Queries;
 using ApiInadimplencia.Application.Features.Ocorrencias;
 using ApiInadimplencia.Application.Features.Ocorrencias.Commands;
 using ApiInadimplencia.Application.Features.Ocorrencias.Dtos;
@@ -27,11 +30,12 @@ using ApiInadimplencia.Application.Features.SerasaPefin.Webhooks;
 // using ApiInadimplencia.Application.Features.Relatorios.Commands;
 // using ApiInadimplencia.Infrastructure.BackgroundServices;
 using ApiInadimplencia.Application.Configuration;
+using ApiInadimplencia.Infrastructure.Auth;
 using ApiInadimplencia.Infrastructure.Configuration;
 // using ApiInadimplencia.Infrastructure.Integrations.Fluig;
 // using ApiInadimplencia.Infrastructure.Integrations.Rm;
 using ApiInadimplencia.Infrastructure.Integrations.SerasaPefin;
-// using ApiInadimplencia.Infrastructure.Notifications;
+using ApiInadimplencia.Infrastructure.Notifications;
 using ApiInadimplencia.Infrastructure.Persistence.SqlServer;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
@@ -53,8 +57,14 @@ public static class DependencyInjection
     /// <returns>The same service collection.</returns>
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        string? environmentName = null)
     {
+        var sqlServerOptions = configuration.GetSection(SqlServerOptions.SectionName).Get<SqlServerOptions>() ?? new SqlServerOptions();
+        var hasSqlServer = !string.IsNullOrWhiteSpace(sqlServerOptions.ConnectionString);
+        var isTestingEnvironment = string.Equals(environmentName, "Testing", StringComparison.OrdinalIgnoreCase);
+        var authOptions = AuthOptions.FromConfiguration(configuration, environmentName);
+
         // SQL Server configuration
         services
             .AddOptions<SqlServerOptions>()
@@ -85,11 +95,38 @@ public static class DependencyInjection
             .Bind(configuration.GetSection(SerasaPefinOptions.SectionName))
             .ValidateDataAnnotations();
 
+        // Negativacao configuration
+        services
+            .AddOptions<ApiInadimplencia.Application.Configuration.NegativacaoOptions>()
+            .Bind(configuration.GetSection(ApiInadimplencia.Application.Configuration.NegativacaoOptions.SectionName))
+            .ValidateDataAnnotations();
+
         // OverdueScanner configuration
         // services
         //     .AddOptions<OverdueScannerOptions>()
         //     .Bind(configuration.GetSection(OverdueScannerOptions.SectionName))
         //     .ValidateDataAnnotations();
+
+        // HTTP Context accessor for CurrentUserService
+        services.AddHttpContextAccessor();
+
+        // Auth integration and inadimplencia session services
+        services.AddSingleton(authOptions);
+        services.AddHttpClient<EntraIdAuthClient>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(authOptions.AuthServerTimeoutSeconds);
+        });
+        services.AddTransient<IEntraIdAuthClient>(sp => sp.GetRequiredService<EntraIdAuthClient>());
+        services.AddTransient<IAuthServerClient>(sp => sp.GetRequiredService<EntraIdAuthClient>());
+        services.AddSingleton<CredentialCrypto>();
+        services.AddSingleton<CredentialTransportCrypto>();
+        services.AddSingleton<IInadimplenciaSessionStore, InMemoryInadimplenciaSessionStore>();
+        services.AddScoped<IAdCredentialRepository, SqlServerAdCredentialRepository>();
+        services.AddScoped<IEntraTokenRepository, SqlServerEntraTokenRepository>();
+
+        // Auth services for negativacao fluxo
+        services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddSingleton<IAprovadoresPolicy, OptionsAprovadoresPolicy>();
 
         // SQL Server connection factory
         services.AddSingleton<SqlServerConnectionFactory>();
@@ -97,42 +134,61 @@ public static class DependencyInjection
         // EF Core DbContext
         services.AddDbContext<InadimplenciaDbContext>((serviceProvider, options) =>
         {
-            var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-            var sqlOptions = configuration.GetSection(SqlServerOptions.SectionName).Get<SqlServerOptions>()
-                ?? throw new InvalidOperationException("SqlServerOptions not configured.");
-
-            options.UseSqlServer(sqlOptions.ConnectionString, builder =>
+            if (hasSqlServer)
             {
-                builder.CommandTimeout((int)TimeSpan.FromSeconds(sqlOptions.CommandTimeoutSeconds).TotalSeconds);
-                builder.EnableRetryOnFailure(maxRetryCount: 3);
-            });
+                var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+                var sqlOptions = configuration.GetSection(SqlServerOptions.SectionName).Get<SqlServerOptions>()
+                    ?? throw new InvalidOperationException("SqlServerOptions not configured.");
+
+                options.UseSqlServer(sqlOptions.ConnectionString, builder =>
+                {
+                    builder.CommandTimeout((int)TimeSpan.FromSeconds(sqlOptions.CommandTimeoutSeconds).TotalSeconds);
+                    builder.EnableRetryOnFailure(maxRetryCount: 3);
+                });
+                return;
+            }
+
+            options.UseInMemoryDatabase("Inadimplencia_NoSqlConfig");
         });
 
         // MassTransit with RabbitMQ
         services.AddMassTransit(x =>
         {
-            x.UsingRabbitMq((context, cfg) =>
+            if (isTestingEnvironment)
             {
-                var rabbitMqOptions = configuration.GetSection(RabbitMqOptions.SectionName).Get<RabbitMqOptions>()
-                    ?? throw new InvalidOperationException("RabbitMqOptions not configured.");
-
-                cfg.Host(rabbitMqOptions.Host, "/", h =>
+                x.UsingInMemory((context, cfg) =>
                 {
-                    h.Username(rabbitMqOptions.Username);
-                    h.Password(rabbitMqOptions.Password);
+                    cfg.ConfigureEndpoints(context);
                 });
+            }
+            else
+            {
+                x.UsingRabbitMq((context, cfg) =>
+                {
+                    var rabbitMqOptions = configuration.GetSection(RabbitMqOptions.SectionName).Get<RabbitMqOptions>()
+                        ?? throw new InvalidOperationException("RabbitMqOptions not configured.");
 
-                cfg.ConfigureEndpoints(context);
-            });
+                    cfg.Host(rabbitMqOptions.Host, "/", h =>
+                    {
+                        h.Username(rabbitMqOptions.Username);
+                        h.Password(rabbitMqOptions.Password);
+                    });
+
+                    cfg.ConfigureEndpoints(context);
+                });
+            }
 
             // Outbox pattern for commands. Requires tables InboxState, OutboxMessage
             // and OutboxState in dbo (see db/002_masstransit_outbox.sql).
-            x.AddEntityFrameworkOutbox<InadimplenciaDbContext>(o =>
+            if (hasSqlServer && !isTestingEnvironment)
             {
-                o.QueryDelay = TimeSpan.FromSeconds(5);
-                o.UseSqlServer();
-                o.UseBusOutbox();
-            });
+                x.AddEntityFrameworkOutbox<InadimplenciaDbContext>(o =>
+                {
+                    o.QueryDelay = TimeSpan.FromSeconds(5);
+                    o.UseSqlServer();
+                    o.UseBusOutbox();
+                });
+            }
         });
 
         // Legacy SQL executor
@@ -229,6 +285,18 @@ public static class DependencyInjection
         services.AddScoped<ISerasaPefinRepository, SerasaPefinRepository>();
         services.AddScoped<IInadimplenciaQueryService, InadimplenciaQueryService>();
 
+        // Negativacao services
+        services.AddScoped<ISenhaTransacaoRepository, SenhaTransacaoRepository>();
+        services.AddScoped<ISenhaTransacaoHasher, Pbkdf2SenhaTransacaoHasher>();
+        services.AddScoped<ISenhaTransacaoValidator, SenhaTransacaoValidator>();
+        services.AddScoped<ICommandHandler<SetSenhaTransacaoCommand, bool>, SetSenhaTransacaoCommandHandler>();
+        services.AddScoped<IQueryHandler<GetHasSenhaTransacaoQuery, bool>, GetHasSenhaTransacaoQueryHandler>();
+        services.AddScoped<IQueryHandler<GetDividasElegiveisQuery, ApiInadimplencia.Application.Features.Negativacao.Dtos.DividasElegiveisResponse>, GetDividasElegiveisQueryHandler>();
+        services.AddScoped<ICommandHandler<RequestNegativacaoFluxoCommand, Guid>, RequestNegativacaoFluxoCommandHandler>();
+        services.AddScoped<ICommandHandler<DecideNegativacaoCommand, bool>, DecideNegativacaoCommandHandler>();
+        services.AddScoped<IQueryHandler<ListSolicitacoesPendentesQuery, IReadOnlyList<SolicitacaoPendenteDto>>, ListSolicitacoesPendentesQueryHandler>();
+        services.AddScoped<IQueryHandler<GetSolicitacaoByIdQuery, SolicitacaoDetalheDto?>, GetSolicitacaoByIdQueryHandler>();
+
         // HttpClient for Fluig with Polly (disabled - incomplete implementation)
         // services.AddHttpClient<FluigDatasetClient>(client =>
         // {
@@ -260,20 +328,20 @@ public static class DependencyInjection
         // Relatorios command handler (disabled - incomplete implementation)
         // services.AddScoped<ICommandHandler<GenerateFichaFinanceiraCommand, string>, GenerateFichaFinanceiraCommandHandler>();
 
-        // Notification repository (disabled - incomplete implementation)
-        // services.AddScoped<INotificationRepository, NotificationRepository>();
+        // Notification repository
+        services.AddScoped<INotificationRepository, NotificationRepository>();
 
-        // Notification command handlers (disabled - incomplete implementation)
-        // services.AddScoped<ICommandHandler<CreateNotificationCommand, Guid>, CreateNotificationCommandHandler>();
-        // services.AddScoped<ICommandHandler<MarkNotificationAsReadCommand>, MarkNotificationAsReadCommandHandler>();
-        // services.AddScoped<ICommandHandler<MarkAllNotificationsAsReadCommand, int>, MarkAllNotificationsAsReadCommandHandler>();
-        // services.AddScoped<ICommandHandler<DeleteNotificationCommand>, DeleteNotificationCommandHandler>();
+        // Notification command handlers
+        services.AddScoped<ICommandHandler<CreateNotificationCommand, Guid>, CreateNotificationCommandHandler>();
 
-        // Notification query handler (disabled - incomplete implementation)
-        // services.AddScoped<IQueryHandler<ListNotificationsQuery, PagedResult<NotificationDto>>, ListNotificationsQueryHandler>();
+        // Notification query handler
+        services.AddScoped<IQueryHandler<ListNotificationsQuery, PagedResult<NotificationDto>>, ListNotificationsQueryHandler>();
 
-        // SSE Hub as singleton (disabled - incomplete implementation)
-        // services.AddSingleton<SseHub>();
+        // SSE Hub as singleton
+        services.AddSingleton<SseHub>();
+
+        // Notification dispatcher (orchestrates persistence + SSE push)
+        services.AddScoped<INotificationDispatcher, NotificationDispatcher>();
 
         // OverdueScanner as hosted service (disabled - incomplete implementation)
         // services.AddHostedService<OverdueScanner>();
@@ -287,4 +355,3 @@ public static class DependencyInjection
         return services;
     }
 }
-

@@ -18,9 +18,20 @@ public interface ISerasaPefinRepository
     Task<Guid> AddAsync(SerasaPefinSolicitacaoCompleta solicitacao, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Inserts multiple solicitation rows atomically within a single transaction.
+    /// </summary>
+    /// <exception cref="SerasaPefinDuplicateActiveException">When a duplicated active entry exists.</exception>
+    Task AddManyAsync(IReadOnlyCollection<SerasaPefinSolicitacaoCompleta> solicitacoes, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Updates every persisted column of an existing solicitation.
     /// </summary>
     Task UpdateAsync(SerasaPefinSolicitacaoCompleta solicitacao, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Updates multiple persisted solicitations atomically within a single transaction.
+    /// </summary>
+    Task UpdateManyAsync(IReadOnlyCollection<SerasaPefinSolicitacaoCompleta> solicitacoes, CancellationToken cancellationToken);
 
     /// <summary>
     /// Retrieves a solicitation by its primary key.
@@ -38,6 +49,23 @@ public interface ISerasaPefinRepository
     Task<IReadOnlyList<SerasaPefinSolicitacaoCompleta>> ListByNumVendaAsync(int numVenda, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Lists child parcel solicitations linked to a parent solicitation.
+    /// </summary>
+    Task<IReadOnlyList<SerasaPefinSolicitacaoCompleta>> ListByIdSolicitacaoPaiAsync(Guid solicitacaoPaiId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Lists solicitations with optional filters, ordered by creation date (desc) with pagination.
+    /// </summary>
+    Task<IReadOnlyList<SerasaPefinSolicitacaoCompleta>> ListByStatusAsync(
+        SerasaPefinStatus? status,
+        int? numVenda,
+        Guid? solicitacaoId,
+        string? solicitanteUsername,
+        int take,
+        int skip,
+        CancellationToken cancellationToken);
+
+    /// <summary>
     /// Returns whether there is already an active solicitation for the given identity tuple.
     /// </summary>
     Task<bool> ExistsActiveAsync(
@@ -46,6 +74,18 @@ public interface ISerasaPefinRepository
         string documentoDevedor,
         string? documentoGarantidor,
         SerasaPefinRecordType tipoRegistro,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Returns whether there is already an active solicitation for the given identity tuple including parcela.
+    /// </summary>
+    Task<bool> ExistsActiveAsync(
+        int numVenda,
+        string contractNumber,
+        string documentoDevedor,
+        string? documentoGarantidor,
+        SerasaPefinRecordType tipoRegistro,
+        int? numeroParcela,
         CancellationToken cancellationToken);
 
     /// <summary>

@@ -19,6 +19,11 @@ public sealed class GetDashboardKpisQueryHandler(ILegacySqlExecutor executor)
     {
         ArgumentNullException.ThrowIfNull(query);
 
+        if (!_executor.IsConfigured)
+        {
+            return Empty();
+        }
+
         var result = await _executor.QueryAsync(
             "Dashboard.Kpis",
             new Dictionary<string, object?>(),
@@ -27,14 +32,7 @@ public sealed class GetDashboardKpisQueryHandler(ILegacySqlExecutor executor)
 
         if (!result.IsConfigured || result.Data is null)
         {
-            return new DashboardKpisDto
-            {
-                TotalVendas = 0,
-                TotalClientes = 0,
-                SaldoTotal = 0,
-                ValorInadimplente = 0,
-                PercentualInadimplencia = 0
-            };
+            return Empty();
         }
 
         var row = (Dictionary<string, object?>)result.Data;
@@ -47,12 +45,31 @@ public sealed class GetDashboardKpisQueryHandler(ILegacySqlExecutor executor)
         {
             TotalVendas = GetValue<int>(row, "TOTAL_VENDAS"),
             TotalClientes = GetValue<int>(row, "TOTAL_CLIENTES"),
-            SaldoTotal = GetValue<decimal>(row, "SALDO_TOTAL"),
-            ValorInadimplente = GetValue<decimal>(row, "VALOR_INADIMPLENTE"),
-            PercentualInadimplencia = GetValue<decimal>(row, "PERCENTUAL_INADIMPLENCIA")
+            SaldoTotal = GetValue<decimal>(row, "TOTAL_SALDO", "SALDO_TOTAL"),
+            ValorInadimplente = GetValue<decimal>(row, "TOTAL_INADIMPLENTE", "VALOR_INADIMPLENTE"),
+            PercentualInadimplencia = GetValue<decimal>(row, "PERC_INADIMPLENTE", "PERCENTUAL_INADIMPLENCIA")
         };
     }
 
-    private static T GetValue<T>(Dictionary<string, object?> row, string key)
-        => RowValueConverter.GetValue<T>(row, key);
+    private static DashboardKpisDto Empty() => new()
+    {
+        TotalVendas = 0,
+        TotalClientes = 0,
+        SaldoTotal = 0,
+        ValorInadimplente = 0,
+        PercentualInadimplencia = 0
+    };
+
+    private static T GetValue<T>(Dictionary<string, object?> row, params string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            if (row.ContainsKey(key))
+            {
+                return RowValueConverter.GetValue<T>(row, key);
+            }
+        }
+
+        return default!;
+    }
 }

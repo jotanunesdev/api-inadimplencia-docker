@@ -1,4 +1,6 @@
 using ApiInadimplencia.Api.Endpoints;
+using ApiInadimplencia.Api.Configuration;
+using api_inadimplencia.Api.Endpoints;
 using ApiInadimplencia.Api.Middleware;
 using ApiInadimplencia.Infrastructure;
 using OpenTelemetry.Metrics;
@@ -22,6 +24,10 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
 builder.Configuration["IsDevelopment"] = builder.Environment.IsDevelopment().ToString();
 
 builder.Services.AddProblemDetails();
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -41,14 +47,26 @@ builder.Services.AddSwaggerGen(options =>
     }
 });
 
+var corsOptions = CorsPolicyOptions.FromConfiguration(builder.Configuration);
 builder.Services.AddCors(options =>
 {
-    options.AddDefaultPolicy(policy =>
+    options.AddPolicy(CorsPolicyOptions.PolicyName, policy =>
     {
         policy
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowAnyOrigin();
+            .WithOrigins(corsOptions.AllowedOrigins.ToArray())
+            .WithMethods(corsOptions.AllowedMethods.ToArray())
+            .WithHeaders(corsOptions.AllowedHeaders.ToArray())
+            .WithExposedHeaders(corsOptions.ExposedHeaders.ToArray())
+            .SetPreflightMaxAge(TimeSpan.FromSeconds(corsOptions.PreflightMaxAgeSeconds));
+
+        if (corsOptions.AllowCredentials)
+        {
+            policy.AllowCredentials();
+        }
+        else
+        {
+            policy.DisallowCredentials();
+        }
     });
 });
 
@@ -94,7 +112,7 @@ if (!string.IsNullOrEmpty(serasaBaseUrl))
         .AddUrlGroup(new Uri($"{serasaBaseUrl}/oauth/token"), name: "serasa");
 }
 
-builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddInfrastructure(builder.Configuration, builder.Environment.EnvironmentName);
 
 // OpenTelemetry configuration
 builder.Services.AddOpenTelemetry()
@@ -152,7 +170,8 @@ var app = builder.Build();
 app.UseMiddleware<SensitiveDataMaskingMiddleware>();
 
 app.UseExceptionHandler();
-app.UseCors();
+app.UseCors(CorsPolicyOptions.PolicyName);
+app.UseMiddleware<InadimplenciaAuthMiddleware>();
 app.UseSwagger();
 app.UseSwaggerUI();
 
@@ -181,6 +200,9 @@ app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks
 app.MapPrometheusScrapingEndpoint("/metrics");
 
 app.MapInadimplenciaEndpoints();
+app.MapConfiguracoesEndpoints();
+app.MapNotificationsSseEndpoints();
+app.MapNegativacaoFluxoEndpoints();
 
 try
 {

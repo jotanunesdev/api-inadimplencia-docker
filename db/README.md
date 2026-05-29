@@ -18,6 +18,13 @@ apontado pelo `.env` (banco `dwjnc` em `192.168.79.240\bi,10433`).
 4. `004_serasa_pefin_baixa_status.sql` - **obrigatório para módulo Serasa PEFIN**.
    Atualiza constraint `CHECK` da coluna `STATUS` para incluir status de baixa
    (`BAIXA_ENVIADA`, `BAIXA_AGUARDANDO_RETORNO`, `BAIXADO_SUCESSO`, `BAIXADO_ERRO`).
+5. `005_negativacao_fluxo.sql` - **obrigatório para fluxo de aprovação**. Cria
+   `USUARIO_SENHA_TRANSACAO` para armazenamento de hash de senha de transação.
+6. `006_serasa_pefin_status_extensao.sql` - **obrigatório para fluxo de aprovação**.
+   Estende `SERASA_PEFIN_SOLICITACOES` com novos status de aprovação
+   (`AGUARDANDO_APROVACAO`, `APROVADA`, `REJEITADA`, `APROVADA_FALHA_ENVIO`) e
+   campos de rastreabilidade (`SOLICITANTE_USERNAME`, `APROVADOR_USERNAME`,
+   `DT_APROVACAO`, `JUSTIFICATIVA`).
 
 ## Como executar
 
@@ -31,6 +38,8 @@ sqlcmd -S "192.168.79.240\bi,10433" -d dwjnc -U fluig -P "fluig@2019" -C -i db\0
 # Scripts Serasa PEFIN (usar usuário dwbi para permissões ALTER TABLE)
 sqlcmd -S "192.168.79.240\bi,10433" -d dwjnc -U dwbi -P "4bi@2023" -C -i db\003_serasa_pefin.sql
 sqlcmd -S "192.168.79.240\bi,10433" -d dwjnc -U dwbi -P "4bi@2023" -C -i db\004_serasa_pefin_baixa_status.sql
+sqlcmd -S "192.168.79.240\bi,10433" -d dwjnc -U dwbi -P "4bi@2023" -C -i db\005_negativacao_fluxo.sql
+sqlcmd -S "192.168.79.240\bi,10433" -d dwjnc -U dwbi -P "4bi@2023" -C -i db\006_serasa_pefin_status_extensao.sql
 ```
 
 ### Via container da API (sem sqlcmd local)
@@ -57,6 +66,18 @@ docker run --rm -i --network api-inadimplencia-docker_default `
   /opt/mssql-tools/bin/sqlcmd `
     -S "192.168.79.240\bi,10433" -d dwjnc -U dwbi -P "4bi@2023" -C `
     -i /scripts/004_serasa_pefin_baixa_status.sql
+docker run --rm -i --network api-inadimplencia-docker_default `
+  -v "${PWD}\db:/scripts" `
+  mcr.microsoft.com/mssql-tools `
+  /opt/mssql-tools/bin/sqlcmd `
+    -S "192.168.79.240\bi,10433" -d dwjnc -U dwbi -P "4bi@2023" -C `
+    -i /scripts/005_negativacao_fluxo.sql
+docker run --rm -i --network api-inadimplencia-docker_default `
+  -v "${PWD}\db:/scripts" `
+  mcr.microsoft.com/mssql-tools `
+  /opt/mssql-tools/bin/sqlcmd `
+    -S "192.168.79.240\bi,10433" -d dwjnc -U dwbi -P "4bi@2023" -C `
+    -i /scripts/006_serasa_pefin_status_extensao.sql
 ```
 
 Todos os scripts são idempotentes (`IF NOT EXISTS`), portanto podem ser rodados
@@ -64,7 +85,8 @@ novamente sem efeitos colaterais.
 
 ## Notas
 
-- **Usuário dwbi**: Os scripts `003_serasa_pefin.sql` e `004_serasa_pefin_baixa_status.sql`
+- **Usuário dwbi**: Os scripts `003_serasa_pefin.sql`, `004_serasa_pefin_baixa_status.sql`,
+  `005_negativacao_fluxo.sql` e `006_serasa_pefin_status_extensao.sql`
   requerem o usuário `dwbi` (senha: `4bi@2023`) devido às permissões de `ALTER TABLE`
   necessárias para criar/drop constraints. O usuário `fluig` não possui essas permissões.
 - Os tipos foram derivados de

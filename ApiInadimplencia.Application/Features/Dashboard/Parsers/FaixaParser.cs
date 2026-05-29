@@ -8,6 +8,9 @@ public static class FaixaParser
     private static readonly HashSet<string> AllowedValues = new(StringComparer.OrdinalIgnoreCase)
     {
         "0-30",
+        "31-90",
+        "91-180",
+        "180+",
         "31-60",
         "61-90",
         "91-120",

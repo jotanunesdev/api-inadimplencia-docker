@@ -1,16 +1,17 @@
 using Microsoft.AspNetCore.Mvc.Testing;
 using System.Net;
 using Xunit;
+using api_inadimplencia.Api.Tests.Infrastructure;
 
 namespace api_inadimplencia.Api.Tests.Features.SerasaPefin;
 
 [Trait("Category", "Integration")]
 [Trait("Feature", "SerasaPefin")]
-public class SerasaPefinEndpointsIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+public class SerasaPefinEndpointsIntegrationTests : IClassFixture<ApiTestWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly ApiTestWebApplicationFactory _factory;
 
-    public SerasaPefinEndpointsIntegrationTests(WebApplicationFactory<Program> factory)
+    public SerasaPefinEndpointsIntegrationTests(ApiTestWebApplicationFactory factory)
     {
         _factory = factory;
     }

@@ -3,14 +3,15 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using Xunit;
+using api_inadimplencia.Api.Tests.Infrastructure;
 
 namespace api_inadimplencia.Api.Tests.Observability;
 
-public class ObservabilityIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+public class ObservabilityIntegrationTests : IClassFixture<ApiTestWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly ApiTestWebApplicationFactory _factory;
 
-    public ObservabilityIntegrationTests(WebApplicationFactory<Program> factory)
+    public ObservabilityIntegrationTests(ApiTestWebApplicationFactory factory)
     {
         _factory = factory;
     }
@@ -198,5 +199,9 @@ public class ObservabilityIntegrationTests : IClassFixture<WebApplicationFactory
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(response.Headers.TryGetValues("Access-Control-Allow-Origin", out var origins));
+        Assert.Equal("http://localhost:3000", Assert.Single(origins));
+        Assert.True(response.Headers.TryGetValues("Access-Control-Allow-Credentials", out var credentials));
+        Assert.Equal("true", Assert.Single(credentials));
     }
 }

@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using ApiInadimplencia.Application.Abstractions.Cqrs;
 using ApiInadimplencia.Application.Abstractions.Persistence;
@@ -17,6 +18,7 @@ using ApiInadimplencia.Application.Features.Kanban.Dtos;
 using ApiInadimplencia.Application.Features.Legacy;
 using ApiInadimplencia.Application.Features.Notifications.Commands;
 using ApiInadimplencia.Application.Features.Notifications.Dtos;
+using ApiInadimplencia.Application.Features.Notifications;
 using ApiInadimplencia.Application.Features.Notifications.Queries;
 using ApiInadimplencia.Application.Features.Ocorrencias.Commands;
 using ApiInadimplencia.Application.Features.Ocorrencias.Dtos;
@@ -34,6 +36,7 @@ using ApiInadimplencia.Application.Features.SerasaPefin.Queries;
 using ApiInadimplencia.Application.Features.SerasaPefin.Webhooks;
 using ApiInadimplencia.Application.Configuration;
 using ApiInadimplencia.Domain.SerasaPefin;
+using ApiInadimplencia.Domain.Notifications;
 using ApiInadimplencia.Infrastructure.Integrations.SerasaPefin;
 using ApiInadimplencia.Infrastructure.Notifications;
 using Microsoft.Extensions.Options;
@@ -52,15 +55,6 @@ public static class InadimplenciaEndpoints
     /// <returns>The same endpoint route builder.</returns>
     public static IEndpointRouteBuilder MapInadimplenciaEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/health", () => Results.Ok(new
-        {
-            status = "ok",
-            service = "api-inadimplencia",
-            timestamp = DateTimeOffset.UtcNow,
-        }))
-        .WithName("GlobalHealth")
-        .WithOpenApi();
-
         var inadimplencia = app.MapGroup("/inadimplencia")
             .WithTags("Inadimplencia");
 
@@ -82,6 +76,8 @@ public static class InadimplenciaEndpoints
         }))
         .WithName("InadimplenciaContracts")
         .WithOpenApi();
+
+        inadimplencia.MapInadimplenciaSessionEndpoints();
 
         inadimplencia.MapGet("/", async ([FromServices] IQueryHandler<ListInadimplenciasQuery, IReadOnlyList<InadimplenciaDto>> handler, CancellationToken ct) =>
         {
@@ -114,16 +110,16 @@ public static class InadimplenciaEndpoints
             return Results.Ok(new { data = result });
         });
 
-        MapProximasAcoes(app);
-        MapUsuarios(app);
-        MapResponsaveis(app);
-        MapKanban(app);
-        MapFiadores(app);
-        MapDashboard(app);
-        MapNotifications(app);
-        MapSerasaPefin(app);
-        MapSerasaPefinTestRoutes(app);
-        MapPlannedOperationalEndpoints(app);
+        MapProximasAcoes(inadimplencia);
+        MapUsuarios(inadimplencia);
+        MapResponsaveis(inadimplencia);
+        MapKanban(inadimplencia);
+        MapFiadores(inadimplencia);
+        MapDashboard(inadimplencia);
+        MapNotifications(inadimplencia);
+        MapSerasaPefin(inadimplencia);
+        MapSerasaPefinTestRoutes(inadimplencia);
+        MapPlannedOperationalEndpoints(inadimplencia);
 
         return app;
     }
@@ -145,33 +141,102 @@ public static class InadimplenciaEndpoints
         group.MapGet("/{nome}", Query("Usuarios.ByNome", single: true));
         
         group.MapPost("/", async (
-            UpsertUsuarioCommand command,
-            [FromServices] ICommandHandler<UpsertUsuarioCommand, UpsertUsuarioResult> handler,
+            JsonElement body,
+            [FromServices] ICommandHandler<LegacySqlCommand, LegacySqlResult> handler,
             CancellationToken cancellationToken) =>
         {
-            var result = await handler.HandleAsync(command, cancellationToken);
-            var statusCode = result.Exists ? StatusCodes.Status200OK : StatusCodes.Status201Created;
-            return Results.Json(new { data = result.Usuario, exists = result.Exists }, statusCode: statusCode);
+            var nome = BodyString(body, "nome", "NOME");
+            if (string.IsNullOrWhiteSpace(nome))
+            {
+                return Results.BadRequest(new { error = "NOME e obrigatorio." });
+            }
+
+            var userCode = BodyString(body, "userCode", "USER_CODE");
+            var perfil = NormalizePerfil(BodyString(body, "perfil", "PERFIL"))
+                ?? (string.Equals(userCode, "wffluig", StringComparison.OrdinalIgnoreCase) ? "admin" : "operador");
+            var corHex = NormalizeHex(BodyString(body, "corHex", "COR_HEX"));
+            var result = await handler.HandleAsync(
+                new LegacySqlCommand("Usuarios.Upsert", new Dictionary<string, object?>
+                {
+                    ["nome"] = nome.Trim(),
+                    ["userCode"] = string.IsNullOrWhiteSpace(userCode) ? null : userCode.Trim(),
+                    ["perfil"] = perfil,
+                    ["cpfUsuario"] = BodyString(body, "cpfUsuario", "CPF_USUARIO"),
+                    ["setor"] = BodyString(body, "setor", "SETOR"),
+                    ["cargo"] = BodyString(body, "cargo", "CARGO"),
+                    ["ativo"] = BodyBool(body, "ativo", "ATIVO") ?? true,
+                    ["corHex"] = corHex,
+                }),
+                cancellationToken);
+
+            if (!result.IsConfigured)
+            {
+                return SqlNotConfigured();
+            }
+
+            var statusCode = result.RowsAffected.GetValueOrDefault() > 0
+                ? StatusCodes.Status201Created
+                : StatusCodes.Status200OK;
+            return Results.Json(new { data = result.Data }, statusCode: statusCode);
         });
         
         group.MapPut("/{nome}", async (
             string nome,
-            UpdateUsuarioCommand command,
-            [FromServices] ICommandHandler<UpdateUsuarioCommand, UsuarioDto> handler,
+            JsonElement body,
+            [FromServices] ICommandHandler<LegacySqlCommand, LegacySqlResult> handler,
             CancellationToken cancellationToken) =>
         {
-            var updateCommand = command with { UserCode = nome };
-            var result = await handler.HandleAsync(updateCommand, cancellationToken);
-            return Results.Ok(new { data = result });
+            var perfilRaw = BodyString(body, "perfil", "PERFIL");
+            var perfil = NormalizePerfil(perfilRaw);
+            if (!string.IsNullOrWhiteSpace(perfilRaw) && perfil is null)
+            {
+                return Results.BadRequest(new { error = "PERFIL invalido. Use admin ou operador." });
+            }
+
+            var corHexRaw = BodyString(body, "corHex", "COR_HEX");
+            var corHex = NormalizeHex(corHexRaw);
+            if (!string.IsNullOrWhiteSpace(corHexRaw) && corHex is null)
+            {
+                return Results.BadRequest(new { error = "COR_HEX invalida." });
+            }
+
+            var result = await handler.HandleAsync(
+                new LegacySqlCommand("Usuarios.Update", new Dictionary<string, object?>
+                {
+                    ["nome"] = nome.Trim(),
+                    ["userCode"] = BodyString(body, "userCode", "USER_CODE"),
+                    ["perfil"] = perfil,
+                    ["cpfUsuario"] = BodyString(body, "cpfUsuario", "CPF_USUARIO"),
+                    ["setor"] = BodyString(body, "setor", "SETOR"),
+                    ["cargo"] = BodyString(body, "cargo", "CARGO"),
+                    ["ativo"] = BodyBool(body, "ativo", "ATIVO"),
+                    ["corHex"] = corHex,
+                }),
+                cancellationToken);
+
+            if (!result.IsConfigured)
+            {
+                return SqlNotConfigured();
+            }
+
+            return result.Data is null ? Results.NotFound() : Results.Ok(new { data = result.Data });
         });
         
         group.MapDelete("/{nome}", async (
             string nome,
-            [FromServices] ICommandHandler<DeleteUsuarioCommand, bool> handler,
+            [FromServices] ICommandHandler<LegacySqlCommand, LegacySqlResult> handler,
             CancellationToken cancellationToken) =>
         {
-            var result = await handler.HandleAsync(new DeleteUsuarioCommand(nome), cancellationToken);
-            return result ? Results.Ok(new { success = true }) : Results.NotFound();
+            var result = await handler.HandleAsync(
+                new LegacySqlCommand("Usuarios.Delete", new Dictionary<string, object?> { ["nome"] = nome.Trim() }),
+                cancellationToken);
+
+            if (!result.IsConfigured)
+            {
+                return SqlNotConfigured();
+            }
+
+            return (result.RowsAffected ?? 0) > 0 ? Results.Ok(new { success = true }) : Results.NotFound();
         });
     }
 
@@ -182,32 +247,83 @@ public static class InadimplenciaEndpoints
         group.MapGet("/{numVenda:int}", Query("Responsaveis.ByNumVenda", single: true));
         
         group.MapPost("/", async (
-            UpsertResponsavelCommand command,
-            [FromServices] ICommandHandler<UpsertResponsavelCommand, ResponsavelDto> handler,
+            JsonElement body,
+            [FromServices] ICommandHandler<LegacySqlCommand, LegacySqlResult> handler,
             CancellationToken cancellationToken) =>
         {
-            var result = await handler.HandleAsync(command, cancellationToken);
-            return Results.Ok(new { data = result });
+            var numVenda = BodyInt(body, "numVenda", "NUM_VENDA_FK", "NUM_VENDA");
+            var nomeUsuario = BodyString(body, "nomeUsuario", "NOME_USUARIO_FK", "NOME");
+            if (numVenda is null)
+            {
+                return Results.BadRequest(new { error = "NUM_VENDA_FK e obrigatorio." });
+            }
+
+            if (string.IsNullOrWhiteSpace(nomeUsuario))
+            {
+                return Results.BadRequest(new { error = "NOME_USUARIO_FK e obrigatorio." });
+            }
+
+            var result = await handler.HandleAsync(
+                new LegacySqlCommand("Responsaveis.Upsert", new Dictionary<string, object?>
+                {
+                    ["numVenda"] = numVenda.Value,
+                    ["nomeUsuario"] = nomeUsuario.Trim(),
+                    ["adminUserCode"] = BodyString(body, "adminUserCode", "ADMIN_USER_CODE", "userCodeAdmin"),
+                }),
+                cancellationToken);
+
+            if (!result.IsConfigured)
+            {
+                return SqlNotConfigured();
+            }
+
+            return Results.Json(new { data = result.Data }, statusCode: StatusCodes.Status201Created);
         });
         
         group.MapPut("/{numVenda:int}", async (
             int numVenda,
-            UpdateResponsavelCommand command,
-            [FromServices] ICommandHandler<UpdateResponsavelCommand, ResponsavelDto> handler,
+            JsonElement body,
+            [FromServices] ICommandHandler<LegacySqlCommand, LegacySqlResult> handler,
             CancellationToken cancellationToken) =>
         {
-            var updateCommand = command with { NumVendaFk = numVenda };
-            var result = await handler.HandleAsync(updateCommand, cancellationToken);
-            return Results.Ok(new { data = result });
+            var nomeUsuario = BodyString(body, "nomeUsuario", "NOME_USUARIO_FK", "NOME");
+            if (string.IsNullOrWhiteSpace(nomeUsuario))
+            {
+                return Results.BadRequest(new { error = "NOME_USUARIO_FK e obrigatorio." });
+            }
+
+            var result = await handler.HandleAsync(
+                new LegacySqlCommand("Responsaveis.Upsert", new Dictionary<string, object?>
+                {
+                    ["numVenda"] = numVenda,
+                    ["nomeUsuario"] = nomeUsuario.Trim(),
+                    ["adminUserCode"] = BodyString(body, "adminUserCode", "ADMIN_USER_CODE", "userCodeAdmin"),
+                }),
+                cancellationToken);
+
+            if (!result.IsConfigured)
+            {
+                return SqlNotConfigured();
+            }
+
+            return Results.Ok(new { data = result.Data });
         });
         
         group.MapDelete("/{numVenda:int}", async (
             int numVenda,
-            [FromServices] ICommandHandler<DeleteResponsavelCommand, bool> handler,
+            [FromServices] ICommandHandler<LegacySqlCommand, LegacySqlResult> handler,
             CancellationToken cancellationToken) =>
         {
-            var result = await handler.HandleAsync(new DeleteResponsavelCommand(numVenda), cancellationToken);
-            return result ? Results.Ok(new { success = true }) : Results.NotFound();
+            var result = await handler.HandleAsync(
+                new LegacySqlCommand("Responsaveis.Delete", new Dictionary<string, object?> { ["numVenda"] = numVenda }),
+                cancellationToken);
+
+            if (!result.IsConfigured)
+            {
+                return SqlNotConfigured();
+            }
+
+            return (result.RowsAffected ?? 0) > 0 ? Results.Ok(new { success = true }) : Results.NotFound();
         });
     }
 
@@ -217,12 +333,51 @@ public static class InadimplenciaEndpoints
         group.MapGet("/", Query("KanbanStatus.List"));
         
         group.MapPost("/", async (
-            UpsertKanbanStatusCommand command,
-            [FromServices] ICommandHandler<UpsertKanbanStatusCommand, KanbanStatusDto> handler,
+            JsonElement body,
+            [FromServices] ICommandHandler<LegacySqlCommand, LegacySqlResult> handler,
             CancellationToken cancellationToken) =>
         {
-            var result = await handler.HandleAsync(command, cancellationToken);
-            return Results.Ok(new { data = result });
+            var numVenda = BodyInt(body, "numVenda", "NUM_VENDA_FK", "NUM_VENDA");
+            var proximaAcao = BodyString(body, "proximaAcao", "PROXIMA_ACAO", "dataProximaAcao");
+            var status = NormalizeKanbanStatus(BodyString(body, "status", "STATUS"));
+            var statusData = NormalizeDateOnly(BodyString(body, "statusDate", "STATUS_DATA", "dataStatus"));
+            if (numVenda is null)
+            {
+                return Results.BadRequest(new { error = "NUM_VENDA_FK e obrigatorio." });
+            }
+
+            if (string.IsNullOrWhiteSpace(proximaAcao))
+            {
+                return Results.BadRequest(new { error = "PROXIMA_ACAO e obrigatorio." });
+            }
+
+            if (status is null)
+            {
+                return Results.BadRequest(new { error = "STATUS invalido." });
+            }
+
+            if (statusData is null)
+            {
+                return Results.BadRequest(new { error = "STATUS_DATA e obrigatorio." });
+            }
+
+            var result = await handler.HandleAsync(
+                new LegacySqlCommand("KanbanStatus.Upsert", new Dictionary<string, object?>
+                {
+                    ["numVenda"] = numVenda.Value,
+                    ["proximaAcao"] = proximaAcao.Trim().Replace('T', ' ').Replace("Z", string.Empty).Split('.')[0],
+                    ["status"] = status,
+                    ["statusData"] = statusData,
+                    ["nomeUsuario"] = BodyString(body, "nomeUsuario", "NOME_USUARIO_FK", "NOME_USUARIO"),
+                }),
+                cancellationToken);
+
+            if (!result.IsConfigured)
+            {
+                return SqlNotConfigured();
+            }
+
+            return Results.Ok(new { data = result.Data });
         });
     }
 
@@ -259,11 +414,20 @@ public static class InadimplenciaEndpoints
             int? limit,
             string? faixa,
             string? score,
+            string? qtd,
             [FromServices] IQueryHandler<GetMetricQuery, IReadOnlyList<Dictionary<string, object?>>> handler,
             CancellationToken ct) =>
         {
-            var result = await handler.HandleAsync(new GetMetricQuery(metric, dataInicio, dataFim, limit, faixa, score), ct);
-            return Results.Ok(new { data = result });
+            try
+            {
+                var result = await handler.HandleAsync(new GetMetricQuery(metric, dataInicio, dataFim, limit, faixa, score, qtd), ct);
+                object? data = IsSingleDashboardMetric(metric) ? result.FirstOrDefault() : result;
+                return Results.Ok(new { data });
+            }
+            catch (ArgumentException ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
         });
     }
 
@@ -276,85 +440,115 @@ public static class InadimplenciaEndpoints
             int? page,
             int? pageSize,
             bool? lida,
-            [FromServices] IQueryHandler<ListNotificationsQuery, PagedResult<NotificationDto>> handler,
+            [FromServices] IQueryHandler<LegacySqlQuery, LegacySqlResult> handler,
             CancellationToken cancellationToken) =>
         {
             var normalizedPage = Math.Max(page ?? 1, 1);
             var normalizedPageSize = Math.Clamp(pageSize ?? 20, 1, 100);
-            var query = new ListNotificationsQuery(username, normalizedPage, normalizedPageSize, lida);
-            var result = await handler.HandleAsync(query, cancellationToken);
-            return Results.Ok(new { data = result.Items, total = result.Total, page = result.Page, pageSize = result.PageSize, totalPages = result.TotalPages });
-        });
+            var parameters = NotificationParameters(username, normalizedPage, normalizedPageSize, lida);
+            var result = await handler.HandleAsync(new LegacySqlQuery("Notifications.List", parameters), cancellationToken);
 
-        group.MapGet("/stream", async (
-            string username,
-            [FromServices] SseHub sseHub,
-            [FromServices] IQueryHandler<ListNotificationsQuery, PagedResult<NotificationDto>> queryHandler,
-            HttpContext context,
-            CancellationToken cancellationToken) =>
-        {
-            context.Response.Headers.Append("Content-Type", "text/event-stream");
-            context.Response.Headers.Append("Cache-Control", "no-cache");
-            context.Response.Headers.Append("Connection", "keep-alive");
-
-            var streamWriter = new StreamWriter(context.Response.Body);
-            sseHub.AddConnection(username, streamWriter);
-
-            // Send initial snapshot of unread notifications
-            var snapshotQuery = new ListNotificationsQuery(username, 1, 50, Lida: false);
-            var snapshot = await queryHandler.HandleAsync(snapshotQuery, cancellationToken);
-            await sseHub.SendSnapshotAsync(username, snapshot.Items, cancellationToken);
-
-            // Keep connection alive with heartbeat
-            try
+            if (!result.IsConfigured)
             {
-                while (!cancellationToken.IsCancellationRequested)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(15), cancellationToken);
-                    await sseHub.SendHeartbeatAsync(cancellationToken);
-                }
-            }
-            finally
-            {
-                sseHub.RemoveConnection(username);
+                return SqlNotConfigured();
             }
 
-            return Results.Ok();
+            var rows = ResultRows(result);
+            var total = rows.Count > 0 ? Convert.ToInt32(rows[0].GetValueOrDefault("Total") ?? 0) : 0;
+            var unreadCount = rows.Count > 0 ? Convert.ToInt32(rows[0].GetValueOrDefault("UnreadCount") ?? 0) : 0;
+            var notifications = rows.Select(MapNotificationRow).ToList();
+            return Results.Ok(new
+            {
+                notifications,
+                total,
+                page = normalizedPage,
+                pageSize = normalizedPageSize,
+                unreadCount,
+            });
         });
 
         group.MapPut("/read-all", async (
             string username,
-            [FromServices] ICommandHandler<MarkAllNotificationsAsReadCommand, int> handler,
+            [FromServices] ICommandHandler<LegacySqlCommand, LegacySqlResult> handler,
+            [FromServices] SseHub sseHub,
             CancellationToken cancellationToken) =>
         {
-            var command = new MarkAllNotificationsAsReadCommand(username);
-            var count = await handler.HandleAsync(command, cancellationToken);
-            return Results.Ok(new { success = true, markedAsRead = count });
+            var result = await handler.HandleAsync(
+                new LegacySqlCommand("Notifications.MarkAllRead", new Dictionary<string, object?> { ["username"] = username }),
+                cancellationToken);
+
+            if (!result.IsConfigured)
+            {
+                return SqlNotConfigured();
+            }
+
+            await sseHub.BroadcastUpdateAsync(username, NotificationSsePayloadMapper.ToReadAllPayload(), cancellationToken);
+
+            return Results.Ok(new { success = true, markedAsRead = result.RowsAffected ?? 0 });
         });
 
-        // TODO: Re-enable when MarkNotificationAsReadCommand is implemented
-        // group.MapPut("/{id:guid}/read", async (
-        //     Guid id,
-        //     string username,
-        //     ICommandHandler<MarkNotificationAsReadCommand, Unit> handler,
-        //     CancellationToken cancellationToken) =>
-        // {
-        //     var command = new MarkNotificationAsReadCommand(id, username);
-        //     await handler.HandleAsync(command, cancellationToken);
-        //     return Results.Ok(new { success = true });
-        // });
+        group.MapPut("/{id:guid}/read", async (
+            Guid id,
+            string username,
+            [FromServices] ICommandHandler<LegacySqlCommand, LegacySqlResult> handler,
+            [FromServices] INotificationRepository notificationRepository,
+            [FromServices] SseHub sseHub,
+            CancellationToken cancellationToken) =>
+        {
+            var result = await handler.HandleAsync(
+                new LegacySqlCommand("Notifications.MarkRead", new Dictionary<string, object?>
+                {
+                    ["id"] = id,
+                    ["username"] = username,
+                }),
+                cancellationToken);
 
-        // TODO: Re-enable when DeleteNotificationCommand is implemented
-        // group.MapDelete("/{id:guid}", async (
-        //     Guid id,
-        //     string username,
-        //     ICommandHandler<DeleteNotificationCommand, Unit> handler,
-        //     CancellationToken cancellationToken) =>
-        // {
-        //     var command = new DeleteNotificationCommand(id, username);
-        //     await handler.HandleAsync(command, cancellationToken);
-        //     return Results.Ok(new { success = true });
-        // });
+            if (!result.IsConfigured)
+            {
+                return SqlNotConfigured();
+            }
+
+            var notification = await notificationRepository.GetByIdAsync(id, cancellationToken);
+            if (notification is not null)
+            {
+                await sseHub.BroadcastUpdateAsync(username, NotificationSsePayloadMapper.ToUpdatePayload(notification), cancellationToken);
+            }
+
+            return (result.RowsAffected ?? 0) > 0 ? Results.Ok(new { success = true }) : Results.NotFound();
+        });
+
+        group.MapDelete("/{id:guid}", async (
+            Guid id,
+            string username,
+            [FromServices] ICommandHandler<LegacySqlCommand, LegacySqlResult> handler,
+            [FromServices] INotificationRepository notificationRepository,
+            [FromServices] SseHub sseHub,
+            CancellationToken cancellationToken) =>
+        {
+            var result = await handler.HandleAsync(
+                new LegacySqlCommand("Notifications.Delete", new Dictionary<string, object?>
+                {
+                    ["id"] = id,
+                    ["username"] = username,
+                }),
+                cancellationToken);
+
+            if (!result.IsConfigured)
+            {
+                return SqlNotConfigured();
+            }
+
+            var notification = await notificationRepository.GetByIdAsync(id, cancellationToken);
+            if (notification is not null)
+            {
+                await sseHub.BroadcastUpdateAsync(
+                    username,
+                    NotificationSsePayloadMapper.ToUpdatePayload(notification, deletedAt: DateTimeOffset.UtcNow),
+                    cancellationToken);
+            }
+
+            return (result.RowsAffected ?? 0) > 0 ? Results.Ok(new { success = true }) : Results.NotFound();
+        });
     }
 
     private static void MapSerasaPefin(IEndpointRouteBuilder app)
@@ -436,12 +630,17 @@ public static class InadimplenciaEndpoints
             return Results.Ok(new { data = result });
         });
 
-        group.MapGet("/negativacoes/{id:guid}", async (
-            Guid id,
+        group.MapGet("/negativacoes/{id}", async (
+            string id,
             [FromServices] IQueryHandler<GetNegativacaoByIdQuery, SerasaPefinDetalheDto?> handler,
             CancellationToken cancellationToken) =>
         {
-            var result = await handler.HandleAsync(new GetNegativacaoByIdQuery(id), cancellationToken);
+            if (!Guid.TryParse(id, out var parsedId))
+            {
+                return Results.Json(new { error = "ID_INVALIDO" }, statusCode: StatusCodes.Status400BadRequest);
+            }
+
+            var result = await handler.HandleAsync(new GetNegativacaoByIdQuery(parsedId), cancellationToken);
             if (result is null)
             {
                 return Results.NotFound();
@@ -508,117 +707,187 @@ public static class InadimplenciaEndpoints
     private static void MapPlannedOperationalEndpoints(IEndpointRouteBuilder app)
     {
         var ocorrencias = app.MapGroup("/ocorrencias").WithTags("Ocorrencias");
-        ocorrencias.MapGet("/", async ([FromServices] IQueryHandler<ListOcorrenciasQuery, IReadOnlyList<OcorrenciaDto>> handler, CancellationToken ct) =>
-        {
-            var result = await handler.HandleAsync(new ListOcorrenciasQuery(), ct);
-            return Results.Ok(new { data = result });
-        });
-        ocorrencias.MapGet("/{id:guid}", async (Guid id, [FromServices] IQueryHandler<GetOcorrenciaByIdQuery, OcorrenciaDto?> handler, CancellationToken ct) =>
-        {
-            var result = await handler.HandleAsync(new GetOcorrenciaByIdQuery(id), ct);
-            if (result is null)
-            {
-                return Results.NotFound();
-            }
-            return Results.Ok(new { data = result });
-        });
-        ocorrencias.MapGet("/num-venda/{numVenda:int}", async (int numVenda, [FromServices] IQueryHandler<ListOcorrenciasByNumVendaQuery, IReadOnlyList<OcorrenciaDto>> handler, CancellationToken ct) =>
-        {
-            var result = await handler.HandleAsync(new ListOcorrenciasByNumVendaQuery(numVenda), ct);
-            return Results.Ok(new { data = result });
-        });
-        ocorrencias.MapGet("/protocolo/{protocolo}", async (string protocolo, [FromServices] IQueryHandler<ListOcorrenciasByProtocoloQuery, IReadOnlyList<OcorrenciaDto>> handler, CancellationToken ct) =>
-        {
-            var result = await handler.HandleAsync(new ListOcorrenciasByProtocoloQuery(protocolo), ct);
-            return Results.Ok(new { data = result });
-        });
+        ocorrencias.MapGet("/", Query("Ocorrencia.List"));
+        ocorrencias.MapGet("/{id:guid}", Query("Ocorrencia.GetById", single: true));
+        ocorrencias.MapGet("/num-venda/{numVenda:int}", Query("Ocorrencia.ByNumVenda"));
+        ocorrencias.MapGet("/protocolo/{protocolo}", Query("Ocorrencia.ByProtocolo"));
         
         ocorrencias.MapPost("/", async (
-            CreateOcorrenciaCommand command,
-            [FromServices] ICommandHandler<CreateOcorrenciaCommand, Guid> handler,
+            JsonElement body,
+            [FromServices] ICommandHandler<LegacySqlCommand, LegacySqlResult> handler,
             CancellationToken cancellationToken) =>
         {
-            var result = await handler.HandleAsync(command, cancellationToken);
-            return Results.Ok(new { data = result });
+            if (!TryBuildOcorrenciaParameters(body, Guid.NewGuid(), out var parameters, out var error))
+            {
+                return error!;
+            }
+
+            var result = await handler.HandleAsync(new LegacySqlCommand("Ocorrencia.Insert", parameters), cancellationToken);
+            if (!result.IsConfigured)
+            {
+                return SqlNotConfigured();
+            }
+
+            return Results.Json(new { data = result.Data }, statusCode: StatusCodes.Status201Created);
         });
         
         ocorrencias.MapPut("/{id:guid}", async (
             Guid id,
-            CreateOcorrenciaCommand command,
-            [FromServices] ICommandHandler<UpdateOcorrenciaCommand, bool> handler,
+            JsonElement body,
+            [FromServices] ICommandHandler<LegacySqlCommand, LegacySqlResult> handler,
             CancellationToken cancellationToken) =>
         {
-            var updateCommand = new UpdateOcorrenciaCommand(
-                id,
-                command.Descricao,
-                command.StatusOcorrencia,
-                command.DtOcorrencia,
-                command.HoraOcorrencia,
-                command.ProximaAcao,
-                command.Protocolo);
-            
-            var result = await handler.HandleAsync(updateCommand, cancellationToken);
-            return result ? Results.Ok(new { success = true }) : Results.NotFound();
+            if (!TryBuildOcorrenciaParameters(body, id, out var parameters, out var error))
+            {
+                return error!;
+            }
+
+            var result = await handler.HandleAsync(new LegacySqlCommand("Ocorrencia.Update", parameters), cancellationToken);
+            if (!result.IsConfigured)
+            {
+                return SqlNotConfigured();
+            }
+
+            return result.Data is null ? Results.NotFound() : Results.Ok(new { data = result.Data });
         });
         
         ocorrencias.MapDelete("/{id:guid}", async (
             Guid id,
-            [FromServices] ICommandHandler<DeleteOcorrenciaCommand, bool> handler,
+            [FromServices] ICommandHandler<LegacySqlCommand, LegacySqlResult> handler,
             CancellationToken cancellationToken) =>
         {
-            var result = await handler.HandleAsync(new DeleteOcorrenciaCommand(id), cancellationToken);
-            return result ? Results.Ok(new { success = true }) : Results.NotFound();
+            var result = await handler.HandleAsync(
+                new LegacySqlCommand("Ocorrencia.Delete", new Dictionary<string, object?> { ["id"] = id }),
+                cancellationToken);
+
+            if (!result.IsConfigured)
+            {
+                return SqlNotConfigured();
+            }
+
+            return (result.RowsAffected ?? 0) > 0 ? Results.Ok(new { success = true }) : Results.NotFound();
         });
 
         var atendimentos = app.MapGroup("/atendimentos").WithTags("Atendimentos");
         
         atendimentos.MapPost("/", async (
-            CreateAtendimentoCommand command,
-            [FromServices] ICommandHandler<CreateAtendimentoCommand, string> handler,
+            JsonElement body,
+            [FromServices] IQueryHandler<LegacySqlQuery, LegacySqlResult> queryHandler,
+            [FromServices] ICommandHandler<LegacySqlCommand, LegacySqlResult> commandHandler,
             CancellationToken cancellationToken) =>
         {
-            var result = await handler.HandleAsync(command, cancellationToken);
-            return Results.Ok(new { data = result });
+            var numVenda = BodyInt(body, "numVenda", "NUM_VENDA", "NUM_VENDA_FK");
+            if (numVenda is null)
+            {
+                return Results.BadRequest(new { error = "NUM_VENDA_FK e obrigatorio." });
+            }
+
+            var vendaResult = await queryHandler.HandleAsync(
+                new LegacySqlQuery("Inadimplencia.ByNumVenda", new Dictionary<string, object?> { ["numVenda"] = numVenda.Value }, Single: true),
+                cancellationToken);
+            if (!vendaResult.IsConfigured)
+            {
+                return SqlNotConfigured();
+            }
+
+            if (vendaResult.Data is not Dictionary<string, object?> venda)
+            {
+                return Results.NotFound(new { error = "Venda nao encontrada." });
+            }
+
+            var responsavelResult = await queryHandler.HandleAsync(
+                new LegacySqlQuery("Responsaveis.ByNumVenda", new Dictionary<string, object?> { ["numVenda"] = numVenda.Value }, Single: true),
+                cancellationToken);
+            var responsavel = responsavelResult.Data as Dictionary<string, object?>;
+            var snapshot = new Dictionary<string, object?>(venda, StringComparer.OrdinalIgnoreCase)
+            {
+                ["RESPONSAVEL"] = responsavel?.GetValueOrDefault("NOME_USUARIO_FK"),
+                ["NOME_USUARIO_FK"] = responsavel?.GetValueOrDefault("NOME_USUARIO_FK"),
+                ["COR_HEX"] = responsavel?.GetValueOrDefault("COR_HEX"),
+                ["RESPONSAVEL_COR_HEX"] = responsavel?.GetValueOrDefault("COR_HEX"),
+            };
+
+            var result = await commandHandler.HandleAsync(
+                new LegacySqlCommand("Atendimento.CreateFromVenda", new Dictionary<string, object?>
+                {
+                    ["numVenda"] = numVenda.Value,
+                    ["cpfCnpj"] = snapshot.GetValueOrDefault("CPF_CNPJ"),
+                    ["cliente"] = snapshot.GetValueOrDefault("CLIENTE"),
+                    ["empreendimento"] = snapshot.GetValueOrDefault("EMPREENDIMENTO"),
+                    ["dadosVenda"] = JsonSerializer.Serialize(snapshot),
+                }),
+                cancellationToken);
+
+            if (!result.IsConfigured)
+            {
+                return SqlNotConfigured();
+            }
+
+            var atendimento = AttachAtendimentoSnapshot(result.Data as Dictionary<string, object?>);
+            if (Convert.ToBoolean(atendimento.GetValueOrDefault("ATENDIMENTO_ATIVO") ?? false))
+            {
+                var nomeResponsavel = atendimento.GetValueOrDefault("RESPONSAVEL") ?? atendimento.GetValueOrDefault("NOME_USUARIO_FK");
+                return Results.Conflict(new
+                {
+                    error = nomeResponsavel is null
+                        ? "Ja existe atendimento em andamento para esta venda."
+                        : $"Ja existe atendimento em andamento por {nomeResponsavel}.",
+                });
+            }
+
+            return Results.Json(new { data = atendimento }, statusCode: StatusCodes.Status201Created);
         });
         
-        atendimentos.MapGet("/cpf/{cpf}", async (string cpf, [FromServices] IQueryHandler<ListAtendimentosByCpfQuery, IReadOnlyList<AtendimentoDto>> handler, CancellationToken ct) =>
+        atendimentos.MapGet("/cpf/{cpf}", Query(
+            "Atendimento.ByCpf",
+            routeValues => new Dictionary<string, object?> { ["cpf"] = DigitsOnly(routeValues["cpf"]?.ToString()) }));
+        atendimentos.MapGet("/num-venda/{numVenda:int}", Query("Atendimento.ByNumVenda"));
+        atendimentos.MapGet("/protocolo/{protocolo}", async (
+            string protocolo,
+            [FromServices] IQueryHandler<LegacySqlQuery, LegacySqlResult> handler,
+            CancellationToken ct) =>
         {
-            var normalizedCpf = DigitsOnly(cpf);
-            var result = await handler.HandleAsync(new ListAtendimentosByCpfQuery(normalizedCpf), ct);
-            return Results.Ok(new { data = result });
-        });
-        atendimentos.MapGet("/num-venda/{numVenda:int}", async (int numVenda, [FromServices] IQueryHandler<ListAtendimentosByNumVendaQuery, IReadOnlyList<AtendimentoDto>> handler, CancellationToken ct) =>
-        {
-            var result = await handler.HandleAsync(new ListAtendimentosByNumVendaQuery(numVenda), ct);
-            return Results.Ok(new { data = result });
-        });
-        atendimentos.MapGet("/protocolo/{protocolo}", async (string protocolo, [FromServices] IQueryHandler<GetAtendimentoByProtocoloQuery, AtendimentoDto?> handler, CancellationToken ct) =>
-        {
-            var result = await handler.HandleAsync(new GetAtendimentoByProtocoloQuery(protocolo), ct);
-            if (result is null)
+            var atendimentoResult = await handler.HandleAsync(
+                new LegacySqlQuery("Atendimento.ByProtocolo", new Dictionary<string, object?> { ["protocolo"] = protocolo.Trim() }, Single: true),
+                ct);
+
+            if (!atendimentoResult.IsConfigured)
+            {
+                return SqlNotConfigured();
+            }
+
+            var atendimento = AttachAtendimentoSnapshot(atendimentoResult.Data as Dictionary<string, object?>);
+            if (atendimento.Count == 0)
             {
                 return Results.NotFound();
             }
-            return Results.Ok(new { data = result });
+
+            var ocorrenciasResult = await handler.HandleAsync(
+                new LegacySqlQuery("Ocorrencia.ByProtocolo", new Dictionary<string, object?> { ["protocolo"] = protocolo.Trim() }),
+                ct);
+            var ocorrencias = ResultRows(ocorrenciasResult);
+            return Results.Ok(new
+            {
+                data = new
+                {
+                    atendimento,
+                    venda = atendimento.GetValueOrDefault("VENDA_SNAPSHOT"),
+                    ocorrencias,
+                },
+            });
         });
-        atendimentos.MapGet("/cliente/{nomeCliente}", async (string nomeCliente, [FromServices] IQueryHandler<ListAtendimentosByClienteQuery, IReadOnlyList<AtendimentoDto>> handler, CancellationToken ct) =>
-        {
-            var result = await handler.HandleAsync(new ListAtendimentosByClienteQuery(nomeCliente), ct);
-            return Results.Ok(new { data = result });
-        });
+        atendimentos.MapGet("/cliente/{nomeCliente}", Query("Atendimento.ByCliente"));
 
         var relatorios = app.MapGroup("/relatorios").WithTags("Relatorios");
-        relatorios.MapGet("/ficha-financeira", async (
+        relatorios.MapGet("/ficha-financeira", (
             int numVenda,
-            string codColigada,
-            string reportColigada,
-            string reportId,
-            [FromServices] ICommandHandler<GenerateFichaFinanceiraCommand, string> handler,
-            CancellationToken cancellationToken) =>
+            string? codColigada,
+            string? reportColigada,
+            string? reportId) =>
         {
-            var command = new GenerateFichaFinanceiraCommand(numVenda, codColigada, reportColigada, reportId);
-            var result = await handler.HandleAsync(command, cancellationToken);
-            return Results.Ok(new { data = new RelatorioDto(result, reportId, DateTime.UtcNow) });
+            return NotMigrated(
+                "Relatorios.FichaFinanceira",
+                "A rota esta exposta sob /inadimplencia, mas a integracao Fluig/RM para gerar ficha financeira ainda esta desabilitada na infraestrutura.");
         });
     }
 
@@ -662,6 +931,106 @@ public static class InadimplenciaEndpoints
         }
     }
 
+    private static IReadOnlyDictionary<string, object?> NotificationParameters(
+        string username,
+        int page,
+        int pageSize,
+        bool? lida)
+        => new Dictionary<string, object?>
+        {
+            ["username"] = username,
+            ["page"] = page,
+            ["pageSize"] = pageSize,
+            ["offset"] = (page - 1) * pageSize,
+            ["lida"] = lida,
+        };
+
+    private static IReadOnlyList<Dictionary<string, object?>> ResultRows(LegacySqlResult result)
+        => result.Data as IReadOnlyList<Dictionary<string, object?>>
+            ?? result.Data as List<Dictionary<string, object?>>
+            ?? [];
+
+    private static Dictionary<string, object?> MapNotificationRow(Dictionary<string, object?> row)
+    {
+        var payload = ParseNotificationPayload(row.GetValueOrDefault("PAYLOAD"));
+        var tipo = StringValue(row.GetValueOrDefault("TIPO"));
+
+        return new Dictionary<string, object?>
+        {
+            ["id"] = StringValue(row.GetValueOrDefault("ID")),
+            ["tipo"] = tipo,
+            ["type"] = string.Equals(tipo, "VENDA_ATRIBUIDA", StringComparison.OrdinalIgnoreCase) ? "assignment" : "sale_overdue",
+            ["numVenda"] = row.GetValueOrDefault("NUM_VENDA"),
+            ["cliente"] = payload.GetValueOrDefault("cliente"),
+            ["cpfCnpj"] = payload.GetValueOrDefault("cpfCnpj"),
+            ["empreendimento"] = payload.GetValueOrDefault("empreendimento"),
+            ["valorInadimplente"] = payload.GetValueOrDefault("valorInadimplente"),
+            ["score"] = row.GetValueOrDefault("SCORE") ?? payload.GetValueOrDefault("score"),
+            ["responsavel"] = payload.GetValueOrDefault("responsavel"),
+            ["proximaAcao"] = IsoString(row.GetValueOrDefault("PROXIMA_ACAO")) ?? payload.GetValueOrDefault("proximaAcao"),
+            ["status"] = payload.GetValueOrDefault("status") ?? payload.GetValueOrDefault("statusKanban"),
+            ["adminUserCode"] = row.GetValueOrDefault("ORIGEM_USUARIO"),
+            ["lida"] = Convert.ToBoolean(row.GetValueOrDefault("LIDA") ?? false),
+            ["createdAt"] = IsoString(row.GetValueOrDefault("DT_CRIACAO")),
+            ["readAt"] = IsoString(row.GetValueOrDefault("DT_LEITURA")),
+            ["deletedAt"] = IsoString(row.GetValueOrDefault("DT_EXCLUSAO")),
+        };
+    }
+
+    private static IResult SqlNotConfigured()
+        => Results.Problem(
+            title: "SQL Server nao configurado",
+            detail: "Configure SqlServer:ConnectionString ou a env var SqlServer__ConnectionString para habilitar endpoints de dados.",
+            statusCode: StatusCodes.Status503ServiceUnavailable);
+
+    private static Dictionary<string, object?> ParseNotificationPayload(object? raw)
+    {
+        if (raw is null)
+        {
+            return new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        try
+        {
+            using var document = System.Text.Json.JsonDocument.Parse(raw.ToString() ?? "{}");
+            var result = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+            foreach (var property in document.RootElement.EnumerateObject())
+            {
+                result[property.Name] = JsonElementValue(property.Value);
+            }
+
+            return result;
+        }
+        catch
+        {
+            return new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        }
+    }
+
+    private static object? JsonElementValue(System.Text.Json.JsonElement element)
+        => element.ValueKind switch
+        {
+            System.Text.Json.JsonValueKind.String => element.GetString(),
+            System.Text.Json.JsonValueKind.Number when element.TryGetInt64(out var integer) => integer,
+            System.Text.Json.JsonValueKind.Number when element.TryGetDecimal(out var dec) => dec,
+            System.Text.Json.JsonValueKind.True => true,
+            System.Text.Json.JsonValueKind.False => false,
+            System.Text.Json.JsonValueKind.Null => null,
+            _ => element.GetRawText(),
+        };
+
+    private static string? StringValue(object? value)
+        => value?.ToString();
+
+    private static string? IsoString(object? value)
+        => value switch
+        {
+            null => null,
+            DateTime dateTime => dateTime.ToString("O"),
+            DateTimeOffset dateTimeOffset => dateTimeOffset.ToString("O"),
+            _ => value.ToString(),
+        };
+
     private static IReadOnlyDictionary<string, object?> RouteValuesToParameters(RouteValueDictionary routeValues)
     {
         var parameters = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
@@ -676,6 +1045,195 @@ public static class InadimplenciaEndpoints
 
     private static string DigitsOnly(string? value)
         => Regex.Replace(value ?? string.Empty, "\\D", string.Empty);
+
+    private static bool IsSingleDashboardMetric(string metric)
+        => string.Equals(metric, "acoes-definidas", StringComparison.OrdinalIgnoreCase);
+
+    private static string? BodyString(JsonElement body, params string[] names)
+    {
+        foreach (var name in names)
+        {
+            if (!body.TryGetProperty(name, out var property) || property.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+            {
+                continue;
+            }
+
+            return property.ValueKind == JsonValueKind.String
+                ? property.GetString()
+                : property.ToString();
+        }
+
+        return null;
+    }
+
+    private static int? BodyInt(JsonElement body, params string[] names)
+    {
+        var value = BodyString(body, names);
+        return int.TryParse(value, out var parsed) ? parsed : null;
+    }
+
+    private static bool? BodyBool(JsonElement body, params string[] names)
+    {
+        foreach (var name in names)
+        {
+            if (!body.TryGetProperty(name, out var property) || property.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+            {
+                continue;
+            }
+
+            return property.ValueKind switch
+            {
+                JsonValueKind.True => true,
+                JsonValueKind.False => false,
+                JsonValueKind.Number when property.TryGetInt32(out var number) => number != 0,
+                JsonValueKind.String when bool.TryParse(property.GetString(), out var parsed) => parsed,
+                JsonValueKind.String when int.TryParse(property.GetString(), out var number) => number != 0,
+                _ => null,
+            };
+        }
+
+        return null;
+    }
+
+    private static string? NormalizePerfil(string? value)
+    {
+        var normalized = value?.Trim().ToLowerInvariant();
+        return normalized is "admin" or "operador" ? normalized : null;
+    }
+
+    private static string? NormalizeHex(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var normalized = value.Trim();
+        if (!normalized.StartsWith('#'))
+        {
+            normalized = $"#{normalized}";
+        }
+
+        return Regex.IsMatch(normalized, "^#[0-9a-fA-F]{6}$") ? normalized : null;
+    }
+
+    private static string? NormalizeKanbanStatus(string? value)
+    {
+        var normalized = value?.Trim().ToLowerInvariant();
+        return normalized switch
+        {
+            "todo" or "a fazer" or "a_fazer" or "a-fazer" => "todo",
+            "inprogress" or "em andamento" or "em atendimento" => "inProgress",
+            "done" or "concluido" or "concluído" => "done",
+            _ => null,
+        };
+    }
+
+    private static string? NormalizeDateOnly(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var text = value.Trim();
+        if (text.Length >= 10 && Regex.IsMatch(text[..10], "^\\d{4}-\\d{2}-\\d{2}$"))
+        {
+            return text[..10];
+        }
+
+        return DateTime.TryParse(text.Replace(' ', 'T'), out var parsed)
+            ? parsed.ToString("yyyy-MM-dd")
+            : null;
+    }
+
+    private static bool TryBuildOcorrenciaParameters(
+        JsonElement body,
+        Guid id,
+        out Dictionary<string, object?> parameters,
+        out IResult? error)
+    {
+        parameters = [];
+        error = null;
+
+        var numVenda = BodyInt(body, "numVenda", "NUM_VENDA_FK", "NUM_VENDA");
+        var nomeUsuario = BodyString(body, "nomeUsuario", "NOME_USUARIO_FK", "nome_usuario_fk");
+        var descricao = BodyString(body, "descricao", "DESCRICAO");
+        var statusOcorrencia = BodyString(body, "statusOcorrencia", "STATUS_OCORRENCIA", "status_ocorrencia", "status", "STATUS");
+        var dtOcorrencia = NormalizeDateOnly(BodyString(body, "dtOcorrencia", "DT_OCORRENCIA", "dataOcorrencia", "DATA_OCORRENCIA"));
+        var horaOcorrencia = BodyString(body, "horaOcorrencia", "HORA_OCORRENCIA", "hora", "HORA");
+
+        if (numVenda is null)
+        {
+            error = Results.BadRequest(new { error = "NUM_VENDA_FK e obrigatorio." });
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(nomeUsuario))
+        {
+            error = Results.BadRequest(new { error = "NOME_USUARIO_FK e obrigatorio." });
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(descricao))
+        {
+            error = Results.BadRequest(new { error = "DESCRICAO e obrigatoria." });
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(statusOcorrencia))
+        {
+            error = Results.BadRequest(new { error = "STATUS_OCORRENCIA e obrigatorio." });
+            return false;
+        }
+
+        if (dtOcorrencia is null)
+        {
+            error = Results.BadRequest(new { error = "DT_OCORRENCIA e obrigatoria." });
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(horaOcorrencia)
+            || !Regex.IsMatch(horaOcorrencia, "^([01]\\d|2[0-3]):([0-5]\\d)(:([0-5]\\d))?$"))
+        {
+            error = Results.BadRequest(new { error = "HORA_OCORRENCIA invalida." });
+            return false;
+        }
+
+        parameters = new Dictionary<string, object?>
+        {
+            ["id"] = id,
+            ["numVenda"] = numVenda.Value,
+            ["nomeUsuario"] = nomeUsuario.Trim(),
+            ["descricao"] = descricao.Trim(),
+            ["statusOcorrencia"] = statusOcorrencia.Trim(),
+            ["dtOcorrencia"] = dtOcorrencia,
+            ["horaOcorrencia"] = horaOcorrencia.Trim(),
+            ["proximaAcao"] = BodyString(body, "proximaAcao", "PROXIMA_ACAO"),
+            ["protocolo"] = BodyString(body, "protocolo", "PROTOCOLO", "protocolo_fk", "PROTOCOLO_FK"),
+        };
+
+        return true;
+    }
+
+    private static Dictionary<string, object?> AttachAtendimentoSnapshot(Dictionary<string, object?>? row)
+    {
+        if (row is null)
+        {
+            return new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        var copy = new Dictionary<string, object?>(row, StringComparer.OrdinalIgnoreCase);
+        var snapshot = ParseNotificationPayload(copy.GetValueOrDefault("DADOS_VENDA"));
+        copy["VENDA_SNAPSHOT"] = snapshot.Count > 0 ? snapshot : null;
+
+        if (!copy.ContainsKey("RESPONSAVEL") && snapshot.TryGetValue("RESPONSAVEL", out var responsavel))
+        {
+            copy["RESPONSAVEL"] = responsavel;
+        }
+
+        return copy;
+    }
 
     private static IResult BlockedProximaAcao()
         => Results.BadRequest(new

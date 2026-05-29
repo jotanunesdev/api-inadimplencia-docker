@@ -14,6 +14,7 @@ public interface INotificationRepository
         string usuario,
         int numVenda,
         DateOnly? proximaAcaoDia,
+        string? dedupeKey,
         CancellationToken cancellationToken);
     Task UpdateAsync(InadNotificacao notificacao, CancellationToken cancellationToken);
     Task DeleteAsync(InadNotificacao notificacao, CancellationToken cancellationToken);

@@ -94,6 +94,10 @@ public class GetNegativacaoByIdQueryHandler : IQueryHandler<GetNegativacaoByIdQu
             ErrorMessage: s.ErrorMessage,
             ErrorStatusCode: s.ErrorStatusCode,
             Operador: s.Operador,
+            SolicitanteUsername: s.SolicitanteUsername,
+            AprovadorUsername: s.AprovadorUsername,
+            DtAprovacao: s.DtAprovacao,
+            Justificativa: s.Justificativa,
             CriadoEm: s.DtCriacao,
             AtualizadoEm: s.DtAtualizacao);
     }

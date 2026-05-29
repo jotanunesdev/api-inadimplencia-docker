@@ -13,16 +13,19 @@ public class SensitiveDataMaskingMiddlewareTests
 {
     private readonly Mock<ILogger<SensitiveDataMaskingMiddleware>> _loggerMock;
     private readonly Mock<RequestDelegate> _nextMock;
-    private readonly Mock<IConfiguration> _configurationMock;
     private readonly SensitiveDataMaskingMiddleware _middleware;
 
     public SensitiveDataMaskingMiddlewareTests()
     {
         _loggerMock = new Mock<ILogger<SensitiveDataMaskingMiddleware>>();
         _nextMock = new Mock<RequestDelegate>();
-        _configurationMock = new Mock<IConfiguration>();
-        _configurationMock.Setup(x => x.GetValue<bool>("IsDevelopment", It.IsAny<bool>())).Returns(true);
-        _middleware = new SensitiveDataMaskingMiddleware(_nextMock.Object, _loggerMock.Object, _configurationMock.Object);
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["IsDevelopment"] = "true"
+            })
+            .Build();
+        _middleware = new SensitiveDataMaskingMiddleware(_nextMock.Object, _loggerMock.Object, configuration);
     }
 
     [Fact]
@@ -44,6 +47,52 @@ public class SensitiveDataMaskingMiddlewareTests
         await _middleware.InvokeAsync(context);
 
         // Assert
+        _nextMock.Verify(x => x(It.IsAny<HttpContext>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_ShouldBypassBodyBufferingForServerSentEvents()
+    {
+        var context = new DefaultHttpContext();
+        context.Request.Headers["Accept"] = "text/event-stream";
+        context.Response.Body = new MemoryStream();
+
+        _nextMock.Setup(x => x(It.IsAny<HttpContext>()))
+            .Returns<HttpContext>(async ctx =>
+            {
+                ctx.Response.StatusCode = 200;
+                ctx.Response.ContentType = "text/event-stream";
+
+                await using var writer = new StreamWriter(ctx.Response.Body);
+                await writer.WriteAsync("event: heartbeat\n\n");
+                await writer.FlushAsync();
+            });
+
+        await _middleware.InvokeAsync(context);
+
+        _nextMock.Verify(x => x(It.IsAny<HttpContext>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_ShouldBypassBodyBufferingForNotificationStreamPath()
+    {
+        var context = new DefaultHttpContext();
+        context.Request.Path = "/inadimplencia/notifications/stream";
+        context.Response.Body = new MemoryStream();
+
+        _nextMock.Setup(x => x(It.IsAny<HttpContext>()))
+            .Returns<HttpContext>(async ctx =>
+            {
+                ctx.Response.StatusCode = 200;
+                ctx.Response.ContentType = "text/event-stream";
+
+                await using var writer = new StreamWriter(ctx.Response.Body);
+                await writer.WriteAsync("event: heartbeat\n\n");
+                await writer.FlushAsync();
+            });
+
+        await _middleware.InvokeAsync(context);
+
         _nextMock.Verify(x => x(It.IsAny<HttpContext>()), Times.Once);
     }
 

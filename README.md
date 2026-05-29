@@ -87,6 +87,57 @@ A API integra com o serviço Serasa PEFIN para negativação de devedores.
 - [Validação UAT](documentos/serasa-pefin-validacao-uat.md) - Resultados de testes
 - [Documentação Serasa v8](documentos/documentacao-serasa-pefin-v8.md) - Especificação da API Serasa
 
+## Fluxo de Negativação Serasa
+
+O sistema inclui um fluxo de solicitação e aprovação para negativações Serasa, garantindo dupla custódia e rastreabilidade completa.
+
+### Fluxo de Trabalho
+
+1. **Solicitação**: Operador de cobrança solicita negativação para dívidas elegíveis (>60 dias de atraso)
+2. **Aprovação**: Aprovadores autorizados revisam e aprovam/rejeitam a solicitação com senha de transação
+3. **Envio Serasa**: Após aprovação, o sistema envia a negativação para a Serasa
+4. **Retorno**: Webhook da Serasa notifica o resultado final (sucesso ou erro)
+
+### Endpoints do Fluxo
+
+- `GET /negativacao/vendas/{numVenda}/dividas` - Consultar dívidas elegíveis para negativação
+- `POST /negativacao/solicitacoes` - Criar solicitação de negativação
+- `GET /negativacao/solicitacoes?status=AGUARDANDO_APROVACAO` - Listar solicitações pendentes
+- `POST /negativacao/solicitacoes/{id}/decisao` - Aprovar ou rejeitar solicitação
+- `GET /configuracoes/senha-transacao` - Verificar se usuário tem senha de transação
+- `POST /configuracoes/senha-transacao` - Definir/atualizar senha de transação
+
+### Configuração
+
+Configure em `appsettings.json`:
+
+```json
+{
+  "Negativacao": {
+    "UsuariosAprovadores": ["aracy.mendoca", "adriano.oliveira"],
+    "QuorumAprovacao": 1,
+    "DiasAtrasoMinimo": 60,
+    "MaxTentativasSenha": 3,
+    "LockoutMinutos": 15,
+    "JanelaTentativasMinutos": 5
+  }
+}
+```
+
+### Segurança
+
+- **Dupla custódia**: Solicitante não pode aprovar sua própria solicitação
+- **Senha de transação**: Senha adicional separada da senha de login (hash PBKDF2)
+- **Lockout**: 3 tentativas falhas em 5 minutos bloqueiam o usuário por 15 minutos
+- **Aprovadores**: Lista de aprovadores autorizados (configurável via appsettings)
+- **Mascaramento**: CPF/CNPJ e dados sensíveis mascarados em logs e respostas
+
+### Documentação
+
+- [Roteiro de Validação UAT](documentos/uat-fluxo-negativacao.md) - Guia completo de testes manuais
+- [PRD Fluxo Negativação Serasa](tasks/prd-fluxo-negativacao-serasa/prd.md) - Requisitos funcionais
+- [Tech Spec Fluxo Negativação Serasa](tasks/prd-fluxo-negativacao-serasa/techspec.md) - Especificação técnica
+
 ### Configuração UAT
 
 No ambiente UAT, documentos autorizados devem ser configurados em `ApiInadimplencia.Domain/SerasaPefin/SerasaPefinConstants.cs`:

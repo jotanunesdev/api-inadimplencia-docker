@@ -56,6 +56,23 @@ services:
       SerasaPefin__UseUatDefaults: ${INAD_SERASA_USE_UAT_DEFAULTS}
       SerasaPefin__CreditorDocument: ${INAD_SERASA_CREDITOR_DOCUMENT}
       SerasaPefin__AreaInformante: ${INAD_SERASA_AREA_INFORMANTE}
+      Auth__AuthServerBaseUrl: ${INAD_AUTH_URL:-http://host.docker.internal:3013}
+      Auth__InternalOrigin: ${INAD_AUTH_INTERNAL_ORIGIN:-https://fluig.jotanunes.com}
+      Cors__AllowedOrigins: ${INAD_CORS_ALLOWED_ORIGINS}
+      Cors__AllowedMethods: ${INAD_CORS_ALLOWED_METHODS:-GET,POST,PUT,DELETE,OPTIONS}
+      Cors__AllowedHeaders: ${INAD_CORS_ALLOWED_HEADERS:-Accept,Authorization,Cache-Control,Content-Type,Origin,Pragma,X-Requested-With,X-User-Code,X-User-Name,X-Username}
+      Cors__ExposedHeaders: ${INAD_CORS_EXPOSED_HEADERS:-Content-Disposition,X-Correlation-Id,X-Request-Id}
+      Cors__AllowCredentials: ${INAD_CORS_ALLOW_CREDENTIALS:-true}
+      Cors__PreflightMaxAgeSeconds: ${INAD_CORS_PREFLIGHT_MAX_AGE_SECONDS:-3600}
+      Auth__CredentialsEncryptionKey: ${INAD_CREDENTIALS_ENCRYPTION_KEY}
+      Auth__RequireAuthenticatedInadimplencia: ${INAD_REQUIRE_AUTHENTICATED:-true}
+      Auth__EntraId__TenantId: ${INAD_ENTRA_TENANT_ID}
+      Auth__EntraId__ApiClientId: ${INAD_ENTRA_API_CLIENT_ID}
+      Auth__EntraId__Audience: ${INAD_ENTRA_AUDIENCE}
+      Auth__EntraId__ClientId: ${INAD_ENTRA_CLIENT_ID}
+      Auth__EntraId__ClientSecret: ${INAD_ENTRA_CLIENT_SECRET}
+      Auth__EntraId__Scope: ${INAD_ENTRA_SCOPE}
+      Auth__EntraId__RedirectUris: ${INAD_ENTRA_REDIRECT_URIS}
     ports:
       - "${INAD_PORT:-8080}:8080"
     depends_on:
@@ -68,4 +85,3 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-

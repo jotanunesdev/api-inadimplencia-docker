@@ -76,6 +76,27 @@ public sealed class SerasaPefinSolicitacaoCompleta
     /// <summary>Usuario solicitante (from authenticated context).</summary>
     public string Operador { get; private set; } = string.Empty;
 
+    /// <summary>Username do usuário que solicitou a negativação (fluxo de aprovação).</summary>
+    public string? SolicitanteUsername { get; private set; }
+
+    /// <summary>Username do aprovador que aprovou/rejeitou a solicitação.</summary>
+    public string? AprovadorUsername { get; private set; }
+
+    /// <summary>Data/hora da aprovação/rejeição (UTC).</summary>
+    public DateTime? DtAprovacao { get; private set; }
+
+    /// <summary>Justificativa fornecida ao rejeitar a solicitação.</summary>
+    public string? Justificativa { get; private set; }
+
+    /// <summary>Número da parcela na venda (null para solicitações legadas sem parcelamento).</summary>
+    public int? NumeroParcela { get; private set; }
+
+    /// <summary>ID da parcela no sistema de origem (ex.: id do título, null para solicitações legadas).</summary>
+    public string? ParcelaIdOrigem { get; private set; }
+
+    /// <summary>Referência para a solicicação "pai" que agrupa as N parcelas (null para a primeira parcela ou solicitações legadas).</summary>
+    public Guid? IdSolicitacaoPai { get; private set; }
+
     /// <summary>Creation timestamp (UTC).</summary>
     public DateTime DtCriacao { get; private set; }
 
@@ -104,7 +125,10 @@ public sealed class SerasaPefinSolicitacaoCompleta
         string? documentoGarantidor = null,
         string? idAssociado = null,
         string? tipoAssociacao = null,
-        string categoryId = SerasaPefinConstants.CategoryId)
+        string categoryId = SerasaPefinConstants.CategoryId,
+        int? numeroParcela = null,
+        string? parcelaIdOrigem = null,
+        Guid? idSolicitacaoPai = null)
     {
         if (numVendaFk <= 0)
         {
@@ -147,6 +171,18 @@ public sealed class SerasaPefinSolicitacaoCompleta
             throw new ArgumentException("DOCUMENTO_GARANTIDOR is required for GARANTIDOR records.", nameof(documentoGarantidor));
         }
 
+        // Invariant: if NumeroParcela is provided, ParcelaIdOrigem should also be provided
+        if (numeroParcela.HasValue && string.IsNullOrWhiteSpace(parcelaIdOrigem))
+        {
+            throw new ArgumentException("PARCELA_ID_ORIGEM is required when NUMERO_PARCELA is provided.", nameof(parcelaIdOrigem));
+        }
+
+        // Invariant: NumeroParcela must be positive if provided
+        if (numeroParcela.HasValue && numeroParcela.Value <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(numeroParcela), "NUMERO_PARCELA must be positive when provided.");
+        }
+
         var now = DateTime.UtcNow;
         return new SerasaPefinSolicitacaoCompleta
         {
@@ -167,6 +203,9 @@ public sealed class SerasaPefinSolicitacaoCompleta
             Status = SerasaPefinStatus.PendenteEnvio,
             PayloadAuditoria = string.IsNullOrEmpty(payloadAuditoria) ? "{}" : payloadAuditoria,
             Operador = operador,
+            NumeroParcela = numeroParcela,
+            ParcelaIdOrigem = parcelaIdOrigem,
+            IdSolicitacaoPai = idSolicitacaoPai,
             DtCriacao = now,
             DtAtualizacao = now,
         };
@@ -201,7 +240,14 @@ public sealed class SerasaPefinSolicitacaoCompleta
         int? errorStatusCode,
         string operador,
         DateTime dtCriacao,
-        DateTime dtAtualizacao) => new()
+        DateTime dtAtualizacao,
+        string? solicitanteUsername = null,
+        string? aprovadorUsername = null,
+        DateTime? dtAprovacao = null,
+        string? justificativa = null,
+        int? numeroParcela = null,
+        string? parcelaIdOrigem = null,
+        Guid? idSolicitacaoPai = null) => new()
     {
         Id = id,
         NumVendaFk = numVendaFk,
@@ -228,7 +274,191 @@ public sealed class SerasaPefinSolicitacaoCompleta
         Operador = operador,
         DtCriacao = dtCriacao,
         DtAtualizacao = dtAtualizacao,
+        SolicitanteUsername = solicitanteUsername,
+        AprovadorUsername = aprovadorUsername,
+        DtAprovacao = dtAprovacao,
+        Justificativa = justificativa,
+        NumeroParcela = numeroParcela,
+        ParcelaIdOrigem = parcelaIdOrigem,
+        IdSolicitacaoPai = idSolicitacaoPai,
     };
+
+    /// <summary>
+    /// Factory used when creating a new solicitation for the approval workflow.
+    /// Returns entity with status <see cref="SerasaPefinStatus.AguardandoAprovacao"/> and without
+    /// <see cref="TransactionId"/>/<see cref="PayloadAuditoria"/> (will be set when approved and sent to Serasa).
+    /// </summary>
+    public static SerasaPefinSolicitacaoCompleta CriarParaAprovacao(
+        int numVendaFk,
+        SerasaPefinRecordType tipoRegistro,
+        string documentoDevedor,
+        string documentoCredor,
+        string contractNumber,
+        string areaInformante,
+        decimal valor,
+        DateOnly dataVencimento,
+        string solicitanteUsername,
+        Guid? idSolicitacaoPrincipal = null,
+        string? documentoGarantidor = null,
+        string? idAssociado = null,
+        string? tipoAssociacao = null,
+        string categoryId = SerasaPefinConstants.CategoryId,
+        int? numeroParcela = null,
+        string? parcelaIdOrigem = null,
+        Guid? idSolicitacaoPai = null)
+    {
+        if (numVendaFk <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(numVendaFk), "NUM_VENDA_FK must be positive.");
+        }
+
+        if (string.IsNullOrWhiteSpace(documentoDevedor))
+        {
+            throw new ArgumentException("DOCUMENTO_DEVEDOR is required.", nameof(documentoDevedor));
+        }
+
+        if (string.IsNullOrWhiteSpace(documentoCredor))
+        {
+            throw new ArgumentException("DOCUMENTO_CREDOR is required.", nameof(documentoCredor));
+        }
+
+        if (string.IsNullOrWhiteSpace(contractNumber))
+        {
+            throw new ArgumentException("CONTRACT_NUMBER is required.", nameof(contractNumber));
+        }
+
+        if (string.IsNullOrWhiteSpace(areaInformante))
+        {
+            throw new ArgumentException("AREA_INFORMANTE is required.", nameof(areaInformante));
+        }
+
+        if (string.IsNullOrWhiteSpace(solicitanteUsername))
+        {
+            throw new ArgumentException("SOLICITANTE_USERNAME is required.", nameof(solicitanteUsername));
+        }
+
+        if (valor < SerasaPefinConstants.MinValue)
+        {
+            throw new ArgumentOutOfRangeException(nameof(valor), $"Valor must be >= {SerasaPefinConstants.MinValue:F2}.");
+        }
+
+        if (tipoRegistro == SerasaPefinRecordType.Garantidor
+            && string.IsNullOrWhiteSpace(documentoGarantidor))
+        {
+            throw new ArgumentException("DOCUMENTO_GARANTIDOR is required for GARANTIDOR records.", nameof(documentoGarantidor));
+        }
+
+        // Invariant: if NumeroParcela is provided, ParcelaIdOrigem should also be provided
+        if (numeroParcela.HasValue && string.IsNullOrWhiteSpace(parcelaIdOrigem))
+        {
+            throw new ArgumentException("PARCELA_ID_ORIGEM is required when NUMERO_PARCELA is provided.", nameof(parcelaIdOrigem));
+        }
+
+        // Invariant: NumeroParcela must be positive if provided
+        if (numeroParcela.HasValue && numeroParcela.Value <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(numeroParcela), "NUMERO_PARCELA must be positive when provided.");
+        }
+
+        var now = DateTime.UtcNow;
+        return new SerasaPefinSolicitacaoCompleta
+        {
+            Id = Guid.NewGuid(),
+            NumVendaFk = numVendaFk,
+            TipoRegistro = tipoRegistro,
+            IdSolicitacaoPrincipal = idSolicitacaoPrincipal,
+            IdAssociado = idAssociado,
+            TipoAssociacao = tipoAssociacao,
+            DocumentoDevedor = SerasaPefinConstants.DigitsOnly(documentoDevedor),
+            DocumentoGarantidor = documentoGarantidor is null ? null : SerasaPefinConstants.DigitsOnly(documentoGarantidor),
+            DocumentoCredor = SerasaPefinConstants.DigitsOnly(documentoCredor),
+            ContractNumber = contractNumber.Trim(),
+            CategoryId = categoryId,
+            AreaInformante = areaInformante.Trim(),
+            Valor = Math.Round(valor, SerasaPefinConstants.ValueDecimals, MidpointRounding.AwayFromZero),
+            DataVencimento = dataVencimento,
+            Status = SerasaPefinStatus.AguardandoAprovacao,
+            PayloadAuditoria = "{}",
+            Operador = solicitanteUsername,
+            SolicitanteUsername = solicitanteUsername,
+            NumeroParcela = numeroParcela,
+            ParcelaIdOrigem = parcelaIdOrigem,
+            IdSolicitacaoPai = idSolicitacaoPai,
+            DtCriacao = now,
+            DtAtualizacao = now,
+        };
+    }
+
+    /// <summary>Marks the solicitation as approved by an approver.</summary>
+    public void MarcarAprovada(string aprovadorUsername, DateTime utcNow)
+    {
+        if (Status != SerasaPefinStatus.AguardandoAprovacao)
+        {
+            throw new InvalidOperationException($"Cannot mark as APROVADA: current status is {Status}. Only AGUARDANDO_APROVACAO can transition to APROVADA.");
+        }
+
+        if (string.IsNullOrWhiteSpace(aprovadorUsername))
+        {
+            throw new ArgumentException("APROVADOR_USERNAME is required.", nameof(aprovadorUsername));
+        }
+
+        AprovadorUsername = aprovadorUsername;
+        DtAprovacao = utcNow;
+        Status = SerasaPefinStatus.Aprovada;
+        DtAtualizacao = utcNow;
+    }
+
+    /// <summary>Marks the solicitation as rejected by an approver.</summary>
+    public void MarcarRejeitada(string aprovadorUsername, string justificativa, DateTime utcNow)
+    {
+        if (Status != SerasaPefinStatus.AguardandoAprovacao)
+        {
+            throw new InvalidOperationException($"Cannot mark as REJEITADA: current status is {Status}. Only AGUARDANDO_APROVACAO can transition to REJEITADA.");
+        }
+
+        if (string.IsNullOrWhiteSpace(aprovadorUsername))
+        {
+            throw new ArgumentException("APROVADOR_USERNAME is required.", nameof(aprovadorUsername));
+        }
+
+        AprovadorUsername = aprovadorUsername;
+        DtAprovacao = utcNow;
+        Justificativa = justificativa;
+        Status = SerasaPefinStatus.Rejeitada;
+        DtAtualizacao = utcNow;
+    }
+
+    /// <summary>Marks the solicitation as ready to send to Serasa (transition APROVADA → PENDENTE_ENVIO).</summary>
+    public void MarcarPreparadoParaEnvio(string payloadAuditoria)
+    {
+        if (Status != SerasaPefinStatus.Aprovada)
+        {
+            throw new InvalidOperationException($"Cannot mark as PENDENTE_ENVIO: current status is {Status}. Only APROVADA can transition to PENDENTE_ENVIO.");
+        }
+
+        if (string.IsNullOrWhiteSpace(payloadAuditoria))
+        {
+            throw new ArgumentException("PAYLOAD_AUDITORIA is required.", nameof(payloadAuditoria));
+        }
+
+        PayloadAuditoria = payloadAuditoria;
+        Status = SerasaPefinStatus.PendenteEnvio;
+        DtAtualizacao = DateTime.UtcNow;
+    }
+
+    /// <summary>Marks the solicitation as failed during the send process after approval.</summary>
+    public void MarcarAprovadaFalhaEnvio(string errorMessage, int? errorStatusCode)
+    {
+        if (Status != SerasaPefinStatus.Aprovada && Status != SerasaPefinStatus.PendenteEnvio)
+        {
+            throw new InvalidOperationException($"Cannot mark as APROVADA_FALHA_ENVIO: current status is {Status}. Only APROVADA or PENDENTE_ENVIO can transition to APROVADA_FALHA_ENVIO.");
+        }
+
+        ErrorMessage = errorMessage;
+        ErrorStatusCode = errorStatusCode;
+        Status = SerasaPefinStatus.AprovadaFalhaEnvio;
+        DtAtualizacao = DateTime.UtcNow;
+    }
 
     /// <summary>Marks as successfully sent to Serasa with the returned transaction id.</summary>
     public void MarcarAguardandoRetorno(string transactionId)

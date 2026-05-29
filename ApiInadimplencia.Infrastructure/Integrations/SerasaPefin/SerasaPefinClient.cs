@@ -65,7 +65,7 @@ public class SerasaPefinClient
         {
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
             _logger.LogError("Serasa PEFIN main debt inclusion failed. Status: {StatusCode}, Body: {Body}", (int)response.StatusCode, body);
-            throw new SerasaPefinHttpException((int)response.StatusCode, body, $"Serasa PEFIN main debt inclusion failed with status {response.StatusCode}");
+            throw new ApiInadimplencia.Application.Abstractions.Integrations.SerasaPefinHttpException((int)response.StatusCode, body, $"Serasa PEFIN main debt inclusion failed with status {response.StatusCode}");
         }
 
         var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -92,7 +92,7 @@ public class SerasaPefinClient
         {
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
             _logger.LogError("Serasa PEFIN guarantor inclusion failed. Status: {StatusCode}, Body: {Body}", (int)response.StatusCode, body);
-            throw new SerasaPefinHttpException((int)response.StatusCode, body, $"Serasa PEFIN guarantor inclusion failed with status {response.StatusCode}");
+            throw new ApiInadimplencia.Application.Abstractions.Integrations.SerasaPefinHttpException((int)response.StatusCode, body, $"Serasa PEFIN guarantor inclusion failed with status {response.StatusCode}");
         }
 
         var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);

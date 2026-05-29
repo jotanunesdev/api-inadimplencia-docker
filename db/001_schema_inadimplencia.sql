@@ -127,6 +127,7 @@ BEGIN
         NumVenda        INT              NOT NULL,
         ProximaAcaoDia  DATE             NULL,
         Mensagem        NVARCHAR(500)    NOT NULL,
+        DedupeKey       NVARCHAR(100)    NULL,
         Lida            BIT              NOT NULL CONSTRAINT DF_INAD_NOTIFICACOES_Lida DEFAULT (0),
         CriadaEm        DATETIME2(7)     NOT NULL,
         ExcluidaEm      DATETIME2(7)     NULL,
@@ -137,6 +138,10 @@ BEGIN
     CREATE UNIQUE INDEX UX_INAD_NOTIFICACOES_Dedup
         ON dbo.INAD_NOTIFICACOES (Tipo, Usuario, NumVenda, ProximaAcaoDia)
         WHERE ProximaAcaoDia IS NOT NULL;
+
+    CREATE INDEX IX_INAD_NOTIFICACOES_DedupeKey
+        ON dbo.INAD_NOTIFICACOES (DedupeKey)
+        WHERE DedupeKey IS NOT NULL;
 
     CREATE INDEX IX_INAD_NOTIFICACOES_Usuario ON dbo.INAD_NOTIFICACOES (Usuario, Lida, ExcluidaEm);
 END

@@ -10,7 +10,9 @@ namespace ApiInadimplencia.Application.Features.SerasaPefin.Dtos;
 public record RequestNegativacaoCommand(
     int NumVenda,
     bool IncluirGarantidores = false,
-    string Operador = "system") : ICommand<RequestNegativacaoResponse>;
+    string Operador = "system",
+    Guid? SolicitacaoIdExistente = null,
+    IReadOnlyList<int>? ParcelaIds = null) : ICommand<RequestNegativacaoResponse>;
 
 /// <summary>
 /// Response for negativacao request containing transaction IDs and status for each solicitation.
@@ -27,4 +29,5 @@ public record SerasaSolicitacaoResult(
     SerasaPefinRecordType TipoRegistro,
     string? TransactionId,
     SerasaPefinStatus Status,
-    string? ErrorMessage = null);
+    string? ErrorMessage = null,
+    int? NumeroParcela = null);

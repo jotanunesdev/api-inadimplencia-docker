@@ -36,5 +36,9 @@ public record SerasaPefinDetalheDto(
     string? ErrorMessage,
     int? ErrorStatusCode,
     string Operador,
+    string? SolicitanteUsername,
+    string? AprovadorUsername,
+    DateTime? DtAprovacao,
+    string? Justificativa,
     DateTime CriadoEm,
     DateTime AtualizadoEm);

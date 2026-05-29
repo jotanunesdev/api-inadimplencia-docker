@@ -18,17 +18,20 @@ public class OcorrenciaRepository : IOcorrenciaRepository
 
     public async Task AddAsync(Ocorrencia ocorrencia, CancellationToken cancellationToken = default)
     {
+        // Parameter names must match the placeholders declared in the SQL
+        // command "Ocorrencia.Insert" (camelCase). Keep this list in sync
+        // with the SQL definition in LegacySqlExecutor.
         var parameters = new Dictionary<string, object?>
         {
-            { "ID", ocorrencia.Id },
-            { "NUM_VENDA_FK", ocorrencia.NumVendaFk },
-            { "NOME_USUARIO_FK", ocorrencia.NomeUsuarioFk },
-            { "DESCRICAO", ocorrencia.Descricao },
-            { "STATUS_OCORRENCIA", ocorrencia.StatusOcorrencia },
-            { "DT_OCORRENCIA", ocorrencia.DtOcorrencia },
-            { "HORA_OCORRENCIA", ocorrencia.HoraOcorrencia },
-            { "PROXIMA_ACAO", ocorrencia.ProximaAcao },
-            { "PROTOCOLO", ocorrencia.Protocolo }
+            { "id", ocorrencia.Id },
+            { "numVenda", ocorrencia.NumVendaFk },
+            { "nomeUsuario", ocorrencia.NomeUsuarioFk },
+            { "descricao", ocorrencia.Descricao },
+            { "statusOcorrencia", ocorrencia.StatusOcorrencia },
+            { "dtOcorrencia", ocorrencia.DtOcorrencia },
+            { "horaOcorrencia", ocorrencia.HoraOcorrencia },
+            { "proximaAcao", ocorrencia.ProximaAcao },
+            { "protocolo", ocorrencia.Protocolo }
         };
 
         await _sqlExecutor.ExecuteAsync(
@@ -41,7 +44,7 @@ public class OcorrenciaRepository : IOcorrenciaRepository
     {
         var parameters = new Dictionary<string, object?>
         {
-            { "ID", id }
+            { "id", id }
         };
 
         var result = await _sqlExecutor.QueryAsync(
@@ -60,15 +63,18 @@ public class OcorrenciaRepository : IOcorrenciaRepository
 
     public async Task UpdateAsync(Ocorrencia ocorrencia, CancellationToken cancellationToken = default)
     {
+        // Parameter names must match the SQL command "Ocorrencia.Update" (camelCase).
         var parameters = new Dictionary<string, object?>
         {
-            { "ID", ocorrencia.Id },
-            { "DESCRICAO", ocorrencia.Descricao },
-            { "STATUS_OCORRENCIA", ocorrencia.StatusOcorrencia },
-            { "DT_OCORRENCIA", ocorrencia.DtOcorrencia },
-            { "HORA_OCORRENCIA", ocorrencia.HoraOcorrencia },
-            { "PROXIMA_ACAO", ocorrencia.ProximaAcao },
-            { "PROTOCOLO", ocorrencia.Protocolo }
+            { "id", ocorrencia.Id },
+            { "numVenda", ocorrencia.NumVendaFk },
+            { "nomeUsuario", ocorrencia.NomeUsuarioFk },
+            { "descricao", ocorrencia.Descricao },
+            { "statusOcorrencia", ocorrencia.StatusOcorrencia },
+            { "dtOcorrencia", ocorrencia.DtOcorrencia },
+            { "horaOcorrencia", ocorrencia.HoraOcorrencia },
+            { "proximaAcao", ocorrencia.ProximaAcao },
+            { "protocolo", ocorrencia.Protocolo }
         };
 
         await _sqlExecutor.ExecuteAsync(
@@ -81,7 +87,7 @@ public class OcorrenciaRepository : IOcorrenciaRepository
     {
         var parameters = new Dictionary<string, object?>
         {
-            { "ID", ocorrencia.Id }
+            { "id", ocorrencia.Id }
         };
 
         await _sqlExecutor.ExecuteAsync(

@@ -21,7 +21,8 @@ public sealed class SerasaPefinRepository(SqlServerConnectionFactory connectionF
         DOCUMENTO_DEVEDOR, DOCUMENTO_GARANTIDOR, DOCUMENTO_CREDOR, CONTRACT_NUMBER, CATEGORY_ID,
         AREA_INFORMANTE, VALOR, DATA_VENCIMENTO, STATUS, TRANSACTION_ID, CADUS_KEY, CADUS_SERIE,
         PAYLOAD_AUDITORIA, WEBHOOK_PAYLOAD, ERROR_MESSAGE, ERROR_STATUS_CODE, OPERADOR,
-        DT_CRIACAO, DT_ATUALIZACAO
+        SOLICITANTE_USERNAME, APROVADOR_USERNAME, DT_APROVACAO, JUSTIFICATIVA,
+        DT_CRIACAO, DT_ATUALIZACAO, NUMERO_PARCELA, PARCELA_ID_ORIGEM, ID_SOLICITACAO_PAI
         """;
 
     private readonly SqlServerConnectionFactory _connectionFactory = connectionFactory
@@ -32,20 +33,40 @@ public sealed class SerasaPefinRepository(SqlServerConnectionFactory connectionF
     {
         ArgumentNullException.ThrowIfNull(solicitacao);
 
-        const string sql = """
-            INSERT INTO dbo.SERASA_PEFIN_SOLICITACOES
-                (ID, NUM_VENDA_FK, TIPO_REGISTRO, ID_SOLICITACAO_PRINCIPAL, ID_ASSOCIADO, TIPO_ASSOCIACAO,
-                 DOCUMENTO_DEVEDOR, DOCUMENTO_GARANTIDOR, DOCUMENTO_CREDOR, CONTRACT_NUMBER, CATEGORY_ID,
-                 AREA_INFORMANTE, VALOR, DATA_VENCIMENTO, STATUS, TRANSACTION_ID, CADUS_KEY, CADUS_SERIE,
-                 PAYLOAD_AUDITORIA, WEBHOOK_PAYLOAD, ERROR_MESSAGE, ERROR_STATUS_CODE, OPERADOR,
-                 DT_CRIACAO, DT_ATUALIZACAO)
-            VALUES
-                (@Id, @NumVendaFk, @TipoRegistro, @IdSolicitacaoPrincipal, @IdAssociado, @TipoAssociacao,
-                 @DocumentoDevedor, @DocumentoGarantidor, @DocumentoCredor, @ContractNumber, @CategoryId,
-                 @AreaInformante, @Valor, @DataVencimento, @Status, @TransactionId, @CadusKey, @CadusSerie,
-                 @PayloadAuditoria, @WebhookPayload, @ErrorMessage, @ErrorStatusCode, @Operador,
-                 @DtCriacao, @DtAtualizacao);
-            """;
+        await using var connection = await _connectionFactory.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(
+            IsolationLevel.Serializable,
+            cancellationToken).ConfigureAwait(false);
+
+        try
+        {
+            await InsertSolicitacaoAsync(connection, transaction, solicitacao, cancellationToken).ConfigureAwait(false);
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+            return solicitacao.Id;
+        }
+        catch (SqlException ex) when (ex.Number is SqlErrorDuplicateKey or SqlErrorUniqueConstraint)
+        {
+            await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
+            throw new SerasaPefinDuplicateActiveException(
+                "Active Serasa PEFIN solicitation already exists for the same (NUM_VENDA, CONTRACT_NUMBER, DOCUMENTO_DEVEDOR, DOCUMENTO_GARANTIDOR, TIPO_REGISTRO, NUMERO_PARCELA) combination.",
+                ex);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task AddManyAsync(IReadOnlyCollection<SerasaPefinSolicitacaoCompleta> solicitacoes, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(solicitacoes);
+
+        if (solicitacoes.Count == 0)
+        {
+            return;
+        }
 
         await using var connection = await _connectionFactory.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
         await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(
@@ -54,17 +75,19 @@ public sealed class SerasaPefinRepository(SqlServerConnectionFactory connectionF
 
         try
         {
-            await using var command = new SqlCommand(sql, connection, transaction);
-            AddSolicitacaoParameters(command, solicitacao);
-            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            foreach (var solicitacao in solicitacoes)
+            {
+                ArgumentNullException.ThrowIfNull(solicitacao);
+                await InsertSolicitacaoAsync(connection, transaction, solicitacao, cancellationToken).ConfigureAwait(false);
+            }
+
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-            return solicitacao.Id;
         }
         catch (SqlException ex) when (ex.Number is SqlErrorDuplicateKey or SqlErrorUniqueConstraint)
         {
             await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
             throw new SerasaPefinDuplicateActiveException(
-                "Active Serasa PEFIN solicitation already exists for the same (NUM_VENDA, CONTRACT_NUMBER, DOCUMENTO_DEVEDOR, DOCUMENTO_GARANTIDOR, TIPO_REGISTRO) combination.",
+                "Active Serasa PEFIN solicitation already exists for the same (NUM_VENDA, CONTRACT_NUMBER, DOCUMENTO_DEVEDOR, DOCUMENTO_GARANTIDOR, TIPO_REGISTRO, NUMERO_PARCELA) combination.",
                 ex);
         }
         catch
@@ -89,6 +112,10 @@ public sealed class SerasaPefinRepository(SqlServerConnectionFactory connectionF
                 WEBHOOK_PAYLOAD = @WebhookPayload,
                 ERROR_MESSAGE = @ErrorMessage,
                 ERROR_STATUS_CODE = @ErrorStatusCode,
+                SOLICITANTE_USERNAME = @SolicitanteUsername,
+                APROVADOR_USERNAME = @AprovadorUsername,
+                DT_APROVACAO = @DtAprovacao,
+                JUSTIFICATIVA = @Justificativa,
                 DT_ATUALIZACAO = @DtAtualizacao
             WHERE ID = @Id;
             """;
@@ -104,8 +131,78 @@ public sealed class SerasaPefinRepository(SqlServerConnectionFactory connectionF
         command.Parameters.Add("@WebhookPayload", SqlDbType.NVarChar, -1).Value = (object?)solicitacao.WebhookPayload ?? DBNull.Value;
         command.Parameters.Add("@ErrorMessage", SqlDbType.NVarChar, 1000).Value = (object?)solicitacao.ErrorMessage ?? DBNull.Value;
         command.Parameters.Add("@ErrorStatusCode", SqlDbType.Int).Value = (object?)solicitacao.ErrorStatusCode ?? DBNull.Value;
+        command.Parameters.Add("@SolicitanteUsername", SqlDbType.VarChar, 100).Value = (object?)solicitacao.SolicitanteUsername ?? DBNull.Value;
+        command.Parameters.Add("@AprovadorUsername", SqlDbType.VarChar, 100).Value = (object?)solicitacao.AprovadorUsername ?? DBNull.Value;
+        command.Parameters.Add("@DtAprovacao", SqlDbType.DateTime2, 0).Value = (object?)solicitacao.DtAprovacao ?? DBNull.Value;
+        command.Parameters.Add("@Justificativa", SqlDbType.NVarChar, 500).Value = (object?)solicitacao.Justificativa ?? DBNull.Value;
         command.Parameters.Add("@DtAtualizacao", SqlDbType.DateTime2, 0).Value = solicitacao.DtAtualizacao;
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public async Task UpdateManyAsync(IReadOnlyCollection<SerasaPefinSolicitacaoCompleta> solicitacoes, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(solicitacoes);
+
+        if (solicitacoes.Count == 0)
+        {
+            return;
+        }
+
+        const string sql = """
+            UPDATE dbo.SERASA_PEFIN_SOLICITACOES SET
+                STATUS = @Status,
+                TRANSACTION_ID = @TransactionId,
+                CADUS_KEY = @CadusKey,
+                CADUS_SERIE = @CadusSerie,
+                PAYLOAD_AUDITORIA = @PayloadAuditoria,
+                WEBHOOK_PAYLOAD = @WebhookPayload,
+                ERROR_MESSAGE = @ErrorMessage,
+                ERROR_STATUS_CODE = @ErrorStatusCode,
+                SOLICITANTE_USERNAME = @SolicitanteUsername,
+                APROVADOR_USERNAME = @AprovadorUsername,
+                DT_APROVACAO = @DtAprovacao,
+                JUSTIFICATIVA = @Justificativa,
+                DT_ATUALIZACAO = @DtAtualizacao
+            WHERE ID = @Id;
+            """;
+
+        await using var connection = await _connectionFactory.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(
+            IsolationLevel.Serializable,
+            cancellationToken).ConfigureAwait(false);
+
+        try
+        {
+            foreach (var solicitacao in solicitacoes)
+            {
+                ArgumentNullException.ThrowIfNull(solicitacao);
+
+                await using var command = new SqlCommand(sql, connection, transaction);
+                command.Parameters.Add("@Id", SqlDbType.UniqueIdentifier).Value = solicitacao.Id;
+                command.Parameters.Add("@Status", SqlDbType.VarChar, 32).Value = solicitacao.Status.ToDbValue();
+                command.Parameters.Add("@TransactionId", SqlDbType.VarChar, 64).Value = (object?)solicitacao.TransactionId ?? DBNull.Value;
+                command.Parameters.Add("@CadusKey", SqlDbType.VarChar, 64).Value = (object?)solicitacao.CadusKey ?? DBNull.Value;
+                command.Parameters.Add("@CadusSerie", SqlDbType.VarChar, 64).Value = (object?)solicitacao.CadusSerie ?? DBNull.Value;
+                command.Parameters.Add("@PayloadAuditoria", SqlDbType.NVarChar, -1).Value = solicitacao.PayloadAuditoria;
+                command.Parameters.Add("@WebhookPayload", SqlDbType.NVarChar, -1).Value = (object?)solicitacao.WebhookPayload ?? DBNull.Value;
+                command.Parameters.Add("@ErrorMessage", SqlDbType.NVarChar, 1000).Value = (object?)solicitacao.ErrorMessage ?? DBNull.Value;
+                command.Parameters.Add("@ErrorStatusCode", SqlDbType.Int).Value = (object?)solicitacao.ErrorStatusCode ?? DBNull.Value;
+                command.Parameters.Add("@SolicitanteUsername", SqlDbType.VarChar, 100).Value = (object?)solicitacao.SolicitanteUsername ?? DBNull.Value;
+                command.Parameters.Add("@AprovadorUsername", SqlDbType.VarChar, 100).Value = (object?)solicitacao.AprovadorUsername ?? DBNull.Value;
+                command.Parameters.Add("@DtAprovacao", SqlDbType.DateTime2, 0).Value = (object?)solicitacao.DtAprovacao ?? DBNull.Value;
+                command.Parameters.Add("@Justificativa", SqlDbType.NVarChar, 500).Value = (object?)solicitacao.Justificativa ?? DBNull.Value;
+                command.Parameters.Add("@DtAtualizacao", SqlDbType.DateTime2, 0).Value = solicitacao.DtAtualizacao;
+                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
+            throw;
+        }
     }
 
     /// <inheritdoc />
@@ -154,6 +251,107 @@ public sealed class SerasaPefinRepository(SqlServerConnectionFactory connectionF
     }
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<SerasaPefinSolicitacaoCompleta>> ListByIdSolicitacaoPaiAsync(Guid solicitacaoPaiId, CancellationToken cancellationToken)
+    {
+        var sql = $"""
+            SELECT {SelectColumns}
+            FROM dbo.SERASA_PEFIN_SOLICITACOES
+            WHERE ID_SOLICITACAO_PAI = @SolicitacaoPaiId
+              AND NUMERO_PARCELA IS NOT NULL
+            ORDER BY NUMERO_PARCELA ASC, DT_CRIACAO ASC;
+            """;
+
+        await using var connection = await _connectionFactory.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        await using var command = new SqlCommand(sql, connection);
+        command.Parameters.Add("@SolicitacaoPaiId", SqlDbType.UniqueIdentifier).Value = solicitacaoPaiId;
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+
+        var results = new List<SerasaPefinSolicitacaoCompleta>();
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            results.Add(MapReader(reader));
+        }
+
+        return results;
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<SerasaPefinSolicitacaoCompleta>> ListByStatusAsync(
+        SerasaPefinStatus? status,
+        int? numVenda,
+        Guid? solicitacaoId,
+        string? solicitanteUsername,
+        int take,
+        int skip,
+        CancellationToken cancellationToken)
+    {
+        var whereConditions = new List<string>();
+        var parameters = new List<SqlParameter>();
+
+        if (status.HasValue)
+        {
+            whereConditions.Add("STATUS = @Status");
+            parameters.Add(new SqlParameter("@Status", SqlDbType.VarChar, 32) { Value = status.Value.ToDbValue() });
+        }
+
+        if (numVenda.HasValue)
+        {
+            whereConditions.Add("NUM_VENDA_FK = @NumVenda");
+            parameters.Add(new SqlParameter("@NumVenda", SqlDbType.Int) { Value = numVenda.Value });
+        }
+
+        if (solicitacaoId.HasValue)
+        {
+            whereConditions.Add("ID = @SolicitacaoId");
+            parameters.Add(new SqlParameter("@SolicitacaoId", SqlDbType.UniqueIdentifier) { Value = solicitacaoId.Value });
+        }
+
+        if (!string.IsNullOrWhiteSpace(solicitanteUsername))
+        {
+            whereConditions.Add("SOLICITANTE_USERNAME = @SolicitanteUsername");
+            parameters.Add(new SqlParameter("@SolicitanteUsername", SqlDbType.VarChar, 100) { Value = solicitanteUsername });
+        }
+
+        // When listing (no specific SolicitacaoId), return only parent rows of type PRINCIPAL.
+        // Each parent aggregates its child parcel rows (ID_SOLICITACAO_PAI = parent.Id) and
+        // any GARANTIDOR rows. Returning everything would duplicate the same logical request
+        // as multiple cards in the UI.
+        if (!solicitacaoId.HasValue)
+        {
+            whereConditions.Add("ID_SOLICITACAO_PAI IS NULL");
+            whereConditions.Add("TIPO_REGISTRO = 'PRINCIPAL'");
+        }
+
+        var whereClause = whereConditions.Count > 0
+            ? $"WHERE {string.Join(" AND ", whereConditions)}"
+            : string.Empty;
+
+        var sql = $"""
+            SELECT {SelectColumns}
+            FROM dbo.SERASA_PEFIN_SOLICITACOES
+            {whereClause}
+            ORDER BY DT_CRIACAO DESC
+            OFFSET @Skip ROWS FETCH NEXT @Take ROWS ONLY;
+            """;
+
+        parameters.Add(new SqlParameter("@Skip", SqlDbType.Int) { Value = skip });
+        parameters.Add(new SqlParameter("@Take", SqlDbType.Int) { Value = take });
+
+        await using var connection = await _connectionFactory.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        await using var command = new SqlCommand(sql, connection);
+        command.Parameters.AddRange(parameters.ToArray());
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+
+        var results = new List<SerasaPefinSolicitacaoCompleta>();
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            results.Add(MapReader(reader));
+        }
+
+        return results;
+    }
+
+    /// <inheritdoc />
     public async Task<bool> ExistsActiveAsync(
         int numVenda,
         string contractNumber,
@@ -181,6 +379,43 @@ public sealed class SerasaPefinRepository(SqlServerConnectionFactory connectionF
         command.Parameters.Add("@DocumentoDevedor", SqlDbType.VarChar, 20).Value = documentoDevedor;
         command.Parameters.Add("@DocumentoGarantidor", SqlDbType.VarChar, 20).Value = (object?)documentoGarantidor ?? DBNull.Value;
         command.Parameters.Add("@TipoRegistro", SqlDbType.VarChar, 20).Value = tipoRegistro.ToDbValue();
+
+        var result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+        return result is not null && result != DBNull.Value;
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> ExistsActiveAsync(
+        int numVenda,
+        string contractNumber,
+        string documentoDevedor,
+        string? documentoGarantidor,
+        SerasaPefinRecordType tipoRegistro,
+        int? numeroParcela,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+            SELECT TOP 1 1
+            FROM dbo.SERASA_PEFIN_SOLICITACOES
+            WHERE NUM_VENDA_FK = @NumVenda
+              AND CONTRACT_NUMBER = @ContractNumber
+              AND DOCUMENTO_DEVEDOR = @DocumentoDevedor
+              AND TIPO_REGISTRO = @TipoRegistro
+              AND STATUS IN ('PENDENTE_ENVIO', 'ENVIADO_SERASA', 'AGUARDANDO_RETORNO')
+              AND ((@NumeroParcela IS NULL AND NUMERO_PARCELA IS NULL)
+                OR NUMERO_PARCELA = @NumeroParcela)
+              AND ((@DocumentoGarantidor IS NULL AND DOCUMENTO_GARANTIDOR IS NULL)
+                OR DOCUMENTO_GARANTIDOR = @DocumentoGarantidor);
+            """;
+
+        await using var connection = await _connectionFactory.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        await using var command = new SqlCommand(sql, connection);
+        command.Parameters.Add("@NumVenda", SqlDbType.Int).Value = numVenda;
+        command.Parameters.Add("@ContractNumber", SqlDbType.VarChar, 20).Value = contractNumber;
+        command.Parameters.Add("@DocumentoDevedor", SqlDbType.VarChar, 20).Value = documentoDevedor;
+        command.Parameters.Add("@DocumentoGarantidor", SqlDbType.VarChar, 20).Value = (object?)documentoGarantidor ?? DBNull.Value;
+        command.Parameters.Add("@TipoRegistro", SqlDbType.VarChar, 20).Value = tipoRegistro.ToDbValue();
+        command.Parameters.Add("@NumeroParcela", SqlDbType.Int).Value = (object?)numeroParcela ?? DBNull.Value;
 
         var result = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
         return result is not null && result != DBNull.Value;
@@ -260,6 +495,10 @@ public sealed class SerasaPefinRepository(SqlServerConnectionFactory connectionF
                     WEBHOOK_PAYLOAD = @WebhookPayload,
                     ERROR_MESSAGE = @ErrorMessage,
                     ERROR_STATUS_CODE = @ErrorStatusCode,
+                    SOLICITANTE_USERNAME = @SolicitanteUsername,
+                    APROVADOR_USERNAME = @AprovadorUsername,
+                    DT_APROVACAO = @DtAprovacao,
+                    JUSTIFICATIVA = @Justificativa,
                     DT_ATUALIZACAO = @DtAtualizacao
                 WHERE ID = @Id;
                 """;
@@ -274,6 +513,10 @@ public sealed class SerasaPefinRepository(SqlServerConnectionFactory connectionF
             updateCommand.Parameters.Add("@WebhookPayload", SqlDbType.NVarChar, -1).Value = (object?)solicitacao.WebhookPayload ?? DBNull.Value;
             updateCommand.Parameters.Add("@ErrorMessage", SqlDbType.NVarChar, 1000).Value = (object?)solicitacao.ErrorMessage ?? DBNull.Value;
             updateCommand.Parameters.Add("@ErrorStatusCode", SqlDbType.Int).Value = (object?)solicitacao.ErrorStatusCode ?? DBNull.Value;
+            updateCommand.Parameters.Add("@SolicitanteUsername", SqlDbType.VarChar, 100).Value = (object?)solicitacao.SolicitanteUsername ?? DBNull.Value;
+            updateCommand.Parameters.Add("@AprovadorUsername", SqlDbType.VarChar, 100).Value = (object?)solicitacao.AprovadorUsername ?? DBNull.Value;
+            updateCommand.Parameters.Add("@DtAprovacao", SqlDbType.DateTime2, 0).Value = (object?)solicitacao.DtAprovacao ?? DBNull.Value;
+            updateCommand.Parameters.Add("@Justificativa", SqlDbType.NVarChar, 500).Value = (object?)solicitacao.Justificativa ?? DBNull.Value;
             updateCommand.Parameters.Add("@DtAtualizacao", SqlDbType.DateTime2, 0).Value = solicitacao.DtAtualizacao;
             await updateCommand.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
 
@@ -332,8 +575,43 @@ public sealed class SerasaPefinRepository(SqlServerConnectionFactory connectionF
         command.Parameters.Add("@ErrorMessage", SqlDbType.NVarChar, 1000).Value = (object?)s.ErrorMessage ?? DBNull.Value;
         command.Parameters.Add("@ErrorStatusCode", SqlDbType.Int).Value = (object?)s.ErrorStatusCode ?? DBNull.Value;
         command.Parameters.Add("@Operador", SqlDbType.VarChar, 255).Value = s.Operador;
+        command.Parameters.Add("@SolicitanteUsername", SqlDbType.VarChar, 100).Value = (object?)s.SolicitanteUsername ?? DBNull.Value;
+        command.Parameters.Add("@AprovadorUsername", SqlDbType.VarChar, 100).Value = (object?)s.AprovadorUsername ?? DBNull.Value;
+        command.Parameters.Add("@DtAprovacao", SqlDbType.DateTime2, 0).Value = (object?)s.DtAprovacao ?? DBNull.Value;
+        command.Parameters.Add("@Justificativa", SqlDbType.NVarChar, 500).Value = (object?)s.Justificativa ?? DBNull.Value;
         command.Parameters.Add("@DtCriacao", SqlDbType.DateTime2, 0).Value = s.DtCriacao;
         command.Parameters.Add("@DtAtualizacao", SqlDbType.DateTime2, 0).Value = s.DtAtualizacao;
+        command.Parameters.Add("@NumeroParcela", SqlDbType.Int).Value = (object?)s.NumeroParcela ?? DBNull.Value;
+        command.Parameters.Add("@ParcelaIdOrigem", SqlDbType.NVarChar, 64).Value = (object?)s.ParcelaIdOrigem ?? DBNull.Value;
+        command.Parameters.Add("@IdSolicitacaoPai", SqlDbType.UniqueIdentifier).Value = (object?)s.IdSolicitacaoPai ?? DBNull.Value;
+    }
+
+    private static async Task InsertSolicitacaoAsync(
+        SqlConnection connection,
+        SqlTransaction transaction,
+        SerasaPefinSolicitacaoCompleta solicitacao,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+            INSERT INTO dbo.SERASA_PEFIN_SOLICITACOES
+                (ID, NUM_VENDA_FK, TIPO_REGISTRO, ID_SOLICITACAO_PRINCIPAL, ID_ASSOCIADO, TIPO_ASSOCIACAO,
+                 DOCUMENTO_DEVEDOR, DOCUMENTO_GARANTIDOR, DOCUMENTO_CREDOR, CONTRACT_NUMBER, CATEGORY_ID,
+                 AREA_INFORMANTE, VALOR, DATA_VENCIMENTO, STATUS, TRANSACTION_ID, CADUS_KEY, CADUS_SERIE,
+                 PAYLOAD_AUDITORIA, WEBHOOK_PAYLOAD, ERROR_MESSAGE, ERROR_STATUS_CODE, OPERADOR,
+                 SOLICITANTE_USERNAME, APROVADOR_USERNAME, DT_APROVACAO, JUSTIFICATIVA,
+                 DT_CRIACAO, DT_ATUALIZACAO, NUMERO_PARCELA, PARCELA_ID_ORIGEM, ID_SOLICITACAO_PAI)
+            VALUES
+                (@Id, @NumVendaFk, @TipoRegistro, @IdSolicitacaoPrincipal, @IdAssociado, @TipoAssociacao,
+                 @DocumentoDevedor, @DocumentoGarantidor, @DocumentoCredor, @ContractNumber, @CategoryId,
+                 @AreaInformante, @Valor, @DataVencimento, @Status, @TransactionId, @CadusKey, @CadusSerie,
+                 @PayloadAuditoria, @WebhookPayload, @ErrorMessage, @ErrorStatusCode, @Operador,
+                 @SolicitanteUsername, @AprovadorUsername, @DtAprovacao, @Justificativa,
+                 @DtCriacao, @DtAtualizacao, @NumeroParcela, @ParcelaIdOrigem, @IdSolicitacaoPai);
+            """;
+
+        await using var command = new SqlCommand(sql, connection, transaction);
+        AddSolicitacaoParameters(command, solicitacao);
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private static SerasaPefinSolicitacaoCompleta MapReader(SqlDataReader reader)
@@ -362,7 +640,14 @@ public sealed class SerasaPefinRepository(SqlServerConnectionFactory connectionF
             errorMessage: reader.IsDBNull(20) ? null : reader.GetString(20),
             errorStatusCode: reader.IsDBNull(21) ? null : reader.GetInt32(21),
             operador: reader.GetString(22),
-            dtCriacao: reader.GetDateTime(23),
-            dtAtualizacao: reader.GetDateTime(24));
+            solicitanteUsername: reader.IsDBNull(23) ? null : reader.GetString(23),
+            aprovadorUsername: reader.IsDBNull(24) ? null : reader.GetString(24),
+            dtAprovacao: reader.IsDBNull(25) ? null : reader.GetDateTime(25),
+            justificativa: reader.IsDBNull(26) ? null : reader.GetString(26),
+            dtCriacao: reader.GetDateTime(27),
+            dtAtualizacao: reader.GetDateTime(28),
+            numeroParcela: reader.IsDBNull(29) ? null : reader.GetInt32(29),
+            parcelaIdOrigem: reader.IsDBNull(30) ? null : reader.GetString(30),
+            idSolicitacaoPai: reader.IsDBNull(31) ? null : reader.GetGuid(31));
     }
 }

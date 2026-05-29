@@ -34,7 +34,7 @@ public class InadimplenciaDbContext : DbContext
         _options = configuration
             .GetSection(SqlServerOptions.SectionName)
             .Get<SqlServerOptions>()
-            ?? throw new InvalidOperationException("SqlServerOptions not configured.");
+            ?? new SqlServerOptions();
     }
 
     /// <summary>
@@ -171,21 +171,73 @@ public class InadimplenciaDbContext : DbContext
             entity.Property(e => e.StatusData).IsRequired();
         });
 
-        // InadNotificacao configuration
+        // InadNotificacao configuration.
+        // The physical table dbo.INAD_NOTIFICACOES uses LEGACY uppercase-snake column
+        // names (USUARIO_DESTINATARIO, NUM_VENDA, PAYLOAD, DT_CRIACAO, DT_EXCLUSAO,
+        // TIPO as varchar). Map each property explicitly so EF Core writes/reads the
+        // existing schema instead of failing with "Invalid column name".
         modelBuilder.Entity<InadNotificacao>(entity =>
         {
             entity.ToTable("INAD_NOTIFICACOES", "dbo");
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Id).HasDefaultValueSql("NEWID()");
-            entity.Property(e => e.Tipo).IsRequired();
-            entity.Property(e => e.Usuario).IsRequired().HasMaxLength(100);
-            entity.Property(e => e.NumVenda).IsRequired();
-            entity.Property(e => e.ProximaAcaoDia);
-            entity.Property(e => e.Mensagem).IsRequired().HasMaxLength(500);
-            entity.Property(e => e.Lida).IsRequired().HasDefaultValue(false);
-            entity.Property(e => e.CriadaEm).IsRequired();
-            entity.Property(e => e.ExcluidaEm);
+
+            entity.Property(e => e.Id)
+                .HasColumnName("ID")
+                .HasDefaultValueSql("NEWID()");
+
+            // TIPO is stored as varchar(32) using UPPER_SNAKE_CASE labels
+            // (e.g. SOLICITACAO_NEGATIVACAO) for compatibility with legacy SQL
+            // queries and the frontend.
+            entity.Property(e => e.Tipo)
+                .HasColumnName("TIPO")
+                .HasMaxLength(32)
+                .IsRequired()
+                .HasConversion(
+                    v => NotificationTypeToLegacyString(v),
+                    v => LegacyStringToNotificationType(v));
+
+            entity.Property(e => e.Usuario)
+                .HasColumnName("USUARIO_DESTINATARIO")
+                .HasMaxLength(255)
+                .IsRequired();
+
+            entity.Property(e => e.NumVenda)
+                .HasColumnName("NUM_VENDA")
+                .IsRequired();
+
+            // PROXIMA_ACAO_DIA is a COMPUTED column in the legacy schema (derived from
+            // the datetime PROXIMA_ACAO). EF must never try to INSERT/UPDATE it; the
+            // value is read back from the database after save.
+            var proximaAcaoDiaProp = entity.Property(e => e.ProximaAcaoDia)
+                .HasColumnName("PROXIMA_ACAO_DIA")
+                .ValueGeneratedOnAddOrUpdate();
+            proximaAcaoDiaProp.Metadata.SetBeforeSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
+            proximaAcaoDiaProp.Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
+
+            // Plain message persisted in the PAYLOAD column. Legacy callers store JSON
+            // there; the response mapper tolerates non-JSON values (returns empty dict).
+            entity.Property(e => e.Mensagem)
+                .HasColumnName("PAYLOAD")
+                .IsRequired();
+
+            entity.Property(e => e.DedupeKey)
+                .HasColumnName("DEDUPE_KEY")
+                .HasMaxLength(100);
+
+            entity.Property(e => e.Lida)
+                .HasColumnName("LIDA")
+                .IsRequired()
+                .HasDefaultValue(false);
+
+            entity.Property(e => e.CriadaEm)
+                .HasColumnName("DT_CRIACAO")
+                .IsRequired();
+
+            entity.Property(e => e.ExcluidaEm)
+                .HasColumnName("DT_EXCLUSAO");
+
             entity.HasIndex(e => new { e.Tipo, e.Usuario, e.NumVenda, e.ProximaAcaoDia }).IsUnique();
+            entity.HasIndex(e => e.DedupeKey);
         });
 
         // SerasaPefinSolicitacao configuration
@@ -223,4 +275,38 @@ public class InadimplenciaDbContext : DbContext
             entity.HasIndex(e => e.TransactionId);
         });
     }
+
+    /// <summary>
+    /// Maps <see cref="NotificationType"/> values to the UPPER_SNAKE_CASE strings
+    /// stored in the legacy <c>TIPO</c> column of <c>dbo.INAD_NOTIFICACOES</c>.
+    /// </summary>
+    private static string NotificationTypeToLegacyString(NotificationType type) => type switch
+    {
+        NotificationType.VendaAtribuida => "VENDA_ATRIBUIDA",
+        NotificationType.VendaAtrasada => "VENDA_ATRASADA",
+        NotificationType.SolicitacaoNegativacao => "SOLICITACAO_NEGATIVACAO",
+        NotificationType.AprovacaoNegativacao => "APROVACAO_NEGATIVACAO",
+        NotificationType.RejeicaoNegativacao => "REJEICAO_NEGATIVACAO",
+        NotificationType.RetornoSerasaSucesso => "RETORNO_SERASA_SUCESSO",
+        NotificationType.RetornoSerasaErro => "RETORNO_SERASA_ERRO",
+        _ => type.ToString().ToUpperInvariant(),
+    };
+
+    /// <summary>
+    /// Reverse of <see cref="NotificationTypeToLegacyString"/>; tolerates legacy values
+    /// or PascalCase enum names. Returns <see cref="NotificationType.VendaAtrasada"/>
+    /// as a safe fallback for unknown values to keep reads non-fatal.
+    /// </summary>
+    private static NotificationType LegacyStringToNotificationType(string value) => (value ?? string.Empty).Trim().ToUpperInvariant() switch
+    {
+        "VENDA_ATRIBUIDA" => NotificationType.VendaAtribuida,
+        "VENDA_ATRASADA" => NotificationType.VendaAtrasada,
+        "SOLICITACAO_NEGATIVACAO" => NotificationType.SolicitacaoNegativacao,
+        "APROVACAO_NEGATIVACAO" => NotificationType.AprovacaoNegativacao,
+        "REJEICAO_NEGATIVACAO" => NotificationType.RejeicaoNegativacao,
+        "RETORNO_SERASA_SUCESSO" => NotificationType.RetornoSerasaSucesso,
+        "RETORNO_SERASA_ERRO" => NotificationType.RetornoSerasaErro,
+        _ when Enum.TryParse<NotificationType>(value, ignoreCase: true, out var parsed) => parsed,
+        _ => NotificationType.VendaAtrasada,
+    };
 }

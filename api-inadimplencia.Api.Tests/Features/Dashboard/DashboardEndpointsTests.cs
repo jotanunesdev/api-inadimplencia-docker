@@ -1,13 +1,14 @@
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
+using api_inadimplencia.Api.Tests.Infrastructure;
 
 namespace api_inadimplencia.Api.Tests.Features.Dashboard;
 
-public class DashboardEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+public class DashboardEndpointsTests : IClassFixture<ApiTestWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly ApiTestWebApplicationFactory _factory;
 
-    public DashboardEndpointsTests(WebApplicationFactory<Program> factory)
+    public DashboardEndpointsTests(ApiTestWebApplicationFactory factory)
     {
         _factory = factory;
     }

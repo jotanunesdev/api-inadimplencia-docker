@@ -9,13 +9,13 @@ namespace api_inadimplencia.Api.Tests.Features.SerasaPefin;
 public class SerasaPefinTestRoutesTests
 {
     [Fact]
-    public void UatAuthorizedDocuments_ShouldHaveExactly8Documents()
+    public void UatAuthorizedDocuments_ShouldHaveExactly9Documents()
     {
         // Act
         var count = SerasaPefinConstants.UatAuthorizedDocuments.Count;
 
         // Assert
-        Assert.Equal(8, count);
+        Assert.Equal(9, count);
     }
 
     [Fact]
@@ -32,6 +32,7 @@ public class SerasaPefinTestRoutesTests
             "11572467886", // TST FLEX
             "43557445000180", // ESFERA ARENA E NEGOCIOS SPE LTDA
             "00079854000105", // U F NXALWPULN ZK EWCQIXG
+            "16202491000193", // CNPJ CONTRATO SERASA (creditor)
         };
 
         // Act & Assert

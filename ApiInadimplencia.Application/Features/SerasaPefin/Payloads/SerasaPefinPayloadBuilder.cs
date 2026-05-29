@@ -54,7 +54,7 @@ public sealed class SerasaPefinPayloadBuilder
             {
                 ["documentNumber"] = SerasaPefinConstants.DigitsOnly(input.CreditorDocument),
             },
-            ["contractNumber"] = input.ContractNumber.Trim(),
+            ["contractNumber"] = $"{input.ContractNumber.Trim()}-P{input.Parcela.Numero}",
             ["debtType"] = SerasaPefinConstants.DebtType,
         };
 
@@ -85,7 +85,7 @@ public sealed class SerasaPefinPayloadBuilder
             ["value"] = Math.Round(input.Value, SerasaPefinConstants.ValueDecimals, MidpointRounding.AwayFromZero),
             ["dueDate"] = input.DueDate.ToString("yyyy-MM-dd"),
             ["debtorDocument"] = SerasaPefinConstants.DigitsOnly(input.DebtorDocument),
-            ["contractNumber"] = input.ContractNumber.Trim(),
+            ["contractNumber"] = $"{input.ContractNumber.Trim()}-P{input.Parcela.Numero}",
             ["guarantor"] = new Dictionary<string, object?>
             {
                 ["documentNumber"] = SerasaPefinConstants.DigitsOnly(input.GuarantorDocument),
@@ -385,31 +385,60 @@ public sealed record SerasaAddress(
     string? Number = null);
 
 /// <summary>
+/// Input representing a parcela (installment) with its specific data.
+/// </summary>
+public sealed record ParcelaInput(
+    decimal Valor,
+    DateOnly Vencimento,
+    int Numero,
+    string IdOrigem);
+
+/// <summary>
 /// Input used to build the main debt inclusion payload.
 /// </summary>
 public sealed record MainDebtInput(
-    decimal Value,
-    DateOnly DueDate,
+    ParcelaInput Parcela,
     string ContractNumber,
     string DebtorDocument,
     string? DebtorName,
     SerasaAddress? DebtorAddress,
     string CreditorDocument,
-    string? CategoryId = null);
+    string? CategoryId = null)
+{
+    /// <summary>
+    /// Value derived from the parcela for backward compatibility.
+    /// </summary>
+    public decimal Value => Parcela.Valor;
+
+    /// <summary>
+    /// DueDate derived from the parcela for backward compatibility.
+    /// </summary>
+    public DateOnly DueDate => Parcela.Vencimento;
+}
 
 /// <summary>
 /// Input used to build a guarantor inclusion payload.
 /// </summary>
 public sealed record GuarantorInput(
-    decimal Value,
-    DateOnly DueDate,
+    ParcelaInput Parcela,
     string ContractNumber,
     string DebtorDocument,
     string CreditorDocument,
     string GuarantorDocument,
     string? GuarantorName,
     SerasaAddress? GuarantorAddress,
-    string? CategoryId = null);
+    string? CategoryId = null)
+{
+    /// <summary>
+    /// Value derived from the parcela for backward compatibility.
+    /// </summary>
+    public decimal Value => Parcela.Valor;
+
+    /// <summary>
+    /// DueDate derived from the parcela for backward compatibility.
+    /// </summary>
+    public DateOnly DueDate => Parcela.Vencimento;
+}
 
 /// <summary>
 /// Validation result for Serasa PEFIN payload validation (non-throwing version).

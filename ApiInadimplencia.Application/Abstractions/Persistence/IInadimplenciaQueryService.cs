@@ -25,6 +25,17 @@ public interface IInadimplenciaQueryService
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>List of eligible guarantors, ordered by DATA_CADASTRO DESC, NOME ASC.</returns>
     Task<IReadOnlyList<FiadorQueryResult>> ListFiadoresAsync(int numVenda, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves eligible debts (parcelas) for a sale from DW.fat_analise_inadimplencia_parcelas.
+    /// Calculates days overdue from DATAVENCIMENTO to current date and marks each parcela as elegivel
+    /// if DIAS_ATRASO > diasAtrasoMinimo.
+    /// </summary>
+    /// <param name="numVenda">Sale number.</param>
+    /// <param name="diasAtrasoMinimo">Minimum days overdue for eligibility (default 60).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Eligible debts data, or null if sale not found.</returns>
+    Task<DividasElegiveisQueryResult?> GetDividasElegiveisAsync(int numVenda, int diasAtrasoMinimo, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -94,3 +105,35 @@ public sealed record FiadorQueryResult(
     string TipoAssociacao,
     EnderecoDto? Endereco,
     DateTime DataCadastro);
+
+/// <summary>
+/// Result DTO for eligible debts query from DW.fat_analise_inadimplencia_parcelas.
+/// </summary>
+/// <param name="NumVenda">Sale number.</param>
+/// <param name="Cliente">Client name.</param>
+/// <param name="Cpf">Client CPF (digits-only).</param>
+/// <param name="ContractNumber">Contract number.</param>
+/// <param name="Parcelas">List of parcelas with eligibility flag.</param>
+/// <param name="Endereco">Client address (nullable when no matching client record).</param>
+public sealed record DividasElegiveisQueryResult(
+    int NumVenda,
+    string Cliente,
+    string Cpf,
+    string ContractNumber,
+    IReadOnlyList<ParcelaElegivelDto> Parcelas,
+    EnderecoDto? Endereco = null);
+
+/// <summary>
+/// DTO for a single parcela (installment) with eligibility information.
+/// </summary>
+/// <param name="Id">Parcela ID.</param>
+/// <param name="Valor">Parcela value.</param>
+/// <param name="Vencimento">Due date.</param>
+/// <param name="DiasAtraso">Days overdue (calculated from due date to current date).</param>
+/// <param name="Elegivel">Whether this parcela is eligible for negativacao (DiasAtraso > threshold).</param>
+public sealed record ParcelaElegivelDto(
+    int Id,
+    decimal Valor,
+    DateOnly Vencimento,
+    int DiasAtraso,
+    bool Elegivel);

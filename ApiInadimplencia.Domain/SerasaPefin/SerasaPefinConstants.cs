@@ -43,6 +43,8 @@ public static class SerasaPefinConstants
     /// </summary>
     public static readonly IReadOnlySet<SerasaPefinStatus> ActiveStatuses = new HashSet<SerasaPefinStatus>
     {
+        SerasaPefinStatus.AguardandoAprovacao,
+        SerasaPefinStatus.Aprovada,
         SerasaPefinStatus.PendenteEnvio,
         SerasaPefinStatus.EnviadoSerasa,
         SerasaPefinStatus.AguardandoRetorno,
@@ -65,6 +67,10 @@ public static class SerasaPefinConstants
     /// </summary>
     public static string ToDbValue(this SerasaPefinStatus status) => status switch
     {
+        SerasaPefinStatus.AguardandoAprovacao => "AGUARDANDO_APROVACAO",
+        SerasaPefinStatus.Aprovada => "APROVADA",
+        SerasaPefinStatus.Rejeitada => "REJEITADA",
+        SerasaPefinStatus.AprovadaFalhaEnvio => "APROVADA_FALHA_ENVIO",
         SerasaPefinStatus.PendenteEnvio => "PENDENTE_ENVIO",
         SerasaPefinStatus.EnviadoSerasa => "ENVIADO_SERASA",
         SerasaPefinStatus.AguardandoRetorno => "AGUARDANDO_RETORNO",
@@ -82,6 +88,10 @@ public static class SerasaPefinConstants
     /// </summary>
     public static SerasaPefinStatus ParseStatus(string value) => value switch
     {
+        "AGUARDANDO_APROVACAO" => SerasaPefinStatus.AguardandoAprovacao,
+        "APROVADA" => SerasaPefinStatus.Aprovada,
+        "REJEITADA" => SerasaPefinStatus.Rejeitada,
+        "APROVADA_FALHA_ENVIO" => SerasaPefinStatus.AprovadaFalhaEnvio,
         "PENDENTE_ENVIO" => SerasaPefinStatus.PendenteEnvio,
         "ENVIADO_SERASA" => SerasaPefinStatus.EnviadoSerasa,
         "AGUARDANDO_RETORNO" => SerasaPefinStatus.AguardandoRetorno,

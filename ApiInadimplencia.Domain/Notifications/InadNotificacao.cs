@@ -38,6 +38,11 @@ public class InadNotificacao
     public string Mensagem { get; private set; } = string.Empty;
 
     /// <summary>
+    /// Gets the optional dedupe key used for transaction-specific notifications.
+    /// </summary>
+    public string? DedupeKey { get; private set; }
+
+    /// <summary>
     /// Gets whether the notification has been read.
     /// </summary>
     public bool Lida { get; private set; }
@@ -60,7 +65,8 @@ public class InadNotificacao
         string usuario,
         int numVenda,
         DateOnly? proximaAcaoDia,
-        string mensagem)
+        string mensagem,
+        string? dedupeKey = null)
     {
         return new InadNotificacao
         {
@@ -70,6 +76,7 @@ public class InadNotificacao
             NumVenda = numVenda,
             ProximaAcaoDia = proximaAcaoDia,
             Mensagem = mensagem,
+            DedupeKey = string.IsNullOrWhiteSpace(dedupeKey) ? null : dedupeKey.Trim(),
             Lida = false,
             CriadaEm = DateTime.UtcNow
         };

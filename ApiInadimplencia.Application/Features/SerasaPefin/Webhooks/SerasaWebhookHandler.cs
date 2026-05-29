@@ -1,4 +1,6 @@
 using ApiInadimplencia.Application.Abstractions.Persistence;
+using ApiInadimplencia.Application.Features.Notifications;
+using ApiInadimplencia.Domain.Notifications;
 using ApiInadimplencia.Domain.SerasaPefin;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
@@ -12,13 +14,16 @@ namespace ApiInadimplencia.Application.Features.SerasaPefin.Webhooks;
 public sealed class SerasaWebhookHandler
 {
     private readonly ISerasaPefinRepository _repository;
+    private readonly INotificationDispatcher _notificationDispatcher;
     private readonly ILogger<SerasaWebhookHandler> _logger;
 
     public SerasaWebhookHandler(
         ISerasaPefinRepository repository,
+        INotificationDispatcher notificationDispatcher,
         ILogger<SerasaWebhookHandler> logger)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        _notificationDispatcher = notificationDispatcher ?? throw new ArgumentNullException(nameof(notificationDispatcher));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -87,6 +92,9 @@ public sealed class SerasaWebhookHandler
         _logger.LogInformation(
             "Webhook processed successfully. UUID: {Uuid}, TransactionId: {TransactionId}, NewStatus: {Status}",
             payload.Uuid, transactionId, solicitacao.Status);
+
+        // Dispatch notifications for inclusão webhooks (not baixa)
+        await DispatchNotificationsAsync(eventType, resultado, solicitacao, payload, cancellationToken);
 
         return WebhookResult.Processed(payload.Uuid);
     }
@@ -195,5 +203,80 @@ public sealed class SerasaWebhookHandler
             errorMessage);
 
         await _repository.AddWebhookAsync(webhookRecord, cancellationToken);
+    }
+
+    /// <summary>
+    /// Dispatches notifications to solicitante and aprovador after webhook processing.
+    /// Only dispatches for inclusão webhooks (sucesso or erro); baixa webhooks are out of scope.
+    /// </summary>
+    private async Task DispatchNotificationsAsync(
+        WebhookEventType eventType,
+        WebhookResultado resultado,
+        SerasaPefinSolicitacaoCompleta solicitacao,
+        SerasaWebhookPayload payload,
+        CancellationToken cancellationToken)
+    {
+        // Baixa webhooks are out of scope for this task
+        if (eventType == WebhookEventType.Baixa)
+        {
+            _logger.LogInformation("Baixa webhook - notifications out of scope for this task. EventType: {EventType}, Resultado: {Resultado}", eventType, resultado);
+            return;
+        }
+
+        // Collect usernames to notify (skip if null for legacy records)
+        var usernamesToNotify = new List<string>(2);
+        if (!string.IsNullOrWhiteSpace(solicitacao.SolicitanteUsername))
+        {
+            usernamesToNotify.Add(solicitacao.SolicitanteUsername);
+        }
+        if (!string.IsNullOrWhiteSpace(solicitacao.AprovadorUsername))
+        {
+            usernamesToNotify.Add(solicitacao.AprovadorUsername);
+        }
+
+        // Skip if no usernames to notify (legacy record without approval workflow)
+        if (usernamesToNotify.Count == 0)
+        {
+            _logger.LogInformation("No usernames to notify for solicitation {SolicitacaoId} (legacy record without approval workflow)", solicitacao.Id);
+            return;
+        }
+
+        try
+        {
+            if (resultado == WebhookResultado.Sucesso)
+            {
+                // Success notification
+                var mensagem = $"Cliente negativado com sucesso (venda nº {solicitacao.NumVendaFk}).";
+                _logger.LogInformation("Dispatching success notification to {Count} users for solicitation {SolicitacaoId}", usernamesToNotify.Count, solicitacao.Id);
+                await _notificationDispatcher.DispatchManyAsync(
+                    NotificationType.RetornoSerasaSucesso,
+                    usernamesToNotify,
+                    solicitacao.NumVendaFk,
+                    mensagem,
+                    null,
+                    null,
+                    cancellationToken);
+            }
+            else if (resultado == WebhookResultado.Erro)
+            {
+                // Error notification
+                var errorMessage = payload.Error?.Message ?? solicitacao.ErrorMessage ?? "Erro desconhecido";
+                var mensagem = $"Erro ao negativar cliente (venda nº {solicitacao.NumVendaFk}): {errorMessage}";
+                _logger.LogInformation("Dispatching error notification to {Count} users for solicitation {SolicitacaoId}", usernamesToNotify.Count, solicitacao.Id);
+                await _notificationDispatcher.DispatchManyAsync(
+                    NotificationType.RetornoSerasaErro,
+                    usernamesToNotify,
+                    solicitacao.NumVendaFk,
+                    mensagem,
+                    null,
+                    null,
+                    cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Dispatch failure should not revert webhook processing
+            _logger.LogWarning(ex, "Failed to dispatch notification for solicitation {SolicitacaoId}. Webhook processing succeeded.", solicitacao.Id);
+        }
     }
 }

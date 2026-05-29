@@ -55,9 +55,15 @@ public class GetSerasaPreviewQueryHandler : IQueryHandler<GetSerasaPreviewQuery,
         var contractNumber = venda.NumVenda.ToString();
         var creditorDocument = _options.CreditorDocument ?? string.Empty;
 
+        // TODO: Task 5.0 will implement real parcela iteration. Using placeholder for now.
+        var parcelaPlaceholder = new ParcelaInput(
+            Valor: venda.Valor,
+            Vencimento: venda.DataVencimento,
+            Numero: 1,
+            IdOrigem: venda.NumVenda.ToString());
+
         var mainDebtInput = new MainDebtInput(
-            Value: venda.Valor,
-            DueDate: venda.DataVencimento,
+            Parcela: parcelaPlaceholder,
             ContractNumber: contractNumber,
             DebtorDocument: venda.DocumentoDevedor,
             DebtorName: venda.NomeDevedor,
@@ -129,8 +135,7 @@ public class GetSerasaPreviewQueryHandler : IQueryHandler<GetSerasaPreviewQuery,
         foreach (var fiador in fiadores)
         {
             var guarantorInput = new GuarantorInput(
-                Value: venda.Valor,
-                DueDate: venda.DataVencimento,
+                Parcela: parcelaPlaceholder,
                 ContractNumber: contractNumber,
                 DebtorDocument: venda.DocumentoDevedor,
                 CreditorDocument: creditorDocument,

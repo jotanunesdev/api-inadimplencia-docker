@@ -5,6 +5,18 @@ namespace ApiInadimplencia.Domain.SerasaPefin;
 /// </summary>
 public enum SerasaPefinStatus
 {
+    /// <summary>Solicitation is waiting for approval before being sent to Serasa.</summary>
+    AguardandoAprovacao,
+
+    /// <summary>Solicitation was approved and is ready to be sent to Serasa.</summary>
+    Aprovada,
+
+    /// <summary>Solicitation was rejected by an approver.</summary>
+    Rejeitada,
+
+    /// <summary>Solicitation was approved but failed during the send process to Serasa.</summary>
+    AprovadaFalhaEnvio,
+
     /// <summary>Solicitation was persisted and is waiting to be sent.</summary>
     PendenteEnvio,
 

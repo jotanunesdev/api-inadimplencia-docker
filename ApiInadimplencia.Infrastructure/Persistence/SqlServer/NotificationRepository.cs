@@ -33,6 +33,7 @@ public class NotificationRepository : INotificationRepository
         string usuario,
         int numVenda,
         DateOnly? proximaAcaoDia,
+        string? dedupeKey,
         CancellationToken cancellationToken)
     {
         var usuarioNormalized = usuario.ToLowerInvariant();
@@ -42,6 +43,7 @@ public class NotificationRepository : INotificationRepository
                 n.Usuario == usuarioNormalized &&
                 n.NumVenda == numVenda &&
                 n.ProximaAcaoDia == proximaAcaoDia &&
+                n.DedupeKey == dedupeKey &&
                 n.ExcluidaEm == null,
             cancellationToken);
     }
@@ -97,7 +99,7 @@ public class NotificationRepository : INotificationRepository
         return await query.CountAsync(cancellationToken);
     }
 
-    public async Task<int> MarkAllAsReadAsync(string username, CancellationToken cancellationToken)
+    public async Task MarkAllAsReadAsync(string username, CancellationToken cancellationToken)
     {
         var usernameNormalized = username.ToLowerInvariant();
         
@@ -111,6 +113,5 @@ public class NotificationRepository : INotificationRepository
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
-        return unreadNotifications.Count;
     }
 }

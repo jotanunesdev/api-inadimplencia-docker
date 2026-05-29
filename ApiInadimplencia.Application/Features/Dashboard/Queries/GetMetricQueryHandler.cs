@@ -12,6 +12,13 @@ public sealed class GetMetricQueryHandler(ILegacySqlExecutor executor)
 {
     private static readonly Dictionary<string, string> MetricQueryMap = new(StringComparer.OrdinalIgnoreCase)
     {
+        ["vendas-por-responsavel"] = "Dashboard.VendasPorResponsavel",
+        ["inadimplencia-por-empreendimento"] = "Dashboard.InadimplenciaPorEmpreendimento",
+        ["clientes-por-empreendimento"] = "Dashboard.ClientesPorEmpreendimento",
+        ["status-repasse"] = "Dashboard.StatusRepasse",
+        ["blocos"] = "Dashboard.Blocos",
+        ["unidades"] = "Dashboard.Unidades",
+        ["usuarios-ativos"] = "Dashboard.UsuariosAtivos",
         ["ocorrencias-por-usuario"] = "Dashboard.OcorrenciasPorUsuario",
         ["ocorrencias-por-venda"] = "Dashboard.OcorrenciasPorVenda",
         ["ocorrencias-por-dia"] = "Dashboard.OcorrenciasPorDia",
@@ -20,11 +27,17 @@ public sealed class GetMetricQueryHandler(ILegacySqlExecutor executor)
         ["proximas-acoes-por-dia"] = "Dashboard.ProximasAcoesPorDia",
         ["acoes-definidas"] = "Dashboard.AcoesDefinidas",
         ["atendentes-por-proxima-acao"] = "Dashboard.AtendentesPorProximaAcao",
+        ["atendentes-proxima-acao"] = "Dashboard.AtendentesPorProximaAcao",
         ["aging"] = "Dashboard.Aging",
+        ["aging-detalhes"] = "Dashboard.AgingDetalhes",
         ["parcelas-inadimplentes"] = "Dashboard.ParcelasInadimplentes",
+        ["parcelas-detalhes"] = "Dashboard.ParcelasDetalhes",
         ["score-saldo"] = "Dashboard.ScoreSaldo",
+        ["score-saldo-detalhes"] = "Dashboard.ScoreSaldoDetalhes",
         ["saldo-por-mes-vencimento"] = "Dashboard.SaldoPorMesVencimento",
-        ["perfil-risco-empreendimento"] = "Dashboard.PerfilRiscoEmpreendimento"
+        ["perfil-risco-empreendimento"] = "Dashboard.PerfilRiscoEmpreendimento",
+        ["ocorrencias"] = "Dashboard.Ocorrencias",
+        ["responsaveis"] = "Dashboard.Responsaveis"
     };
 
     private readonly ILegacySqlExecutor _executor = executor ?? throw new ArgumentNullException(nameof(executor));
@@ -80,18 +93,13 @@ public sealed class GetMetricQueryHandler(ILegacySqlExecutor executor)
         // Build parameters
         var parameters = new Dictionary<string, object?>
         {
-            ["limit"] = limit
+            ["limit"] = limit,
+            ["dataInicio"] = dataInicio,
+            ["dataFim"] = dataFim,
+            ["faixa"] = faixa,
+            ["score"] = score,
+            ["qtd"] = NormalizeQtd(query.Qtd)
         };
-
-        if (dataInicio.HasValue)
-        {
-            parameters["dataInicio"] = dataInicio.Value;
-        }
-
-        if (dataFim.HasValue)
-        {
-            parameters["dataFim"] = dataFim.Value;
-        }
 
         var result = await _executor.QueryAsync(
             queryKey,
@@ -132,5 +140,20 @@ public sealed class GetMetricQueryHandler(ILegacySqlExecutor executor)
         }
 
         return rows;
+    }
+
+    private static int? NormalizeQtd(string? qtd)
+    {
+        if (string.IsNullOrWhiteSpace(qtd) || qtd.Equals("null", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        if (!int.TryParse(qtd, out var value) || value < 0)
+        {
+            throw new ArgumentException("Qtd must be an integer value or null.", nameof(qtd));
+        }
+
+        return value;
     }
 }

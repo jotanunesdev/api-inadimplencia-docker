@@ -38,6 +38,15 @@ public static class ScoreParser
             return "all";
         }
 
+        if (decimal.TryParse(
+            score,
+            System.Globalization.NumberStyles.Number,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out _))
+        {
+            return score;
+        }
+
         if (!AllowedValues.Contains(score))
         {
             throw new ArgumentException(

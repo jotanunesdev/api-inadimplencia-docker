@@ -28,6 +28,13 @@ public class SensitiveDataMaskingMiddleware
         _logger.LogInformation("Request: {Method} {Path}", context.Request.Method, context.Request.Path);
         _logger.LogDebug("Request Headers: {Headers}", maskedRequestHeaders);
 
+        if (IsServerSentEventsRequest(context.Request))
+        {
+            await _next(context);
+            _logger.LogInformation("Response: {StatusCode}", context.Response.StatusCode);
+            return;
+        }
+
         // Capturar response original para mascarar dados sensíveis
         var originalBodyStream = context.Response.Body;
         using var memoryStream = new MemoryStream();
@@ -77,6 +84,18 @@ public class SensitiveDataMaskingMiddleware
         }
     }
 
+    private static bool IsServerSentEventsRequest(HttpRequest request)
+    {
+        if (request.Path.StartsWithSegments("/notifications/stream", StringComparison.OrdinalIgnoreCase) ||
+            request.Path.StartsWithSegments("/inadimplencia/notifications/stream", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return request.Headers.Accept.Any(value =>
+            value.Contains("text/event-stream", StringComparison.OrdinalIgnoreCase));
+    }
+
     /// <summary>
     /// Mascarar headers HTTP
     /// </summary>
@@ -112,13 +131,19 @@ public class SensitiveDataMaskingMiddleware
             return input;
 
         var masked = input;
+        masked = Regex.Replace(masked, @"""(documento|cpf|cnpj)""\s*:\s*""\d+""",
+            match => $"{match.Value.Split(':')[0]}: \"***\"", RegexOptions.IgnoreCase);
+        masked = Regex.Replace(masked, @"\bCPF\b\s*[:=]\s*(\d{11})\b",
+            match => $"CPF: {MaskCpfCnpj(match.Groups[1].Value)}", RegexOptions.IgnoreCase);
+        masked = Regex.Replace(masked, @"\bCNPJ\b\s*[:=]\s*(\d{14})\b",
+            match => $"CNPJ: {MaskCnpj(match.Groups[1].Value)}", RegexOptions.IgnoreCase);
 
         // Mascarar CPF (manter primeiros 3 e últimos 2 dígitos)
-        masked = Regex.Replace(masked, @"\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b", 
+        masked = Regex.Replace(masked, @"\b\d{3}\.\d{3}\.\d{3}-\d{2}\b", 
             match => MaskCpfCnpj(match.Value));
 
         // Mascarar CNPJ (manter primeiros 2 e últimos 2 dígitos)
-        masked = Regex.Replace(masked, @"\b\d{2}\.?\d{3}\.?\d{3}/?\d{4}-?\d{2}\b", 
+        masked = Regex.Replace(masked, @"\b\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}\b", 
             match => MaskCnpj(match.Value));
 
         // Mascarar tokens Bearer (mostrar primeiros 8 caracteres)
@@ -136,10 +161,6 @@ public class SensitiveDataMaskingMiddleware
         // Mascarar secrets/keys em JSON
         masked = Regex.Replace(masked, @"""(password|secret|token|apikey|api_key|authorization)""\s*:\s*""[^""]+""", 
             match => $"{match.Value.Split(':')[0]}: \"*****\"", RegexOptions.IgnoreCase);
-
-        // Mascarar documentos em payloads Serasa (padrões comuns)
-        masked = Regex.Replace(masked, @"""(documento|cpf|cnpj)""\s*:\s*""\d+""", 
-            match => $"{match.Value.Split(':')[0]}: \"***\"", RegexOptions.IgnoreCase);
 
         return masked;
     }
@@ -159,13 +180,15 @@ public class SensitiveDataMaskingMiddleware
             return input;
 
         var masked = input;
+        masked = Regex.Replace(masked, @"""(documento|cpf|cnpj)""\s*:\s*""\d+""",
+            match => $"{match.Value.Split(':')[0]}: \"***\"", RegexOptions.IgnoreCase);
 
         // Mascarar CPF (manter primeiros 3 dígitos)
-        masked = Regex.Replace(masked, @"\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b",
+        masked = Regex.Replace(masked, @"\b\d{3}\.\d{3}\.\d{3}-\d{2}\b",
             match => MaskCpfCnpj(match.Value));
 
         // Mascarar CNPJ (manter primeiros 2 dígitos)
-        masked = Regex.Replace(masked, @"\b\d{2}\.?\d{3}\.?\d{3}/?\d{4}-?\d{2}\b",
+        masked = Regex.Replace(masked, @"\b\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}\b",
             match => MaskCnpj(match.Value));
 
         // Mascarar tokens Bearer
@@ -175,10 +198,6 @@ public class SensitiveDataMaskingMiddleware
         // Mascarar secrets/keys em JSON
         masked = Regex.Replace(masked, @"""(password|secret|token|apikey|api_key|authorization)""\s*:\s*""[^""]+""",
             match => $"{match.Value.Split(':')[0]}: \"*****\"", RegexOptions.IgnoreCase);
-
-        // Mascarar documentos em payloads (cpf/cnpj/documento como números puros)
-        masked = Regex.Replace(masked, @"""(documento|cpf|cnpj)""\s*:\s*""\d+""",
-            match => $"{match.Value.Split(':')[0]}: \"***\"", RegexOptions.IgnoreCase);
 
         return masked;
     }

@@ -25,6 +25,7 @@ public class CreateNotificationCommandHandler : ICommandHandler<CreateNotificati
             command.Usuario,
             command.NumVenda,
             command.ProximaAcaoDia,
+            command.DedupeKey,
             cancellationToken);
 
         if (existing != null)
@@ -39,7 +40,8 @@ public class CreateNotificationCommandHandler : ICommandHandler<CreateNotificati
             command.Usuario,
             command.NumVenda,
             command.ProximaAcaoDia,
-            command.Mensagem);
+            command.Mensagem,
+            command.DedupeKey);
 
         // Persist the notification
         await _notificationRepository.AddAsync(notificacao, cancellationToken);

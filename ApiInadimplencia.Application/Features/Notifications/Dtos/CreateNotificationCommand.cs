@@ -11,4 +11,5 @@ public record CreateNotificationCommand(
     string Usuario,
     int NumVenda,
     DateOnly? ProximaAcaoDia,
-    string Mensagem) : ICommand<Guid>;
+    string Mensagem,
+    string? DedupeKey = null) : ICommand<Guid>;

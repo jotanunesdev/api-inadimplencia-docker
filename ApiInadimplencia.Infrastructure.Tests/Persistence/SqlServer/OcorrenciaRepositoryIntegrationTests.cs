@@ -37,9 +37,9 @@ public class OcorrenciaRepositoryIntegrationTests
         mockSqlExecutor.Verify(e => e.ExecuteAsync(
             "Ocorrencia.Insert",
             It.Is<Dictionary<string, object?>>(d =>
-                d["ID"] != null && d["ID"].ToString() == ocorrencia.Id.ToString() &&
-                Convert.ToInt32(d["NUM_VENDA_FK"]) == ocorrencia.NumVendaFk &&
-                d["NOME_USUARIO_FK"] != null && d["NOME_USUARIO_FK"].ToString() == ocorrencia.NomeUsuarioFk),
+                d["id"] != null && d["id"].ToString() == ocorrencia.Id.ToString() &&
+                Convert.ToInt32(d["numVenda"]) == ocorrencia.NumVendaFk &&
+                d["nomeUsuario"] != null && d["nomeUsuario"].ToString() == ocorrencia.NomeUsuarioFk),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -70,8 +70,8 @@ public class OcorrenciaRepositoryIntegrationTests
         mockSqlExecutor.Verify(e => e.ExecuteAsync(
             "Ocorrencia.Update",
             It.Is<Dictionary<string, object?>>(d =>
-                d["ID"] != null && d["ID"].ToString() == ocorrencia.Id.ToString() &&
-                d["DESCRICAO"] != null && d["DESCRICAO"].ToString() == "Updated description"),
+                d["id"] != null && d["id"].ToString() == ocorrencia.Id.ToString() &&
+                d["descricao"] != null && d["descricao"].ToString() == "Updated description"),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -99,7 +99,7 @@ public class OcorrenciaRepositoryIntegrationTests
         // Assert
         mockSqlExecutor.Verify(e => e.ExecuteAsync(
             "Ocorrencia.Delete",
-            It.Is<Dictionary<string, object?>>(d => d["ID"] != null && d["ID"].ToString() == ocorrencia.Id.ToString()),
+            It.Is<Dictionary<string, object?>>(d => d["id"] != null && d["id"].ToString() == ocorrencia.Id.ToString()),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 }
