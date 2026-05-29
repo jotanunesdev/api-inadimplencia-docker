@@ -127,6 +127,22 @@ public class RequestNegativacaoCommandHandler : ICommandHandler<RequestNegativac
             }
             _logger.LogInformation("Serasa.Inclusion.ReuseMode - NumVenda: {NumVenda}, SolicitacaoPaiId: {PaiId}, FilhasExistentes: {Count}",
                 command.NumVenda, command.SolicitacaoIdExistente, existingPrincipalByParcela.Count);
+
+            // Em reuse mode (aprovacao), so processar as parcelas que tem filha pre-existente.
+            // Essas filhas representam EXATAMENTE as parcelas que o solicitante selecionou na criacao
+            // da solicitacao. Sem este filtro, o handler enviaria para Serasa parcelas que o usuario
+            // nao selecionou (pegando todas as elegiveis do data warehouse).
+            var parcelasFiltradas = parcelasParaProcessar
+                .Where(p => existingPrincipalByParcela.ContainsKey(p.Id))
+                .ToList();
+
+            if (parcelasFiltradas.Count != parcelasParaProcessar.Count)
+            {
+                _logger.LogInformation("Serasa.Inclusion.ReuseMode.Filtered - NumVenda: {NumVenda}, Antes: {Antes}, Depois: {Depois}",
+                    command.NumVenda, parcelasParaProcessar.Count, parcelasFiltradas.Count);
+            }
+
+            parcelasParaProcessar = parcelasFiltradas;
         }
 
         // Iterate through parcels
@@ -245,12 +261,30 @@ public class RequestNegativacaoCommandHandler : ICommandHandler<RequestNegativac
                 _logger.LogInformation("Serasa.Inclusion.Sent - NumVenda: {NumVenda}, SolicitacaoId: {SolicitacaoId}, TransactionId: {TransactionId}, ParcelaId: {ParcelaId}, NumeroParcela: {NumeroParcela}",
                     command.NumVenda, principalSolicitacao.Id, response.TransactionId, parcela.Id, parcela.Id);
             }
-            catch (Exception ex) when (ex is SerasaPefinHttpException || ex is HttpRequestException)
+            catch (Exception ex) when (
+                ex is SerasaPefinHttpException
+                || ex is HttpRequestException
+                || ex is ApiInadimplencia.Application.Features.SerasaPefin.Payloads.SerasaPefinValidationException)
             {
                 int? statusCode = ex is SerasaPefinHttpException httpEx ? httpEx.StatusCode : null;
-                var errorMessage = ex is SerasaPefinHttpException httpExMsg
-                    ? $"Serasa returned HTTP {httpExMsg.StatusCode}: {httpExMsg.Body}"
-                    : ex.Message;
+                string errorMessage;
+                if (ex is SerasaPefinHttpException httpExMsg)
+                {
+                    errorMessage = $"Serasa returned HTTP {httpExMsg.StatusCode}: {httpExMsg.Body}";
+                }
+                else if (ex is ApiInadimplencia.Application.Features.SerasaPefin.Payloads.SerasaPefinValidationException valEx)
+                {
+                    var faltantes = valEx.MissingFields.Count > 0
+                        ? string.Join(", ", valEx.MissingFields)
+                        : "(nenhum)";
+                    errorMessage = $"Validacao falhou - Campos faltantes: {faltantes}";
+                    _logger.LogError("Serasa.Inclusion.ValidationFailed - NumVenda: {NumVenda}, ParcelaId: {ParcelaId}, NumeroParcela: {NumeroParcela}, MissingFields: {MissingFields}",
+                        command.NumVenda, parcela.Id, parcela.Id, faltantes);
+                }
+                else
+                {
+                    errorMessage = ex.Message;
+                }
 
                 principalSolicitacao.MarcarFalhaEnvio(errorMessage, statusCode);
                 await _repository.UpdateAsync(principalSolicitacao, cancellationToken);
@@ -263,10 +297,11 @@ public class RequestNegativacaoCommandHandler : ICommandHandler<RequestNegativac
                     errorMessage,
                     NumeroParcela: parcela.Id));
 
-                _logger.LogError(ex, "Serasa.Inclusion.HttpError - NumVenda: {NumVenda}, SolicitacaoId: {SolicitacaoId}, ParcelaId: {ParcelaId}, NumeroParcela: {NumeroParcela}",
+                _logger.LogError(ex, "Serasa.Inclusion.PrincipalError - NumVenda: {NumVenda}, SolicitacaoId: {SolicitacaoId}, ParcelaId: {ParcelaId}, NumeroParcela: {NumeroParcela}",
                     command.NumVenda, principalSolicitacao.Id, parcela.Id, parcela.Id);
 
                 // Continue to next parcel even if this one failed
+                continue;
             }
 
             // Build and send guarantors for this parcel if requested
@@ -348,14 +383,32 @@ public class RequestNegativacaoCommandHandler : ICommandHandler<RequestNegativac
                             command.NumVenda, fiador.Nome, parcela.Id, parcela.Id);
                         continue;
                     }
-                    catch (Exception ex) when (ex is SerasaPefinHttpException || ex is HttpRequestException)
+                    catch (Exception ex) when (
+                        ex is SerasaPefinHttpException
+                        || ex is HttpRequestException
+                        || ex is ApiInadimplencia.Application.Features.SerasaPefin.Payloads.SerasaPefinValidationException)
                     {
                         int? statusCode = ex is SerasaPefinHttpException httpEx ? httpEx.StatusCode : null;
-                        var errorMessage = ex is SerasaPefinHttpException httpExMsg
-                            ? $"Serasa returned HTTP {httpExMsg.StatusCode}: {httpExMsg.Body}"
-                            : ex.Message;
+                        string errorMessage;
+                        if (ex is SerasaPefinHttpException httpExMsg)
+                        {
+                            errorMessage = $"Serasa returned HTTP {httpExMsg.StatusCode}: {httpExMsg.Body}";
+                        }
+                        else if (ex is ApiInadimplencia.Application.Features.SerasaPefin.Payloads.SerasaPefinValidationException valEx)
+                        {
+                            var faltantes = valEx.MissingFields.Count > 0
+                                ? string.Join(", ", valEx.MissingFields)
+                                : "(nenhum)";
+                            errorMessage = $"Validacao falhou - Campos faltantes: {faltantes}";
+                            _logger.LogError("Serasa.Inclusion.GuarantorValidationFailed - NumVenda: {NumVenda}, Fiador: {FiadorNome}, ParcelaId: {ParcelaId}, NumeroParcela: {NumeroParcela}, MissingFields: {MissingFields}",
+                                command.NumVenda, fiador.Nome, parcela.Id, parcela.Id, faltantes);
+                        }
+                        else
+                        {
+                            errorMessage = ex.Message;
+                        }
 
-                        _logger.LogError(ex, "Serasa.Inclusion.HttpError - NumVenda: {NumVenda}, Fiador: {FiadorNome}, ParcelaId: {ParcelaId}, NumeroParcela: {NumeroParcela}",
+                        _logger.LogError(ex, "Serasa.Inclusion.GuarantorError - NumVenda: {NumVenda}, Fiador: {FiadorNome}, ParcelaId: {ParcelaId}, NumeroParcela: {NumeroParcela}",
                             command.NumVenda, fiador.Nome, parcela.Id, parcela.Id);
 
                         results.Add(new SerasaSolicitacaoResult(
