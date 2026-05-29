@@ -30,74 +30,81 @@ public class SerasaPefinClient
     }
 
     /// <summary>
-    /// Obtém token de autenticação via Basic Auth
+    /// Obtém token de autenticação via Basic Auth.
+    /// Cria HttpRequestMessage isolada (sem mutar DefaultRequestHeaders) para evitar
+    /// vazamento de Authorization/Accept entre chamadas concorrentes.
     /// </summary>
     public async Task<string> GetTokenAsync(CancellationToken cancellationToken = default)
     {
         var authValue = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{_options.ClientId}:{_options.ClientSecret}"));
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", authValue);
 
-        // AuthUrl is the full login endpoint URL
-        var response = await _httpClient.PostAsync(_options.AuthUrl, null, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        using var request = new HttpRequestMessage(HttpMethod.Post, _options.AuthUrl);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Basic", authValue);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
-        var tokenResponse = JsonSerializer.Deserialize<SerasaTokenResponse>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError("Serasa PEFIN login failed. Status: {StatusCode}, Body: {Body}", (int)response.StatusCode, content);
+            response.EnsureSuccessStatusCode();
+        }
+
+        var tokenResponse = JsonSerializer.Deserialize<SerasaTokenResponse>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         return tokenResponse?.AccessToken ?? throw new InvalidOperationException("Failed to obtain access token");
     }
 
     /// <summary>
-    /// POST para inclusão de dívida principal
+    /// POST para inclusão de dívida principal.
+    /// Usa HttpRequestMessage isolada para garantir que apenas Authorization Bearer e
+    /// content-type/Accept previstos na documentação Serasa sejam enviados.
     /// </summary>
     public async Task<SerasaInclusionResponse> PostMainDebtAsync(object payload, string token, CancellationToken cancellationToken = default)
     {
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-        var json = JsonSerializer.Serialize(payload);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
-
         var endpoint = $"{_options.CollectionBaseUrl.TrimEnd('/')}/debt/";
-        var response = await _httpClient.PostAsync(endpoint, content, cancellationToken);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            var body = await response.Content.ReadAsStringAsync(cancellationToken);
-            _logger.LogError("Serasa PEFIN main debt inclusion failed. Status: {StatusCode}, Body: {Body}", (int)response.StatusCode, body);
-            throw new ApiInadimplencia.Application.Abstractions.Integrations.SerasaPefinHttpException((int)response.StatusCode, body, $"Serasa PEFIN main debt inclusion failed with status {response.StatusCode}");
-        }
-
-        var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-        var result = JsonSerializer.Deserialize<SerasaInclusionResponse>(responseContent, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-        return result ?? throw new InvalidOperationException("Failed to deserialize inclusion response");
+        return await PostInclusionAsync(endpoint, payload, token, "main debt", cancellationToken);
     }
 
     /// <summary>
-    /// POST para inclusão de dívida de avalista
+    /// POST para inclusão de dívida de avalista.
     /// </summary>
     public async Task<SerasaInclusionResponse> PostGuarantorAsync(object payload, string token, CancellationToken cancellationToken = default)
     {
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-        var json = JsonSerializer.Serialize(payload);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
-
         var endpoint = $"{_options.CollectionBaseUrl.TrimEnd('/')}/debt/guarantor";
-        var response = await _httpClient.PostAsync(endpoint, content, cancellationToken);
+        return await PostInclusionAsync(endpoint, payload, token, "guarantor", cancellationToken);
+    }
+
+    private async Task<SerasaInclusionResponse> PostInclusionAsync(
+        string endpoint,
+        object payload,
+        string token,
+        string label,
+        CancellationToken cancellationToken)
+    {
+        var json = JsonSerializer.Serialize(payload);
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        _logger.LogInformation("Serasa.Http.Sending {Label} POST {Endpoint} | TokenLen={TokenLen} | Body={Body}",
+            label, endpoint, token?.Length ?? 0, json);
+
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        _logger.LogInformation("Serasa.Http.Response {Label} Status={StatusCode} Body={Body}",
+            label, (int)response.StatusCode, responseContent);
 
         if (!response.IsSuccessStatusCode)
         {
-            var body = await response.Content.ReadAsStringAsync(cancellationToken);
-            _logger.LogError("Serasa PEFIN guarantor inclusion failed. Status: {StatusCode}, Body: {Body}", (int)response.StatusCode, body);
-            throw new ApiInadimplencia.Application.Abstractions.Integrations.SerasaPefinHttpException((int)response.StatusCode, body, $"Serasa PEFIN guarantor inclusion failed with status {response.StatusCode}");
+            _logger.LogError("Serasa PEFIN {Label} inclusion failed. Status: {StatusCode}, Body: {Body}", label, (int)response.StatusCode, responseContent);
+            throw new ApiInadimplencia.Application.Abstractions.Integrations.SerasaPefinHttpException((int)response.StatusCode, responseContent, $"Serasa PEFIN {label} inclusion failed with status {response.StatusCode}");
         }
 
-        var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
         var result = JsonSerializer.Deserialize<SerasaInclusionResponse>(responseContent, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
         return result ?? throw new InvalidOperationException("Failed to deserialize inclusion response");
     }
 
