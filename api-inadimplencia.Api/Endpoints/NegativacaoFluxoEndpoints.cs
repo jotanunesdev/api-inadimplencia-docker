@@ -20,9 +20,16 @@ public static class NegativacaoFluxoEndpoints
     /// <returns>The same endpoint route builder.</returns>
     public static IEndpointRouteBuilder MapNegativacaoFluxoEndpoints(this IEndpointRouteBuilder app)
     {
-        var negativacao = app.MapGroup("/negativacao")
-            .WithTags("Negativacao Fluxo");
+        // Registrado em dois prefixos para suportar tanto chamadas diretas (/negativacao/...)
+        // quanto chamadas via proxy apifluig.jotanunes.com/inadimplencia/... (Sophos).
+        MapNegativacaoGroup(app.MapGroup("/negativacao").WithTags("Negativacao Fluxo"), "");
+        MapNegativacaoGroup(app.MapGroup("/inadimplencia/negativacao").WithTags("Negativacao Fluxo"), "Legacy");
 
+        return app;
+    }
+
+    private static void MapNegativacaoGroup(RouteGroupBuilder negativacao, string nameSuffix)
+    {
         // GET /negativacao/vendas/{numVenda}/dividas - List eligible debts for a sale
         negativacao.MapGet("/vendas/{numVenda}/dividas", async (
             string numVenda,
@@ -37,7 +44,7 @@ public static class NegativacaoFluxoEndpoints
             var result = await handler.HandleAsync(new GetDividasElegiveisQuery(parsedNumVenda), cancellationToken);
             return Results.Ok(new { data = result });
         })
-        .WithName("GetDividasElegiveis")
+        .WithName($"GetDividasElegiveis{nameSuffix}")
         .WithOpenApi();
 
         // POST /negativacao/solicitacoes - Request a new negativacao solicitation
@@ -68,7 +75,7 @@ public static class NegativacaoFluxoEndpoints
                 return Results.BadRequest(new { error = ex.Message });
             }
         })
-        .WithName("RequestNegativacaoSolicitacao")
+        .WithName($"RequestNegativacaoSolicitacao{nameSuffix}")
         .WithOpenApi();
 
         // GET /negativacao/solicitacoes - List pending solicitations
@@ -92,7 +99,7 @@ public static class NegativacaoFluxoEndpoints
             var result = await handler.HandleAsync(query, cancellationToken);
             return Results.Ok(new { data = result });
         })
-        .WithName("ListSolicitacoesPendentes")
+        .WithName($"ListSolicitacoesPendentes{nameSuffix}")
         .WithOpenApi();
 
         // GET /negativacao/solicitacoes/{id} - Get a specific solicitation by ID with full details
@@ -110,7 +117,7 @@ public static class NegativacaoFluxoEndpoints
             var result = await handler.HandleAsync(new GetSolicitacaoByIdQuery(parsedId, username), cancellationToken);
             return result is null ? Results.NotFound(new { error = "NAO_ENCONTRADA" }) : Results.Ok(result);
         })
-        .WithName("GetSolicitacaoById")
+        .WithName($"GetSolicitacaoById{nameSuffix}")
         .WithOpenApi();
 
         // POST /negativacao/solicitacoes/{id}/decisao - Decide (approve/reject) a pending solicitation
@@ -148,10 +155,8 @@ public static class NegativacaoFluxoEndpoints
                 return Results.BadRequest(new { error = ex.Message });
             }
         })
-        .WithName("DecideNegativacaoSolicitacao")
+        .WithName($"DecideNegativacaoSolicitacao{nameSuffix}")
         .WithOpenApi();
-
-        return app;
     }
 }
 
