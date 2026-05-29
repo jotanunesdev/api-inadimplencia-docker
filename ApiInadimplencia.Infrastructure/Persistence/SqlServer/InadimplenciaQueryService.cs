@@ -67,23 +67,38 @@ public sealed class InadimplenciaQueryService(
     {
         using var connection = await connectionFactory.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
         
+        // LEFT JOIN com a tabela de clientes pelo DOCUMENTO (digitos) para obter endereco
+        // completo do fiador (CEP, LOGRADOURO, NUMERO, BAIRRO, CIDADE, ESTADO). A coluna
+        // ENDERECO da view de fiadores guarda apenas logradouro/bairro como string solta
+        // e nao e suficiente para o payload Serasa (que exige zipCode, addressLine, district,
+        // city, state). Aliases CLI_* evitam colisao com a coluna ENDERECO da view.
         const string query = $"""
             SELECT
-                NUM_VENDA,
-                ID_ASSOCIADO,
-                ID_RESERVA,
-                ID_PESSOA,
-                NOME,
-                DOCUMENTO,
-                DATA_CADASTRO,
-                RENDA_FAMILIAR,
-                TIPO_ASSOCIACAO,
-                ENDERECO
-            FROM {ViewGuarantors}
-            WHERE NUM_VENDA = @numVenda
-              AND UPPER(LTRIM(RTRIM(COALESCE(TIPO_ASSOCIACAO, '')))) COLLATE Latin1_General_CI_AI
+                f.NUM_VENDA,
+                f.ID_ASSOCIADO,
+                f.ID_RESERVA,
+                f.ID_PESSOA,
+                f.NOME,
+                f.DOCUMENTO,
+                f.DATA_CADASTRO,
+                f.RENDA_FAMILIAR,
+                f.TIPO_ASSOCIACAO,
+                f.ENDERECO,
+                c.CEP        AS CLI_CEP,
+                c.LOGRADOURO AS CLI_LOGRADOURO,
+                c.ENDERECO   AS CLI_ENDERECO,
+                c.NUMERO     AS CLI_NUMERO,
+                c.COMPLEMENTO AS CLI_COMPLEMENTO,
+                c.BAIRRO     AS CLI_BAIRRO,
+                c.CIDADE     AS CLI_CIDADE,
+                c.ESTADO     AS CLI_ESTADO
+            FROM {ViewGuarantors} f
+            LEFT JOIN {TableCliente} c
+                ON REPLACE(REPLACE(REPLACE(f.DOCUMENTO, '.', ''), '-', ''), '/', '') = c.documento
+            WHERE f.NUM_VENDA = @numVenda
+              AND UPPER(LTRIM(RTRIM(COALESCE(f.TIPO_ASSOCIACAO, '')))) COLLATE Latin1_General_CI_AI
                 IN ('FIADOR', 'CONJUGE', 'CESSIONARIO', 'COOBRIGADO', 'CO-OBRIGADO', 'CO OBRIGADO')
-            ORDER BY DATA_CADASTRO DESC, NOME ASC
+            ORDER BY f.DATA_CADASTRO DESC, f.NOME ASC
             """;
 
         using var command = new SqlCommand(query, connection);
@@ -264,7 +279,7 @@ public sealed class InadimplenciaQueryService(
         var tipoAssociacao = reader.GetString(reader.GetOrdinal("TIPO_ASSOCIACAO")).Trim().ToUpperInvariant();
         var dataCadastro = reader.GetDateTime(reader.GetOrdinal("DATA_CADASTRO"));
         
-        var endereco = MapEnderecoFromJson(reader);
+        var endereco = MapEnderecoFiador(reader);
         
         return new FiadorQueryResult(
             NumVenda: numVenda,
@@ -314,21 +329,47 @@ public sealed class InadimplenciaQueryService(
             Number: numero);
     }
 
-    private static EnderecoDto? MapEnderecoFromJson(SqlDataReader reader)
+    /// <summary>
+    /// Monta o endereco do fiador a partir das colunas CLI_* trazidas pelo JOIN com
+    /// DW.fat_comercial_cliente_cv. Retorna null se o fiador nao tiver registro de
+    /// cliente correspondente (todas as colunas CLI_* sao DBNull).
+    /// </summary>
+    private static EnderecoDto? MapEnderecoFiador(SqlDataReader reader)
     {
-        // The view has an ENDERECO column which may be JSON or structured data
-        // For now, we'll treat it as a string and try to parse if it's JSON
-        var enderecoJson = GetNullableString(reader, "ENDERECO");
-        
-        if (string.IsNullOrWhiteSpace(enderecoJson))
+        var cep = GetNullableString(reader, "CLI_CEP");
+        var logradouro = GetNullableString(reader, "CLI_LOGRADOURO");
+        var enderecoFallback = GetNullableString(reader, "CLI_ENDERECO");
+        var numero = GetNullableString(reader, "CLI_NUMERO");
+        var complemento = GetNullableString(reader, "CLI_COMPLEMENTO");
+        var bairro = GetNullableString(reader, "CLI_BAIRRO");
+        var cidade = GetNullableString(reader, "CLI_CIDADE");
+        var estado = GetNullableString(reader, "CLI_ESTADO");
+
+        // Se todos os campos do cliente sao nulos, o fiador nao foi encontrado em
+        // fat_comercial_cliente_cv (provavelmente cadastro pendente). Retorna null
+        // para o handler poder reportar Validacao Falhou - guarantor.address.address.
+        if (string.IsNullOrWhiteSpace(cep)
+            && string.IsNullOrWhiteSpace(logradouro)
+            && string.IsNullOrWhiteSpace(enderecoFallback)
+            && string.IsNullOrWhiteSpace(numero)
+            && string.IsNullOrWhiteSpace(bairro)
+            && string.IsNullOrWhiteSpace(cidade)
+            && string.IsNullOrWhiteSpace(estado))
         {
             return null;
         }
 
-        // If it's JSON, we'd need to parse it. For now, return null
-        // This will need to be enhanced based on the actual data structure in the view
-        // TODO: Parse JSON address when the view structure is known
-        return null;
+        var zipCode = DigitsOnly(cep ?? "");
+        var addressLine = BuildAddressLine(logradouro, enderecoFallback, numero);
+
+        return new EnderecoDto(
+            ZipCode: zipCode,
+            AddressLine: addressLine,
+            District: bairro ?? "",
+            City: cidade ?? "",
+            State: estado ?? "",
+            Number: numero,
+            Complement: complemento);
     }
 
     private static string? GetNullableString(SqlDataReader reader, string columnName)
