@@ -45,10 +45,17 @@ FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 WORKDIR /app
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
+    && apt-get install -y --no-install-recommends curl ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --gid 10001 appgroup \
     && useradd --uid 10001 --gid appgroup --create-home --shell /usr/sbin/nologin appuser
+
+# Install corporate CA bundle (Sophos firewall does TLS inspection of outbound HTTPS)
+COPY certs/ /usr/local/share/ca-certificates-extra/
+RUN if ls /usr/local/share/ca-certificates-extra/*.crt >/dev/null 2>&1; then \
+        cp /usr/local/share/ca-certificates-extra/*.crt /usr/local/share/ca-certificates/ && \
+        update-ca-certificates; \
+    fi
 
 COPY --from=build /app/publish .
 
