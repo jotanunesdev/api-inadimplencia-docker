@@ -360,6 +360,10 @@ public sealed class SerasaPefinRepository(SqlServerConnectionFactory connectionF
         SerasaPefinRecordType tipoRegistro,
         CancellationToken cancellationToken)
     {
+        // Considera apenas solicitacoes-pai ativas (NUMERO_PARCELA IS NULL e ID_SOLICITACAO_PAI IS NULL)
+        // em status nao terminal (AGUARDANDO_APROVACAO, APROVADA, PENDENTE_ENVIO, ENVIADO_SERASA, AGUARDANDO_RETORNO).
+        // Para fluxo de envio por parcela, filhas com NUMERO_PARCELA preenchido nao devem bloquear
+        // a criacao de uma nova solicitacao-pai (uso o overload com numeroParcela para checar duplicata por parcela).
         const string sql = """
             SELECT TOP 1 1
             FROM dbo.SERASA_PEFIN_SOLICITACOES
@@ -367,7 +371,9 @@ public sealed class SerasaPefinRepository(SqlServerConnectionFactory connectionF
               AND CONTRACT_NUMBER = @ContractNumber
               AND DOCUMENTO_DEVEDOR = @DocumentoDevedor
               AND TIPO_REGISTRO = @TipoRegistro
-              AND STATUS IN ('PENDENTE_ENVIO', 'ENVIADO_SERASA', 'AGUARDANDO_RETORNO')
+              AND NUMERO_PARCELA IS NULL
+              AND ID_SOLICITACAO_PAI IS NULL
+              AND STATUS IN ('AGUARDANDO_APROVACAO', 'APROVADA', 'PENDENTE_ENVIO', 'ENVIADO_SERASA', 'AGUARDANDO_RETORNO')
               AND ((@DocumentoGarantidor IS NULL AND DOCUMENTO_GARANTIDOR IS NULL)
                 OR DOCUMENTO_GARANTIDOR = @DocumentoGarantidor);
             """;
