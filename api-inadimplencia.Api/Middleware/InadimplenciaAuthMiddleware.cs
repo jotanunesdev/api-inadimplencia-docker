@@ -84,7 +84,16 @@ public sealed class InadimplenciaAuthMiddleware(RequestDelegate next)
             return false;
         }
 
-        return !PublicPaths.Contains(path.Value ?? string.Empty);
+        // Webhooks Serasa PEFIN sao callbacks publicos do parceiro e nao trafegam token.
+        // Liberamos tanto /inadimplencia/serasa-pefin/webhooks/* quanto qualquer outro
+        // prefixo que contenha esse subcaminho (defesa em profundidade).
+        var pathValue = path.Value ?? string.Empty;
+        if (pathValue.Contains("/serasa-pefin/webhooks/", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return !PublicPaths.Contains(pathValue);
     }
 
     private static async Task<AuthIdentity?> ResolveIdentityAsync(
