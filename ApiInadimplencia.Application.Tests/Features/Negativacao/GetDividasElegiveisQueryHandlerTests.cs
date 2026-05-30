@@ -2,6 +2,7 @@ using ApiInadimplencia.Application.Abstractions.Persistence;
 using ApiInadimplencia.Application.Configuration;
 using ApiInadimplencia.Application.Features.Negativacao.Dtos;
 using ApiInadimplencia.Application.Features.Negativacao.Queries;
+using ApiInadimplencia.Domain.SerasaPefin;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
@@ -11,15 +12,23 @@ namespace ApiInadimplencia.Application.Tests.Features.Negativacao;
 public sealed class GetDividasElegiveisQueryHandlerTests
 {
     private readonly Mock<IInadimplenciaQueryService> _queryServiceMock;
+    private readonly Mock<ISerasaPefinRepository> _serasaRepositoryMock;
     private readonly Mock<IOptions<NegativacaoOptions>> _optionsMock;
     private readonly GetDividasElegiveisQueryHandler _handler;
 
     public GetDividasElegiveisQueryHandlerTests()
     {
         _queryServiceMock = new Mock<IInadimplenciaQueryService>();
+        _serasaRepositoryMock = new Mock<ISerasaPefinRepository>();
+        _serasaRepositoryMock
+            .Setup(r => r.ListByNumVendaAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<SerasaPefinSolicitacaoCompleta>());
         _optionsMock = new Mock<IOptions<NegativacaoOptions>>();
         _optionsMock.Setup(o => o.Value).Returns(new NegativacaoOptions { DiasAtrasoMinimo = 60 });
-        _handler = new GetDividasElegiveisQueryHandler(_queryServiceMock.Object, _optionsMock.Object);
+        _handler = new GetDividasElegiveisQueryHandler(
+            _queryServiceMock.Object,
+            _serasaRepositoryMock.Object,
+            _optionsMock.Object);
     }
 
     [Fact]

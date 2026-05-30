@@ -136,4 +136,5 @@ public sealed record ParcelaElegivelDto(
     decimal Valor,
     DateOnly Vencimento,
     int DiasAtraso,
-    bool Elegivel);
+    bool Elegivel,
+    string? StatusSerasa = null);
