@@ -3,25 +3,35 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Copy local NuGet packages to avoid network issues
+# Install corporate CA bundle so the build stage can reach nuget.org through
+# the Sophos firewall that performs TLS inspection.
+COPY certs/ /usr/local/share/ca-certificates-extra/
+RUN if ls /usr/local/share/ca-certificates-extra/*.crt >/dev/null 2>&1; then \
+        cp /usr/local/share/ca-certificates-extra/*.crt /usr/local/share/ca-certificates/ && \
+        update-ca-certificates; \
+    fi
+
+# Copy the local NuGet cache (may be empty on CI/servers; populated locally for
+# fast offline builds via `dotnet restore --packages nuget-packages`).
 COPY nuget-packages /root/.nuget/packages
 
-# Configure NuGet to use ONLY local packages (no network)
+# Configure NuGet to prefer the local cache and fall back to nuget.org over
+# the corporate proxy. This lets local dev builds run offline AND lets servers
+# without a pre-warmed cache restore through the firewall.
 RUN mkdir -p /root/.nuget/NuGet && \
-    echo '<?xml version="1.0" encoding="utf-8"?>' > /root/.nuget/NuGet/NuGet.Config && \
-    echo '<configuration>' >> /root/.nuget/NuGet/NuGet.Config && \
-    echo '  <packageSources>' >> /root/.nuget/NuGet/NuGet.Config && \
-    echo '    <add key="local" value="/root/.nuget/packages" />' >> /root/.nuget/NuGet/NuGet.Config && \
-    echo '  </packageSources>' >> /root/.nuget/NuGet/NuGet.Config && \
-    echo '  <packageSourceCredentials>' >> /root/.nuget/NuGet/NuGet.Config && \
-    echo '  </packageSourceCredentials>' >> /root/.nuget/NuGet/NuGet.Config && \
-    echo '  <config>' >> /root/.nuget/NuGet/NuGet.Config && \
-    echo '    <add key="globalPackagesFolder" value="/root/.nuget/packages" />' >> /root/.nuget/NuGet/NuGet.Config && \
-    echo '  </config>' >> /root/.nuget/NuGet/NuGet.Config && \
-    echo '  <disabledPackageSources>' >> /root/.nuget/NuGet/NuGet.Config && \
-    echo '    <add key="nuget.org" value="true" />' >> /root/.nuget/NuGet/NuGet.Config && \
-    echo '  </disabledPackageSources>' >> /root/.nuget/NuGet/NuGet.Config && \
-    echo '</configuration>' >> /root/.nuget/NuGet/NuGet.Config
+    printf '%s\n' \
+        '<?xml version="1.0" encoding="utf-8"?>' \
+        '<configuration>' \
+        '  <packageSources>' \
+        '    <clear />' \
+        '    <add key="local" value="/root/.nuget/packages" />' \
+        '    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />' \
+        '  </packageSources>' \
+        '  <config>' \
+        '    <add key="globalPackagesFolder" value="/root/.nuget/packages" />' \
+        '  </config>' \
+        '</configuration>' \
+        > /root/.nuget/NuGet/NuGet.Config
 
 COPY api-inadimplencia.sln ./
 COPY Directory.Build.props ./

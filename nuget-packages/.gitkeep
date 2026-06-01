@@ -1,0 +1,6 @@
+# Placeholder so `nuget-packages/` always exists in the repository.
+# The actual cached packages remain gitignored (see .gitignore).
+#
+# Local dev: this folder is populated by `dotnet restore --packages nuget-packages`
+# to enable offline image builds. On servers without a pre-populated cache,
+# the Dockerfile falls back to nuget.org through the corporate CA bundle.

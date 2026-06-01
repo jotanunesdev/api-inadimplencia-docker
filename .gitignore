@@ -31,7 +31,8 @@ bld/
 .env.*.local
 .env.*.bak
 *.env.bak
-nuget-packages/
+nuget-packages/*
+!nuget-packages/.gitkeep
 # Test results
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*
