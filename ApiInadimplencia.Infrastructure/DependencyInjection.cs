@@ -77,17 +77,16 @@ public static class DependencyInjection
             .Bind(configuration.GetSection(RabbitMqOptions.SectionName))
             .ValidateDataAnnotations();
 
-        // Fluig configuration (disabled - incomplete implementation)
-        // services
-        //     .AddOptions<FluigOptions>()
-        //     .Bind(configuration.GetSection(FluigOptions.SectionName))
-        //     .ValidateDataAnnotations();
+        // Fluig configuration (credentials checked at call time by the gateway,
+        // so the app can boot in environments that don't use ficha-financeira).
+        services
+            .AddOptions<FluigOptions>()
+            .Bind(configuration.GetSection(FluigOptions.SectionName));
 
-        // RM configuration (disabled - incomplete implementation)
-        // services
-        //     .AddOptions<RmOptions>()
-        //     .Bind(configuration.GetSection(RmOptions.SectionName))
-        //     .ValidateDataAnnotations();
+        // RM configuration (Application-layer Options so the handler can be in Application).
+        services
+            .AddOptions<ApiInadimplencia.Application.Configuration.RmOptions>()
+            .Bind(configuration.GetSection(ApiInadimplencia.Application.Configuration.RmOptions.SectionName));
 
         // Serasa PEFIN configuration
         services
@@ -297,36 +296,34 @@ public static class DependencyInjection
         services.AddScoped<IQueryHandler<ListSolicitacoesPendentesQuery, IReadOnlyList<SolicitacaoPendenteDto>>, ListSolicitacoesPendentesQueryHandler>();
         services.AddScoped<IQueryHandler<GetSolicitacaoByIdQuery, SolicitacaoDetalheDto?>, GetSolicitacaoByIdQueryHandler>();
 
-        // HttpClient for Fluig with Polly (disabled - incomplete implementation)
-        // services.AddHttpClient<FluigDatasetClient>(client =>
-        // {
-        //     var fluigOptions = configuration.GetSection(FluigOptions.SectionName).Get<FluigOptions>()
-        //         ?? throw new InvalidOperationException("FluigOptions not configured.");
-        //     client.BaseAddress = new Uri(fluigOptions.BaseUrl);
-        //     client.Timeout = TimeSpan.FromSeconds(fluigOptions.TimeoutSeconds);
-        // })
-        // .AddTransientHttpErrorPolicy(policy => policy
-        //     .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))))
-        // .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(10)));
+        // Fluig HTTP clients.
+        // The auth client must NOT follow redirects automatically because Fluig
+        // signals successful login via 302 and we need to read Set-Cookie from
+        // that response. The dataset client uses normal redirects.
+        services.AddHttpClient(ApiInadimplencia.Infrastructure.Integrations.Fluig.FluigSessionManager.AuthHttpClientName)
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+            {
+                AllowAutoRedirect = false,
+                UseCookies = false,
+            })
+            .ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(15));
 
-        // HttpClient for RM with Polly (disabled - incomplete implementation)
-        // services.AddHttpClient<RmReportClient>(client =>
-        // {
-        //     var rmOptions = configuration.GetSection(RmOptions.SectionName).Get<RmOptions>()
-        //         ?? throw new InvalidOperationException("RmOptions not configured.");
-        //     client.BaseAddress = new Uri(rmOptions.BaseUrl);
-        //     client.Timeout = TimeSpan.FromSeconds(rmOptions.TimeoutSeconds);
-        // })
-        // .AddTransientHttpErrorPolicy(policy => policy
-        //     .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))))
-        // .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(30)));
+        services.AddHttpClient(ApiInadimplencia.Infrastructure.Integrations.Fluig.FluigDatasetGateway.DatasetHttpClientName)
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+            {
+                UseCookies = false,
+            })
+            .ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(60));
 
-        // Fluig and RM gateways (disabled - incomplete implementation)
-        // services.AddScoped<IFluigDatasetGateway, FluigDatasetGateway>();
-        // services.AddScoped<IRmReportGateway, RmReportGateway>();
+        // FluigSessionManager keeps the cookie cache in memory for up to 10 min
+        // (matching the legacy Node.js behavior); a singleton instance is required.
+        services.AddSingleton<ApiInadimplencia.Infrastructure.Integrations.Fluig.FluigSessionManager>();
+        services.AddScoped<IFluigDatasetGateway, ApiInadimplencia.Infrastructure.Integrations.Fluig.FluigDatasetGateway>();
 
-        // Relatorios command handler (disabled - incomplete implementation)
-        // services.AddScoped<ICommandHandler<GenerateFichaFinanceiraCommand, string>, GenerateFichaFinanceiraCommandHandler>();
+        // Relatorios command handler.
+        services.AddScoped<
+            ICommandHandler<ApiInadimplencia.Application.Features.Relatorios.Dtos.GenerateFichaFinanceiraCommand, string>,
+            ApiInadimplencia.Application.Features.Relatorios.Commands.GenerateFichaFinanceiraCommandHandler>();
 
         // Notification repository
         services.AddScoped<INotificationRepository, NotificationRepository>();

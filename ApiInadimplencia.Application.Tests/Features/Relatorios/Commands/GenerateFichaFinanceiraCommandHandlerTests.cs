@@ -1,124 +1,157 @@
-// This test is disabled because GenerateFichaFinanceiraCommandHandler is disabled (.disabled file)
-// Re-enable when the handler is re-enabled
-// using ApiInadimplencia.Application.Abstractions.Integrations;
-// using ApiInadimplencia.Application.Features.Relatorios.Commands;
-// using ApiInadimplencia.Application.Features.Relatorios.Dtos;
-// using Microsoft.Extensions.Logging;
-// using Moq;
-// using Xunit;
+using ApiInadimplencia.Application.Abstractions.Integrations;
+using ApiInadimplencia.Application.Configuration;
+using ApiInadimplencia.Application.Features.Relatorios.Commands;
+using ApiInadimplencia.Application.Features.Relatorios.Dtos;
+using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+using Moq;
+using Xunit;
 
-// namespace ApiInadimplencia.Application.Tests.Features.Relatorios.Commands;
+namespace ApiInadimplencia.Application.Tests.Features.Relatorios.Commands;
 
-// public class GenerateFichaFinanceiraCommandHandlerTests
-// {
-//     private readonly Mock<IFluigDatasetGateway> _fluigGatewayMock;
-//     private readonly Mock<IRmReportGateway> _rmGatewayMock;
-//     private readonly Mock<ILogger<GenerateFichaFinanceiraCommandHandler>> _loggerMock;
-//     private readonly GenerateFichaFinanceiraCommandHandler _handler;
+public class GenerateFichaFinanceiraCommandHandlerTests
+{
+    private static readonly string SampleParamsXml = """
+        <ArrayOfRptParameterReportPar>
+          <RptParameterReportPar>
+            <ParamName>CODCOLIGADA</ParamName>
+            <Value>0</Value>
+          </RptParameterReportPar>
+          <RptParameterReportPar>
+            <ParamName>NUMVENDA</ParamName>
+            <Value>0</Value>
+          </RptParameterReportPar>
+          <RptParameterReportPar>
+            <ParamName>OUTRO</ParamName>
+            <Value>preserve</Value>
+          </RptParameterReportPar>
+        </ArrayOfRptParameterReportPar>
+        """;
 
-//     public GenerateFichaFinanceiraCommandHandlerTests()
-//     {
-//         _fluigGatewayMock = new Mock<IFluigDatasetGateway>();
-//         _rmGatewayMock = new Mock<IRmReportGateway>();
-//         _loggerMock = new Mock<ILogger<GenerateFichaFinanceiraCommandHandler>>();
-//         _handler = new GenerateFichaFinanceiraCommandHandler(
-//             _fluigGatewayMock.Object,
-//             _rmGatewayMock.Object,
-//             _loggerMock.Object);
-//     }
+    private static IOptions<RmOptions> Options(RmOptions opts) => Microsoft.Extensions.Options.Options.Create(opts);
 
-//     [Fact]
-//     public async Task Handle_ShouldReturnPdfUrl_WhenSuccessful()
-//     {
-//         // Arrange
-//         var command = new GenerateFichaFinanceiraCommand(
-//             NumVenda: 12345,
-//             CodColigada: "1",
-//             ReportColigada: "1",
-//             ReportId: "ficha-financeira");
+    private static RmOptions Defaults() => new()
+    {
+        Coligada = 1,
+        ReportColigada = 0,
+        ParamColigada = 1,
+        ReportId = 21968,
+        ReportCode = "21968",
+        ReportName = "Ficha Financeira",
+    };
 
-//         var xmlParameters = "<parameters><COLIGADA>1</COLIGADA><NUMVENDA>12345</NUMVENDA></parameters>";
-//         var expectedUrl = "https://rm.example.com/reports/Report.pdf";
+    private static FluigDatasetResponse ParamsResponse(string xml) =>
+        new(new[]
+        {
+            new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase) { ["RESULTADO"] = xml },
+        });
 
-//         _fluigGatewayMock
-//             .Setup(x => x.GetDatasetAsync("ds_paramsRel", It.IsAny<Dictionary<string, string>>(), It.IsAny<CancellationToken>()))
-//             .ReturnsAsync(xmlParameters);
+    private static FluigDatasetResponse ErrorResponse(string error) =>
+        new(new[]
+        {
+            new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase) { ["ERRO"] = error },
+        });
 
-//         _rmGatewayMock
-//             .Setup(x => x.GenerateReportAsync(command.ReportId, It.IsAny<Dictionary<string, string>>(), It.IsAny<CancellationToken>()))
-//             .ReturnsAsync(expectedUrl);
+    private static FluigDatasetResponse UrlResponse(string url) =>
+        new(new[]
+        {
+            new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase) { ["RETORNO"] = url },
+        });
 
-//         // Act
-//         var result = await _handler.Handle(command, CancellationToken.None);
+    [Fact]
+    public async Task HandleAsync_ShouldReturnUrl_AndApplyParameterSubstitution()
+    {
+        var gateway = new Mock<IFluigDatasetGateway>(MockBehavior.Strict);
 
-//         // Assert
-//         Assert.Equal(expectedUrl, result);
-//         _fluigGatewayMock.Verify(x => x.GetDatasetAsync("ds_paramsRel", It.IsAny<Dictionary<string, string>>(), It.IsAny<CancellationToken>()), Times.Once);
-//         _rmGatewayMock.Verify(x => x.GenerateReportAsync(command.ReportId, It.IsAny<Dictionary<string, string>>(), It.IsAny<CancellationToken>()), Times.Once);
-//     }
+        gateway
+            .Setup(g => g.SearchAsync(It.Is<FluigDatasetRequest>(r => r.DatasetName == "ds_paramsRel"), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ParamsResponse(SampleParamsXml));
 
-//     [Fact]
-//     public async Task Handle_ShouldUseFallbackDataset_WhenPrimaryFails()
-//     {
-//         // Arrange
-//         var command = new GenerateFichaFinanceiraCommand(
-//             NumVenda: 12345,
-//             CodColigada: "1",
-//             ReportColigada: "1",
-//             ReportId: "ficha-financeira");
+        FluigDatasetRequest? captured = null;
+        gateway
+            .Setup(g => g.SearchAsync(It.Is<FluigDatasetRequest>(r => r.DatasetName == "dsIntegraFacilRM"), It.IsAny<CancellationToken>()))
+            .Callback<FluigDatasetRequest, CancellationToken>((r, _) => captured = r)
+            .ReturnsAsync(UrlResponse("https://rm.example/Report.pdf"));
 
-//         var xmlParameters = "<parameters><COLIGADA>1</COLIGADA><NUMVENDA>12345</NUMVENDA></parameters>";
-//         var expectedUrl = "https://rm.example.com/reports/Report.pdf";
+        var handler = new GenerateFichaFinanceiraCommandHandler(gateway.Object, Options(Defaults()), NullLogger<GenerateFichaFinanceiraCommandHandler>.Instance);
 
-//         _fluigGatewayMock
-//             .SetupSequence(x => x.GetDatasetAsync("ds_paramsRel", It.IsAny<Dictionary<string, string>>(), It.IsAny<CancellationToken>()))
-//             .ThrowsAsync(new Exception("Primary dataset failed"))
-//             .ReturnsAsync(xmlParameters);
+        var url = await handler.HandleAsync(new GenerateFichaFinanceiraCommand(NumVenda: 12345));
 
-//         _rmGatewayMock
-//             .Setup(x => x.GenerateReportAsync(command.ReportId, It.IsAny<Dictionary<string, string>>(), It.IsAny<CancellationToken>()))
-//             .ReturnsAsync(expectedUrl);
+        url.Should().Be("https://rm.example/Report.pdf");
+        captured.Should().NotBeNull();
+        var parameter = captured!.Constraints!.Single(c => c.Field == "PARAMETER");
+        // Defaults().ParamColigada = 1, NumVenda = 12345.
+        parameter.InitialValue.Should().Contain("<Value>1</Value>");
+        parameter.InitialValue.Should().Contain("<Value>12345</Value>");
+        // Untouched parameter must be preserved.
+        parameter.InitialValue.Should().Contain("<Value>preserve</Value>");
+    }
 
-//         // Act
-//         var result = await _handler.Handle(command, CancellationToken.None);
+    [Fact]
+    public async Task HandleAsync_ShouldFallbackToAlternateColigada_WhenReportNotFound()
+    {
+        var gateway = new Mock<IFluigDatasetGateway>(MockBehavior.Strict);
+        var calls = new List<FluigDatasetRequest>();
 
-//         // Assert
-//         Assert.Equal(expectedUrl, result);
-//         _fluigGatewayMock.Verify(x => x.GetDatasetAsync("ds_paramsRel", It.IsAny<Dictionary<string, string>>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
-//         _fluigGatewayMock.Verify(x => x.GetDatasetAsync("ds_paiFilho_controleDeAcessoRMreportsFluig", It.IsAny<Dictionary<string, string>>(), It.IsAny<CancellationToken>()), Times.Once);
-//     }
+        gateway
+            .Setup(g => g.SearchAsync(It.Is<FluigDatasetRequest>(r => r.DatasetName == "ds_paramsRel"), It.IsAny<CancellationToken>()))
+            .Callback<FluigDatasetRequest, CancellationToken>((r, _) => calls.Add(r))
+            .ReturnsAsync((FluigDatasetRequest r, CancellationToken _) =>
+            {
+                // First attempt: configured ReportColigada=0 → not found.
+                // After meta lookup we still don't match → swap to 1 → success.
+                var coligada = r.Fields![0];
+                return coligada == "1"
+                    ? ParamsResponse(SampleParamsXml)
+                    : ErrorResponse("Relatorio nao localizado.");
+            });
 
-//     [Fact]
-//     public async Task Handle_ShouldReplaceParametersInXml()
-//     {
-//         // Arrange
-//         var command = new GenerateFichaFinanceiraCommand(
-//             NumVenda: 12345,
-//             CodColigada: "1",
-//             ReportColigada: "2",
-//             ReportId: "ficha-financeira");
+        gateway
+            .Setup(g => g.SearchAsync(It.Is<FluigDatasetRequest>(r => r.DatasetName == "ds_paiFilho_controleDeAcessoRMreportsFluig"), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FluigDatasetResponse(Array.Empty<IReadOnlyDictionary<string, string?>>()));
 
-//         var xmlParameters = "<parameters><COLIGADA>1</COLIGADA><NUMVENDA>00000</NUMVENDA></parameters>";
-//         var expectedUrl = "https://rm.example.com/reports/Report.pdf";
+        gateway
+            .Setup(g => g.SearchAsync(It.Is<FluigDatasetRequest>(r => r.DatasetName == "dsIntegraFacilRM"), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(UrlResponse("https://rm.example/Report.pdf"));
 
-//         _fluigGatewayMock
-//             .Setup(x => x.GetDatasetAsync("ds_paramsRel", It.IsAny<Dictionary<string, string>>(), It.IsAny<CancellationToken>()))
-//             .ReturnsAsync(xmlParameters);
+        var handler = new GenerateFichaFinanceiraCommandHandler(gateway.Object, Options(Defaults()), NullLogger<GenerateFichaFinanceiraCommandHandler>.Instance);
 
-//         _rmGatewayMock
-//             .Setup(x => x.GenerateReportAsync(command.ReportId, It.IsAny<Dictionary<string, string>>(), It.IsAny<CancellationToken>()))
-//             .ReturnsAsync(expectedUrl);
+        var url = await handler.HandleAsync(new GenerateFichaFinanceiraCommand(NumVenda: 555));
 
-//         // Act
-//         var result = await _handler.Handle(command, CancellationToken.None);
+        url.Should().Be("https://rm.example/Report.pdf");
+        calls.Should().HaveCount(2);
+        calls[0].Fields![0].Should().Be("0"); // configured
+        calls[1].Fields![0].Should().Be("1"); // alternate after swap
+    }
 
-//         // Assert
-//         Assert.Equal(expectedUrl, result);
-//         _rmGatewayMock.Verify(x => x.GenerateReportAsync(
-//             command.ReportId, 
-//             It.Is<Dictionary<string, string>>(p => 
-//                 p["COLIGADA"] == "2" && 
-//                 p["NUMVENDA"] == "12345"), 
-//             It.IsAny<CancellationToken>()), Times.Once);
-//     }
-// }
+    [Fact]
+    public async Task HandleAsync_ShouldThrow_WhenAllAttemptsFail()
+    {
+        var gateway = new Mock<IFluigDatasetGateway>();
+        gateway
+            .Setup(g => g.SearchAsync(It.Is<FluigDatasetRequest>(r => r.DatasetName == "ds_paramsRel"), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ErrorResponse("Relatorio nao localizado."));
+        gateway
+            .Setup(g => g.SearchAsync(It.Is<FluigDatasetRequest>(r => r.DatasetName == "ds_paiFilho_controleDeAcessoRMreportsFluig"), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FluigDatasetResponse(Array.Empty<IReadOnlyDictionary<string, string?>>()));
+
+        var handler = new GenerateFichaFinanceiraCommandHandler(gateway.Object, Options(Defaults()), NullLogger<GenerateFichaFinanceiraCommandHandler>.Instance);
+
+        var act = () => handler.HandleAsync(new GenerateFichaFinanceiraCommand(NumVenda: 1));
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*não localizado*");
+    }
+
+    [Fact]
+    public async Task HandleAsync_ShouldThrow_WhenNumVendaInvalid()
+    {
+        var gateway = new Mock<IFluigDatasetGateway>();
+        var handler = new GenerateFichaFinanceiraCommandHandler(gateway.Object, Options(Defaults()), NullLogger<GenerateFichaFinanceiraCommandHandler>.Instance);
+
+        var act = () => handler.HandleAsync(new GenerateFichaFinanceiraCommand(NumVenda: 0));
+
+        await act.Should().ThrowAsync<ArgumentException>();
+    }
+
+}

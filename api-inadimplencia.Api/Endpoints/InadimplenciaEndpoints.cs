@@ -899,15 +899,53 @@ public static class InadimplenciaEndpoints
         atendimentos.MapGet("/cliente/{nomeCliente}", Query("Atendimento.ByCliente"));
 
         var relatorios = app.MapGroup("/relatorios").WithTags("Relatorios");
-        relatorios.MapGet("/ficha-financeira", (
+        relatorios.MapGet("/ficha-financeira", async (
             int numVenda,
-            string? codColigada,
-            string? reportColigada,
-            string? reportId) =>
+            int? codColigada,
+            int? reportColigada,
+            int? reportId,
+            [FromServices] ICommandHandler<
+                ApiInadimplencia.Application.Features.Relatorios.Dtos.GenerateFichaFinanceiraCommand,
+                string> handler,
+            [FromServices] IOptions<ApiInadimplencia.Application.Configuration.RmOptions> rmOptions,
+            CancellationToken cancellationToken) =>
         {
-            return NotMigrated(
-                "Relatorios.FichaFinanceira",
-                "A rota esta exposta sob /inadimplencia, mas a integracao Fluig/RM para gerar ficha financeira ainda esta desabilitada na infraestrutura.");
+            if (numVenda <= 0)
+            {
+                return Results.BadRequest(new { error = "numVenda é obrigatório." });
+            }
+
+            try
+            {
+                var command = new ApiInadimplencia.Application.Features.Relatorios.Dtos.GenerateFichaFinanceiraCommand(
+                    NumVenda: numVenda,
+                    CodColigada: codColigada,
+                    ReportColigada: reportColigada,
+                    ReportId: reportId);
+
+                var url = await handler.HandleAsync(command, cancellationToken);
+                var rm = rmOptions.Value;
+                return Results.Ok(new
+                {
+                    url,
+                    numVenda,
+                    codColigada = codColigada ?? rm.ParamColigada,
+                    reportColigada = reportColigada ?? rm.ReportColigada,
+                    reportId = reportId ?? rm.ReportId,
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Configuration or upstream (Fluig/RM) failure → 502 Bad Gateway.
+                return Results.Problem(
+                    title: "Falha ao gerar ficha financeira",
+                    detail: ex.Message,
+                    statusCode: StatusCodes.Status502BadGateway);
+            }
         });
     }
 

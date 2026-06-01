@@ -45,6 +45,8 @@ services:
       Rm__ReportColigada: ${INAD_RM_REPORT_COLIGADA}
       Rm__ParamColigada: ${INAD_RM_PARAM_COLIGADA}
       Rm__ReportId: ${INAD_RM_REPORT_ID}
+      Rm__ReportCode: ${INAD_RM_REPORT_CODE:-}
+      Rm__ReportName: ${INAD_RM_REPORT_NAME:-Ficha Financeira}
       Rm__Debug: ${INAD_RM_DEBUG}
       SerasaPefin__Env: ${INAD_SERASA_ENV}
       SerasaPefin__AuthUrl: ${INAD_SERASA_AUTH_URL}

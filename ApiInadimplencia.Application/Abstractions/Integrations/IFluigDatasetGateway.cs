@@ -1,16 +1,17 @@
 namespace ApiInadimplencia.Application.Abstractions.Integrations;
 
 /// <summary>
-/// Gateway para integração com datasets Fluig/TOTVS
+/// Port for the Fluig dataset-handle/search integration. Implementations
+/// authenticate against Fluig once (cookie cache) and dispatch dataset queries
+/// preserving the legacy Node.js semantics (fields, order, constraints).
 /// </summary>
 public interface IFluigDatasetGateway
 {
     /// <summary>
-    /// Busca dados de um dataset Fluig
+    /// Executes a Fluig dataset search and returns the parsed values rows.
     /// </summary>
-    /// <param name="datasetName">Nome do dataset</param>
-    /// <param name="parameters">Parâmetros do dataset</param>
-    /// <param name="cancellationToken">Token de cancelamento</param>
-    /// <returns>Conteúdo do dataset como string XML/JSON</returns>
-    Task<string> GetDatasetAsync(string datasetName, Dictionary<string, string> parameters, CancellationToken cancellationToken = default);
+    /// <param name="request">Dataset request (name + optional fields/order/constraints).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Dataset response with rows. Throws on transport or auth failure.</returns>
+    Task<FluigDatasetResponse> SearchAsync(FluigDatasetRequest request, CancellationToken cancellationToken = default);
 }

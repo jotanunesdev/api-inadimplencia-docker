@@ -176,6 +176,10 @@ public sealed class LegacySqlExecutor(
                 WHERE f.CLIENTE LIKE '%' + @nomeCliente + '%'
                 """),
 
+            // Calendar view rule: per cliente, exibir apenas a PROXIMA_ACAO mais distante
+            // (MAX(PROXIMA_ACAO)). Ex.: cliente com acoes em 27/05, 29/05 e 02/06 -> 02/06.
+            // DT_OCORRENCIA/HORA_OCORRENCIA sao tiebreakers quando duas ocorrencias
+            // agendam a mesma data de proxima acao.
             ["ProximasAcoes.List"] = new("""
                 WITH Ranked AS (
                     SELECT
@@ -183,7 +187,7 @@ public sealed class LegacySqlExecutor(
                         o.PROXIMA_ACAO,
                         ROW_NUMBER() OVER (
                             PARTITION BY o.NUM_VENDA_FK
-                            ORDER BY o.DT_OCORRENCIA DESC, o.HORA_OCORRENCIA DESC, o.PROXIMA_ACAO DESC
+                            ORDER BY o.PROXIMA_ACAO DESC, o.DT_OCORRENCIA DESC, o.HORA_OCORRENCIA DESC
                         ) AS RN
                     FROM dbo.OCORRENCIAS o
                     WHERE o.PROXIMA_ACAO IS NOT NULL
@@ -196,6 +200,7 @@ public sealed class LegacySqlExecutor(
                 ORDER BY ranked.PROXIMA_ACAO ASC
                 """),
 
+            // Mesma regra de selecao da Lista: prioriza a PROXIMA_ACAO mais distante.
             ["ProximasAcoes.ByNumVenda"] = new("""
                 SELECT TOP 1 o.NUM_VENDA_FK AS NUM_VENDA, o.PROXIMA_ACAO
                 FROM dbo.OCORRENCIAS o
@@ -203,7 +208,7 @@ public sealed class LegacySqlExecutor(
                 WHERE o.NUM_VENDA_FK = @numVenda
                   AND o.PROXIMA_ACAO IS NOT NULL
                   AND UPPER(LTRIM(RTRIM(COALESCE(f.INADIMPLENTE, '')))) = 'SIM'
-                ORDER BY o.DT_OCORRENCIA DESC, o.HORA_OCORRENCIA DESC, o.PROXIMA_ACAO DESC
+                ORDER BY o.PROXIMA_ACAO DESC, o.DT_OCORRENCIA DESC, o.HORA_OCORRENCIA DESC
                 """),
 
             ["Usuarios.List"] = new("SELECT * FROM dbo.USUARIO ORDER BY NOME"),
