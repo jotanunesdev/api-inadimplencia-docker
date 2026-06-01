@@ -445,7 +445,8 @@ public static class InadimplenciaEndpoints
         {
             var normalizedPage = Math.Max(page ?? 1, 1);
             var normalizedPageSize = Math.Clamp(pageSize ?? 20, 1, 100);
-            var parameters = NotificationParameters(username, normalizedPage, normalizedPageSize, lida);
+            var normalizedUsername = NormalizeUsername(username);
+            var parameters = NotificationParameters(normalizedUsername, normalizedPage, normalizedPageSize, lida);
             var result = await handler.HandleAsync(new LegacySqlQuery("Notifications.List", parameters), cancellationToken);
 
             if (!result.IsConfigured)
@@ -473,8 +474,9 @@ public static class InadimplenciaEndpoints
             [FromServices] SseHub sseHub,
             CancellationToken cancellationToken) =>
         {
+            var normalizedUsername = NormalizeUsername(username);
             var result = await handler.HandleAsync(
-                new LegacySqlCommand("Notifications.MarkAllRead", new Dictionary<string, object?> { ["username"] = username }),
+                new LegacySqlCommand("Notifications.MarkAllRead", new Dictionary<string, object?> { ["username"] = normalizedUsername }),
                 cancellationToken);
 
             if (!result.IsConfigured)
@@ -495,11 +497,12 @@ public static class InadimplenciaEndpoints
             [FromServices] SseHub sseHub,
             CancellationToken cancellationToken) =>
         {
+            var normalizedUsername = NormalizeUsername(username);
             var result = await handler.HandleAsync(
                 new LegacySqlCommand("Notifications.MarkRead", new Dictionary<string, object?>
                 {
                     ["id"] = id,
-                    ["username"] = username,
+                    ["username"] = normalizedUsername,
                 }),
                 cancellationToken);
 
@@ -525,11 +528,12 @@ public static class InadimplenciaEndpoints
             [FromServices] SseHub sseHub,
             CancellationToken cancellationToken) =>
         {
+            var normalizedUsername = NormalizeUsername(username);
             var result = await handler.HandleAsync(
                 new LegacySqlCommand("Notifications.Delete", new Dictionary<string, object?>
                 {
                     ["id"] = id,
-                    ["username"] = username,
+                    ["username"] = normalizedUsername,
                 }),
                 cancellationToken);
 
@@ -960,6 +964,16 @@ public static class InadimplenciaEndpoints
             ["offset"] = (page - 1) * pageSize,
             ["lida"] = lida,
         };
+
+    /// <summary>
+    /// Normalizes the username to match how <c>InadNotificacao.Criar</c> persists it
+    /// (lowercase, trimmed). Without this, legacy SQL queries against USUARIO_DESTINATARIO
+    /// can return zero matches when the caller uses different casing/whitespace and the
+    /// SQL Server collation is case-sensitive, surfacing as spurious 404 responses on
+    /// PUT /notifications/{id}/read and DELETE /notifications/{id}.
+    /// </summary>
+    private static string NormalizeUsername(string? username)
+        => (username ?? string.Empty).Trim().ToLowerInvariant();
 
     private static IReadOnlyList<Dictionary<string, object?>> ResultRows(LegacySqlResult result)
         => result.Data as IReadOnlyList<Dictionary<string, object?>>
