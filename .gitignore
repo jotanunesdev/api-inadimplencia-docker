@@ -63,3 +63,8 @@ nuget-packages/
 *.pidb
 *.svclog
 *.scc
+
+# k6 load test results
+loadtests/k6/results/*
+!loadtests/k6/results/.gitkeep
+!loadtests/k6/results/relatorio-*.html

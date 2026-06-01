@@ -648,57 +648,73 @@ public static class InadimplenciaEndpoints
             return Results.Ok(new { data = result });
         });
 
-        // Webhooks - 6 endpoints for Serasa PEFIN callbacks
+        // Webhooks - 6 endpoints for Serasa PEFIN callbacks.
+        // IMPORTANT: Serasa sends raw JSON objects (e.g. {"uuid":"..."}). Using
+        // [FromBody] string here would require a JSON-string literal body and would
+        // reject Serasa's payload with HTTP 400. We read the request body directly
+        // to preserve the raw JSON for persistence/audit and to deserialize in the handler.
+        static async Task<string> ReadRawBodyAsync(HttpRequest request, CancellationToken ct)
+        {
+            using var reader = new StreamReader(request.Body, leaveOpen: true);
+            return await reader.ReadToEndAsync(ct);
+        }
+
         group.MapPost("/webhooks/inclusao/sucesso", async (
-            [FromBody] string rawJson,
+            HttpRequest request,
             [FromServices] SerasaWebhookHandler handler,
             CancellationToken cancellationToken) =>
         {
+            var rawJson = await ReadRawBodyAsync(request, cancellationToken);
             var result = await handler.HandleAsync(WebhookEventType.Inclusao, WebhookResultado.Sucesso, rawJson, cancellationToken);
             return Results.Ok(new { processed = true, alreadyProcessed = result.WasAlreadyProcessed });
         });
 
         group.MapPost("/webhooks/inclusao/erro", async (
-            [FromBody] string rawJson,
+            HttpRequest request,
             [FromServices] SerasaWebhookHandler handler,
             CancellationToken cancellationToken) =>
         {
+            var rawJson = await ReadRawBodyAsync(request, cancellationToken);
             var result = await handler.HandleAsync(WebhookEventType.Inclusao, WebhookResultado.Erro, rawJson, cancellationToken);
             return Results.Ok(new { processed = true, alreadyProcessed = result.WasAlreadyProcessed });
         });
 
         group.MapPost("/webhooks/avalista/sucesso", async (
-            [FromBody] string rawJson,
+            HttpRequest request,
             [FromServices] SerasaWebhookHandler handler,
             CancellationToken cancellationToken) =>
         {
+            var rawJson = await ReadRawBodyAsync(request, cancellationToken);
             var result = await handler.HandleAsync(WebhookEventType.Avalista, WebhookResultado.Sucesso, rawJson, cancellationToken);
             return Results.Ok(new { processed = true, alreadyProcessed = result.WasAlreadyProcessed });
         });
 
         group.MapPost("/webhooks/avalista/erro", async (
-            [FromBody] string rawJson,
+            HttpRequest request,
             [FromServices] SerasaWebhookHandler handler,
             CancellationToken cancellationToken) =>
         {
+            var rawJson = await ReadRawBodyAsync(request, cancellationToken);
             var result = await handler.HandleAsync(WebhookEventType.Avalista, WebhookResultado.Erro, rawJson, cancellationToken);
             return Results.Ok(new { processed = true, alreadyProcessed = result.WasAlreadyProcessed });
         });
 
         group.MapPost("/webhooks/baixa/sucesso", async (
-            [FromBody] string rawJson,
+            HttpRequest request,
             [FromServices] SerasaWebhookHandler handler,
             CancellationToken cancellationToken) =>
         {
+            var rawJson = await ReadRawBodyAsync(request, cancellationToken);
             var result = await handler.HandleAsync(WebhookEventType.Baixa, WebhookResultado.Sucesso, rawJson, cancellationToken);
             return Results.Ok(new { processed = true, alreadyProcessed = result.WasAlreadyProcessed });
         });
 
         group.MapPost("/webhooks/baixa/erro", async (
-            [FromBody] string rawJson,
+            HttpRequest request,
             [FromServices] SerasaWebhookHandler handler,
             CancellationToken cancellationToken) =>
         {
+            var rawJson = await ReadRawBodyAsync(request, cancellationToken);
             var result = await handler.HandleAsync(WebhookEventType.Baixa, WebhookResultado.Erro, rawJson, cancellationToken);
             return Results.Ok(new { processed = true, alreadyProcessed = result.WasAlreadyProcessed });
         });

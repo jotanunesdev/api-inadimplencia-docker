@@ -1,0 +1,21 @@
+{
+  "_comment": "Substitua pelos valores reais existentes no banco do ambiente alvo. Sem dados válidos os endpoints retornam listas vazias (ainda válido para medir latência).",
+  "cpfs": [
+    "12345678901",
+    "98765432100",
+    "11122233344"
+  ],
+  "numVendas": [
+    100001,
+    100002,
+    100003
+  ],
+  "responsaveis": [
+    "JOAO DA SILVA",
+    "MARIA SOUZA"
+  ],
+  "clientes": [
+    "CLIENTE TESTE",
+    "EMPRESA EXEMPLO"
+  ]
+}

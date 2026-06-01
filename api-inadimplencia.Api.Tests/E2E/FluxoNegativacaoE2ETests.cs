@@ -491,19 +491,17 @@ public class FluxoNegativacaoE2ETests : IClassFixture<FluxoNegativacaoFixture>
             error = (object?)null
         };
 
-        var rawWebhookPayload = JsonSerializer.Serialize(webhookPayload);
-
-        // Send first webhook
+        // Send first webhook - send as real JSON object (mirrors Serasa's behavior)
         var response1 = await client.PostAsJsonAsync(
             "/inadimplencia/serasa-pefin/webhooks/inclusao/sucesso",
-            rawWebhookPayload);
+            webhookPayload);
 
         Assert.Equal(HttpStatusCode.OK, response1.StatusCode);
 
         // Send same webhook again (should be idempotent)
         var response2 = await client.PostAsJsonAsync(
             "/inadimplencia/serasa-pefin/webhooks/inclusao/sucesso",
-            rawWebhookPayload);
+            webhookPayload);
 
         Assert.Equal(HttpStatusCode.OK, response2.StatusCode);
 

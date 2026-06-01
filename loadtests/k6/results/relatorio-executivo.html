@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Relatório de Robustez — API Inadimplência</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --bg-card: #ffffff;
+    --bg-muted: #f1f5f9;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --green: #10b981;
+    --green-bg: #d1fae5;
+    --yellow: #f59e0b;
+    --yellow-bg: #fef3c7;
+    --red: #ef4444;
+    --red-bg: #fee2e2;
+    --blue: #3b82f6;
+    --blue-bg: #dbeafe;
+    --border: #e2e8f0;
+    --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    background: linear-gradient(180deg, #0f172a 0%, #1e293b 400px, #f8fafc 400px);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+  header {
+    color: white;
+    padding: 40px 0 80px;
+    text-align: center;
+  }
+  header .badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  header h1 { font-size: 38px; margin: 0 0 8px; font-weight: 700; }
+  header p { font-size: 18px; opacity: 0.85; margin: 0; }
+
+  .verdict {
+    background: white;
+    border-radius: 16px;
+    padding: 32px;
+    margin-top: -40px;
+    box-shadow: var(--shadow);
+    text-align: center;
+    border-top: 6px solid var(--green);
+  }
+  .verdict .traffic { font-size: 48px; margin-bottom: 8px; }
+  .verdict h2 { margin: 0 0 8px; font-size: 28px; }
+  .verdict p { color: var(--text-muted); font-size: 16px; margin: 0; max-width: 700px; margin: 0 auto; }
+
+  section { margin-top: 48px; }
+  section h2 {
+    font-size: 24px;
+    margin: 0 0 24px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--border);
+  }
+  section h2 .num {
+    display: inline-block;
+    background: var(--blue);
+    color: white;
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
+    border-radius: 50%;
+    text-align: center;
+    margin-right: 12px;
+    font-size: 16px;
+  }
+
+  .grid { display: grid; gap: 16px; }
+  .grid-3 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  .grid-4 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+
+  .card {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+  }
+  .card .label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .card .value { font-size: 32px; font-weight: 700; line-height: 1.2; }
+  .card .desc { font-size: 14px; color: var(--text-muted); margin-top: 8px; }
+
+  .scenario {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+    border-left: 6px solid var(--border);
+  }
+  .scenario.green { border-left-color: var(--green); }
+  .scenario.yellow { border-left-color: var(--yellow); }
+  .scenario.red { border-left-color: var(--red); }
+  .scenario .title { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .scenario .title .icon { font-size: 28px; }
+  .scenario .title h3 { margin: 0; font-size: 20px; }
+  .scenario .title .tag { margin-left: auto; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .scenario.green .tag { background: var(--green-bg); color: var(--green); }
+  .scenario.yellow .tag { background: var(--yellow-bg); color: #b45309; }
+  .scenario.red .tag { background: var(--red-bg); color: var(--red); }
+  .scenario .meta { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 14px; color: var(--text-muted); }
+  .scenario .meta span strong { color: var(--text); display: block; font-size: 18px; }
+
+  .metaphor {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border-radius: 12px;
+    padding: 32px;
+    margin: 32px 0;
+    border: 1px solid #fbbf24;
+  }
+  .metaphor h3 { margin: 0 0 12px; color: #78350f; font-size: 20px; }
+  .metaphor p { margin: 0 0 12px; color: #78350f; font-size: 16px; }
+  .metaphor p:last-child { margin: 0; }
+
+  .bar-chart { background: white; border-radius: 12px; padding: 24px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+  .bar { display: grid; grid-template-columns: 200px 1fr 80px; align-items: center; gap: 12px; padding: 10px 0; }
+  .bar .label-row { font-size: 14px; font-weight: 500; }
+  .bar .track { background: var(--bg-muted); border-radius: 999px; height: 24px; position: relative; overflow: hidden; }
+  .bar .fill { height: 100%; border-radius: 999px; transition: width 0.6s ease; }
+  .bar .fill.green { background: linear-gradient(90deg, #10b981, #059669); }
+  .bar .fill.yellow { background: linear-gradient(90deg, #f59e0b, #d97706); }
+  .bar .fill.red { background: linear-gradient(90deg, #ef4444, #dc2626); }
+  .bar .num-row { font-size: 14px; font-weight: 600; text-align: right; color: var(--text-muted); }
+
+  .recommendations { display: grid; gap: 12px; }
+  .rec {
+    display: grid;
+    grid-template-columns: 48px 1fr;
+    gap: 16px;
+    padding: 20px;
+    background: white;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    align-items: start;
+  }
+  .rec .icon { font-size: 28px; }
+  .rec h4 { margin: 0 0 6px; font-size: 16px; }
+  .rec p { margin: 0; font-size: 14px; color: var(--text-muted); }
+  .rec .priority { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-top: 8px; }
+  .rec .priority.high { background: var(--red-bg); color: var(--red); }
+  .rec .priority.medium { background: var(--yellow-bg); color: #b45309; }
+  .rec .priority.low { background: var(--blue-bg); color: var(--blue); }
+
+  .glossary { background: white; border-radius: 12px; padding: 24px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+  .glossary dl { margin: 0; }
+  .glossary dt { font-weight: 600; margin-top: 16px; color: var(--blue); }
+  .glossary dt:first-child { margin-top: 0; }
+  .glossary dd { margin: 4px 0 0; color: var(--text-muted); font-size: 14px; }
+
+  footer { text-align: center; color: var(--text-muted); font-size: 13px; margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <span class="badge">Relatório Executivo</span>
+    <h1>Quão robusta é a nossa API?</h1>
+    <p>Resultado dos testes de carga realizados em 31/05/2026</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="verdict">
+    <div class="traffic">🟢🟡🔴</div>
+    <h2>Veredicto Geral: A API é sólida, mas tem um teto claro</h2>
+    <p>
+      Em uso normal, a API responde <strong>quase instantaneamente</strong> (menos de 4 milésimos de segundo).
+      Sob carga elevada (mais de 100 usuários simultâneos consultando o banco), ela começa a
+      apresentar lentidão e algumas falhas — situação que pode ser corrigida com ajustes simples.
+    </p>
+  </div>
+
+  <!-- ================================================================ -->
+  <section>
+    <h2><span class="num">1</span>O que foram os testes?</h2>
+    <p style="color: var(--text-muted);">
+      Simulamos diferentes situações reais para ver como a API se comporta. Pense nela como um
+      caixa de supermercado: queremos saber se atende bem 1 cliente, 20 clientes, 100 clientes
+      simultâneos — e o que acontece quando 200 entram de uma vez na loja.
+    </p>
+
+    <div class="grid grid-4" style="margin-top: 24px;">
+      <div class="card">
+        <div class="label">🚶 Teste 1 — Tranquilo</div>
+        <div class="value">1</div>
+        <div class="desc">usuário acessando por 1 minuto. Mede a velocidade base.</div>
+      </div>
+      <div class="card">
+        <div class="label">👥 Teste 2 — Movimento normal</div>
+        <div class="value">20</div>
+        <div class="desc">usuários simultâneos por 5 minutos. Simula um dia típico.</div>
+      </div>
+      <div class="card">
+        <div class="label">🏃 Teste 3 — Pressão</div>
+        <div class="value">100</div>
+        <div class="desc">usuários simultâneos por 10 minutos. Acha o limite.</div>
+      </div>
+      <div class="card">
+        <div class="label">⚡ Teste 4 — Avalanche</div>
+        <div class="value">200</div>
+        <div class="desc">usuários chegando de uma vez. Testa a recuperação.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section>
+    <h2><span class="num">2</span>Como ela se saiu em cada cenário?</h2>
+
+    <div class="grid" style="gap: 16px;">
+
+      <div class="scenario green">
+        <div class="title">
+          <span class="icon">🚶</span>
+          <h3>Teste 1: 1 usuário (uso tranquilo)</h3>
+          <span class="tag">EXCELENTE</span>
+        </div>
+        <p style="margin: 0; color: var(--text-muted);">
+          A API respondeu em <strong>4 milésimos de segundo</strong> em média.
+          Para comparar: piscar os olhos demora 100 milissegundos —
+          a API respondeu <strong>25 vezes mais rápido</strong> do que um piscar.
+          <strong>Zero erros</strong>.
+        </p>
+        <div class="meta">
+          <span><strong>4 ms</strong>tempo médio</span>
+          <span><strong>0%</strong>de erros</span>
+          <span><strong>120</strong>consultas atendidas</span>
+        </div>
+      </div>
+
+      <div class="scenario green">
+        <div class="title">
+          <span class="icon">👥</span>
+          <h3>Teste 2: 20 usuários (dia normal)</h3>
+          <span class="tag">EXCELENTE</span>
+        </div>
+        <p style="margin: 0; color: var(--text-muted);">
+          Mesmo com 20 pessoas usando ao mesmo tempo, a API continuou respondendo em
+          <strong>menos de 4 milésimos de segundo</strong>. <strong>Zero erros</strong>
+          em mais de 4.000 consultas. Nesse cenário, a API está extremamente confortável.
+        </p>
+        <div class="meta">
+          <span><strong>3,8 ms</strong>tempo médio</span>
+          <span><strong>0%</strong>de erros</span>
+          <span><strong>4.282</strong>consultas atendidas</span>
+        </div>
+      </div>
+
+      <div class="scenario yellow">
+        <div class="title">
+          <span class="icon">🏃</span>
+          <h3>Teste 3: 100 usuários (pressão alta)</h3>
+          <span class="tag">DEGRADADO</span>
+        </div>
+        <p style="margin: 0; color: var(--text-muted);">
+          Aqui começa a aparecer o limite. A API ainda atendeu <strong>82 mil consultas</strong>,
+          mas <strong>27 em cada 100 falharam</strong>, e as bem-sucedidas levaram em média
+          <strong>quase 2 segundos</strong> para responder. O gargalo é o <strong>banco de dados</strong>:
+          ele tem uma "fila de atendimento" limitada que ficou cheia.
+        </p>
+        <div class="meta">
+          <span><strong>1,9 s</strong>tempo de resposta (95%)</span>
+          <span><strong>27%</strong>de falhas</span>
+          <span><strong>137</strong>consultas/segundo (teto atual)</span>
+        </div>
+      </div>
+
+      <div class="scenario red">
+        <div class="title">
+          <span class="icon">⚡</span>
+          <h3>Teste 4: 200 usuários de uma vez (avalanche)</h3>
+          <span class="tag">CRÍTICO</span>
+        </div>
+        <p style="margin: 0; color: var(--text-muted);">
+          Quando 200 pessoas chegam de uma vez sem aviso, a API <strong>não consegue se defender</strong>.
+          Algumas consultas chegaram a demorar <strong>42 segundos</strong> — tempo no qual qualquer
+          pessoa desistiria. 27% das tentativas falharam. A API fica "sufocada"
+          mas <strong>não cai</strong> — continua tentando atender. Faltam mecanismos para
+          dizer "estou cheia, tente daqui a pouco" em vez de deixar todos esperando.
+        </p>
+        <div class="meta">
+          <span><strong>24 s</strong>pior caso (1% das consultas)</span>
+          <span><strong>27,6%</strong>de falhas</span>
+          <span><strong>42 s</strong>maior tempo registrado</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section>
+    <h2><span class="num">3</span>Entendendo com uma analogia</h2>
+
+    <div class="metaphor">
+      <h3>🏪 A API é como uma lojinha com 100 caixas registradoras</h3>
+      <p>
+        Imagine que cada vez que alguém pede um dado, é necessário um caixa livre no banco de dados.
+        Nossa "lojinha" tem <strong>100 caixas</strong> (configuração padrão).
+      </p>
+      <p>
+        <strong>Com 1-20 clientes:</strong> sempre sobram caixas livres → atendimento instantâneo. 🟢
+      </p>
+      <p>
+        <strong>Com 100 clientes simultâneos:</strong> os 100 caixas ficam ocupados.
+        O 101º cliente fica esperando alguém terminar → começa a lentidão. Alguns desistem (falham). 🟡
+      </p>
+      <p>
+        <strong>Com 200 clientes chegando de uma vez:</strong> uma fila enorme se forma na porta.
+        Quem está na ponta espera muito tempo, e a lojinha não tem segurança para dizer
+        "voltem mais tarde" — então fica todo mundo esperando, alguns por mais de 40 segundos. 🔴
+      </p>
+      <p>
+        <strong>A solução é simples:</strong> aumentar o número de caixas (configuração)
+        e instalar um sistema de senha que avise quando a loja está cheia (rate limiting).
+      </p>
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section>
+    <h2><span class="num">4</span>Comparativo visual: tempo de resposta</h2>
+
+    <div class="bar-chart">
+      <div class="bar">
+        <div class="label-row">🚶 1 usuário</div>
+        <div class="track"><div class="fill green" style="width: 0.2%"></div></div>
+        <div class="num-row">4 ms</div>
+      </div>
+      <div class="bar">
+        <div class="label-row">👥 20 usuários</div>
+        <div class="track"><div class="fill green" style="width: 0.2%"></div></div>
+        <div class="num-row">4 ms</div>
+      </div>
+      <div class="bar">
+        <div class="label-row">🏃 100 usuários</div>
+        <div class="track"><div class="fill yellow" style="width: 8%"></div></div>
+        <div class="num-row">1.910 ms</div>
+      </div>
+      <div class="bar">
+        <div class="label-row">⚡ 200 usuários (avalanche)</div>
+        <div class="track"><div class="fill red" style="width: 100%"></div></div>
+        <div class="num-row">24.460 ms</div>
+      </div>
+      <p style="margin: 16px 0 0; font-size: 13px; color: var(--text-muted);">
+        💡 <em>Tempo que 95% das consultas demoraram. Mostra como a API
+        salta de "instantâneo" para "lento" quando o banco de dados satura.</em>
+      </p>
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section>
+    <h2><span class="num">5</span>Até onde a API aguenta?</h2>
+    <div class="grid grid-3">
+      <div class="card" style="border-top: 4px solid var(--green);">
+        <div class="label">✅ Zona confortável</div>
+        <div class="value">até 50</div>
+        <div class="desc">usuários simultâneos. Resposta praticamente instantânea, zero falhas.</div>
+      </div>
+      <div class="card" style="border-top: 4px solid var(--yellow);">
+        <div class="label">⚠️ Zona de alerta</div>
+        <div class="value">50 a 100</div>
+        <div class="desc">usuários simultâneos. Começa a ficar lenta. Algumas requisições podem falhar.</div>
+      </div>
+      <div class="card" style="border-top: 4px solid var(--red);">
+        <div class="label">🚨 Zona de saturação</div>
+        <div class="value">100+</div>
+        <div class="desc">usuários simultâneos. Ponto de quebra atual. Precisa de tuning.</div>
+      </div>
+    </div>
+    <p style="margin-top: 24px; padding: 20px; background: var(--blue-bg); border-radius: 8px; color: #1e40af;">
+      <strong>📊 Capacidade atual:</strong> a API processa <strong>~137 consultas por segundo</strong>
+      antes de começar a saturar. Para referência: isso equivale a aproximadamente
+      <strong>500 mil consultas por hora</strong> em uso constante — ou
+      <strong>8 milhões por dia útil</strong> de 8h.
+    </p>
+  </section>
+
+  <!-- ================================================================ -->
+  <section>
+    <h2><span class="num">6</span>Recomendações para o time técnico</h2>
+    <div class="recommendations">
+
+      <div class="rec">
+        <div class="icon">🔧</div>
+        <div>
+          <h4>Aumentar o limite de "caixas" do banco de dados</h4>
+          <p>Subir o pool de conexões SQL de 100 para 300. Mudança de 1 linha, sem código.
+          Espera-se que mova o ponto de quebra de 137 para ~400 consultas/segundo.</p>
+          <span class="priority high">PRIORIDADE ALTA — IMPACTO IMEDIATO</span>
+        </div>
+      </div>
+
+      <div class="rec">
+        <div class="icon">📄</div>
+        <div>
+          <h4>Paginar a listagem geral de inadimplências</h4>
+          <p>Hoje a consulta retorna 1 MB de dados de uma vez. Quebrar em páginas de 50 registros
+          reduz drasticamente o tempo de resposta e o consumo de banco.</p>
+          <span class="priority high">PRIORIDADE ALTA — MELHORIA SIGNIFICATIVA</span>
+        </div>
+      </div>
+
+      <div class="rec">
+        <div class="icon">🛡️</div>
+        <div>
+          <h4>Instalar "limite de fila" (rate limiting)</h4>
+          <p>Em vez de deixar 200 usuários esperando 40 segundos, devolver imediatamente
+          uma resposta "estou ocupada, tente em 5 segundos". Evita travamentos em horários de pico.</p>
+          <span class="priority medium">PRIORIDADE MÉDIA — MELHOR EXPERIÊNCIA</span>
+        </div>
+      </div>
+
+      <div class="rec">
+        <div class="icon">⚡</div>
+        <div>
+          <h4>Cache de dados que mudam pouco</h4>
+          <p>Listas de configurações e contratos podem ser guardadas em memória por alguns minutos,
+          poupando consultas ao banco de dados.</p>
+          <span class="priority medium">PRIORIDADE MÉDIA — REDUZ CARGA</span>
+        </div>
+      </div>
+
+      <div class="rec">
+        <div class="icon">📈</div>
+        <div>
+          <h4>Monitoramento contínuo (Grafana)</h4>
+          <p>Já está pronto na pasta de testes. Permite acompanhar a saúde da API ao longo do tempo
+          e identificar tendências antes de virarem problema.</p>
+          <span class="priority low">PRIORIDADE BAIXA — INVESTIMENTO DE LONGO PRAZO</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section>
+    <h2><span class="num">7</span>Glossário rápido</h2>
+    <div class="glossary">
+      <dl>
+        <dt>Usuário simultâneo</dt>
+        <dd>Quantas pessoas estão acessando a API ao mesmo tempo. No teste, simulamos esse comportamento.</dd>
+
+        <dt>Tempo de resposta</dt>
+        <dd>Quanto tempo a API leva entre receber o pedido e devolver a resposta. Quanto menor, melhor.
+        Idealmente abaixo de 1 segundo.</dd>
+
+        <dt>Taxa de erros</dt>
+        <dd>De cada 100 consultas feitas, quantas falharam. Bom: menos de 1%. Aceitável: até 5%.
+        Ruim: acima disso.</dd>
+
+        <dt>Consultas por segundo (RPS)</dt>
+        <dd>Quantos pedidos a API consegue atender em 1 segundo. É a "vazão" da API.</dd>
+
+        <dt>Pool de conexões</dt>
+        <dd>Como uma fila de "caixas" disponíveis para conversar com o banco de dados.
+        Quando todos os caixas estão ocupados, novas consultas precisam esperar.</dd>
+
+        <dt>Ponto de quebra</dt>
+        <dd>O momento em que a API começa a falhar. Identificá-lo nos ajuda a saber
+        quando precisamos investir em melhorias antes que cause problema real para usuários.</dd>
+
+        <dt>Rate limiting</dt>
+        <dd>Mecanismo que limita quantas requisições um cliente pode fazer por segundo,
+        protegendo a API de sobrecarga.</dd>
+      </dl>
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section>
+    <h2><span class="num">8</span>Conclusão</h2>
+    <div class="card" style="border-left: 6px solid var(--green); padding: 32px;">
+      <h3 style="margin-top: 0;">A API tem uma fundação sólida.</h3>
+      <p style="font-size: 16px;">
+        Para uso esperado em produção (até dezenas de usuários simultâneos), a API responde
+        com <strong>excelência</strong> e <strong>zero falhas</strong>.
+        O ponto de melhoria está em prepará-la para picos de tráfego e crescimento futuro,
+        principalmente <strong>aumentando a capacidade de conversa com o banco de dados</strong>
+        e <strong>quebrando consultas grandes em pedaços menores</strong>.
+      </p>
+      <p style="font-size: 16px; margin-bottom: 0;">
+        Com os ajustes recomendados (todos sem reescrever código de negócio), a expectativa
+        é que a API consiga <strong>triplicar a capacidade atual</strong> — passando de ~137
+        para ~400 consultas por segundo, suportando confortavelmente o crescimento da operação.
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    <p>Relatório gerado a partir de testes automatizados com k6 — 31/05/2026<br>
+    Responsável técnico: time de desenvolvimento · Documentação completa em <code>loadtests/README.md</code></p>
+  </footer>
+
+</div>
+
+</body>
+</html>

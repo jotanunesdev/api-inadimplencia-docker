@@ -1,0 +1,36 @@
+# Stack auxiliar para visualizar resultados do k6 em tempo real.
+# Suba com:  docker compose -f loadtests/docker-compose.k6.yml up -d
+# Rode k6 com: k6 run --out influxdb=http://localhost:8086/k6 loadtests/k6/load.js
+# Grafana:    http://localhost:3001  (admin/admin) — importe dashboard ID 2587
+
+services:
+  influxdb:
+    image: influxdb:1.8
+    container_name: k6-influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      INFLUXDB_DB: k6
+      INFLUXDB_HTTP_AUTH_ENABLED: "false"
+    volumes:
+      - influx-data:/var/lib/influxdb
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: k6-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+    depends_on:
+      - influxdb
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+
+volumes:
+  influx-data:
+  grafana-data:
