@@ -11,6 +11,15 @@ using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Permitir UTF-8 em headers de request. Sem isso, o Kestrel devolve 400 antes
+// de qualquer middleware quando o frontend envia X-User-Name/X-Username com
+// caracteres acentuados (ex.: "Aracy Mendonça"), bloqueando bootstrap, autorize-url
+// e demais rotas. O frontend Fluig manda esses headers em UTF-8 cru.
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.RequestHeaderEncodingSelector = _ => System.Text.Encoding.UTF8;
+});
+
 // Configure Serilog for structured logging
 builder.Host.UseSerilog((context, services, configuration) => configuration
     .ReadFrom.Configuration(context.Configuration)
