@@ -39,5 +39,25 @@ public enum NotificationType
     /// Serasa returned error in negativacao result.
     /// </summary>
     RetornoSerasaErro,
+
+    /// <summary>
+    /// Serasa baixa (write-off) request was created and is awaiting approval.
+    /// </summary>
+    SolicitacaoBaixa,
+
+    /// <summary>
+    /// Serasa baixa request was approved/rejected (sent to requester).
+    /// </summary>
+    AprovacaoBaixa,
+
+    /// <summary>
+    /// Serasa baixa returned successful result via webhook.
+    /// </summary>
+    RetornoBaixaSucesso,
+
+    /// <summary>
+    /// Serasa baixa returned error result via webhook.
+    /// </summary>
+    RetornoBaixaErro,
 }
 

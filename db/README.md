@@ -25,6 +25,15 @@ apontado pelo `.env` (banco `dwjnc` em `192.168.79.240\bi,10433`).
    (`AGUARDANDO_APROVACAO`, `APROVADA`, `REJEITADA`, `APROVADA_FALHA_ENVIO`) e
    campos de rastreabilidade (`SOLICITANTE_USERNAME`, `APROVADOR_USERNAME`,
    `DT_APROVACAO`, `JUSTIFICATIVA`).
+7. `011_serasa_pefin_baixas.sql` - **obrigatório para fluxo de baixa Serasa**. Cria
+   `SERASA_PEFIN_BAIXAS` com FK para `SERASA_PEFIN_SOLICITACOES`, CHECK constraints
+   (motivo whitelist `{1,2,3,4,19,43,45}`, status, tentativas 1..3), índices de
+   navegação/idempotência e índice único filtrado `UX_SERASA_PEFIN_BAIXAS_ATIVA`
+   que impede baixa ativa duplicada por parcela.
+8. `012_views_baixa_dashboard.sql` - **obrigatório para dashboard de baixa**. Cria
+   as views agregadas `vw_serasa_pefin_baixa_motivos` (distribuição percentual dos
+   motivos nos últimos 12 meses) e `vw_serasa_pefin_negativacao_baixa_mensal`
+   (série mensal com negativações e baixas concluídas, últimos 12 meses).
 
 ## Como executar
 
@@ -40,6 +49,10 @@ sqlcmd -S "192.168.79.240\bi,10433" -d dwjnc -U dwbi -P "4bi@2023" -C -i db\003_
 sqlcmd -S "192.168.79.240\bi,10433" -d dwjnc -U dwbi -P "4bi@2023" -C -i db\004_serasa_pefin_baixa_status.sql
 sqlcmd -S "192.168.79.240\bi,10433" -d dwjnc -U dwbi -P "4bi@2023" -C -i db\005_negativacao_fluxo.sql
 sqlcmd -S "192.168.79.240\bi,10433" -d dwjnc -U dwbi -P "4bi@2023" -C -i db\006_serasa_pefin_status_extensao.sql
+
+# Scripts do fluxo de baixa Serasa
+sqlcmd -S "192.168.79.240\bi,10433" -d dwjnc -U dwbi -P "4bi@2023" -C -i db\011_serasa_pefin_baixas.sql
+sqlcmd -S "192.168.79.240\bi,10433" -d dwjnc -U dwbi -P "4bi@2023" -C -i db\012_views_baixa_dashboard.sql
 ```
 
 ### Via container da API (sem sqlcmd local)
@@ -86,7 +99,8 @@ novamente sem efeitos colaterais.
 ## Notas
 
 - **Usuário dwbi**: Os scripts `003_serasa_pefin.sql`, `004_serasa_pefin_baixa_status.sql`,
-  `005_negativacao_fluxo.sql` e `006_serasa_pefin_status_extensao.sql`
+  `005_negativacao_fluxo.sql`, `006_serasa_pefin_status_extensao.sql`,
+  `011_serasa_pefin_baixas.sql` e `012_views_baixa_dashboard.sql`
   requerem o usuário `dwbi` (senha: `4bi@2023`) devido às permissões de `ALTER TABLE`
   necessárias para criar/drop constraints. O usuário `fluig` não possui essas permissões.
 - Os tipos foram derivados de

@@ -12,6 +12,7 @@ namespace ApiInadimplencia.Application.Tests.Features.SerasaPefin.Webhooks;
 public class SerasaWebhookHandlerTests
 {
     private readonly Mock<ISerasaPefinRepository> _repositoryMock;
+    private readonly Mock<ISerasaPefinBaixaRepository> _baixaRepositoryMock;
     private readonly Mock<INotificationDispatcher> _notificationDispatcherMock;
     private readonly Mock<ILogger<SerasaWebhookHandler>> _loggerMock;
     private readonly SerasaWebhookHandler _handler;
@@ -19,9 +20,14 @@ public class SerasaWebhookHandlerTests
     public SerasaWebhookHandlerTests()
     {
         _repositoryMock = new Mock<ISerasaPefinRepository>();
+        _baixaRepositoryMock = new Mock<ISerasaPefinBaixaRepository>();
         _notificationDispatcherMock = new Mock<INotificationDispatcher>();
         _loggerMock = new Mock<ILogger<SerasaWebhookHandler>>();
-        _handler = new SerasaWebhookHandler(_repositoryMock.Object, _notificationDispatcherMock.Object, _loggerMock.Object);
+        _handler = new SerasaWebhookHandler(
+            _repositoryMock.Object,
+            _baixaRepositoryMock.Object,
+            _notificationDispatcherMock.Object,
+            _loggerMock.Object);
     }
 
     [Fact]
@@ -207,53 +213,57 @@ public class SerasaWebhookHandlerTests
         Assert.Equal("002", solicitacao.CadusSerie);
     }
 
+    // -------------------------------------------------------------------
+    // Baixa webhook tests (Task 6.0) - resolved via ISerasaPefinBaixaRepository.
+    // -------------------------------------------------------------------
+
+    private static SerasaPefinBaixaSolicitacao BuildBaixaAguardandoRetorno(string uuid, string solicitante = "solicitante.user")
+    {
+        var baixa = SerasaPefinBaixaSolicitacao.Hydrate(
+            id: Guid.NewGuid(),
+            idSolicitacaoNegativacao: Guid.NewGuid(),
+            numVendaFk: 123,
+            numeroParcela: 1,
+            contractNumber: "123456/00",
+            documentoDevedor: "12345678900",
+            documentoCredor: "12345678000190",
+            motivo: SerasaPefinBaixaMotivo.From(3),
+            status: SerasaPefinBaixaStatus.BaixaAguardandoRetorno,
+            solicitanteUsername: solicitante,
+            aprovadorUsername: "aprovador.user",
+            dtAprovacao: DateTime.UtcNow,
+            justificativa: null,
+            transactionId: uuid,
+            webhookPayload: null,
+            errorMessage: null,
+            errorStatusCode: null,
+            tentativas: 1,
+            dtCriacao: DateTime.UtcNow,
+            dtAtualizacao: DateTime.UtcNow);
+        return baixa;
+    }
+
     [Fact]
-    public async Task Handle_BaixaSucesso_UpdatesStatusToBaixadoSucesso()
+    public async Task Handle_BaixaSucesso_ResolvesViaBaixaRepository_AndDispatchesNotification()
     {
         // Arrange
         var uuid = "f1d11b18-b459-4f11-97a8-8143a6c392e4";
         var payload = new
         {
             uuid = uuid,
-            creditor = new
-            {
-                documentNumber = "12345678000190",
-                documentType = "CNPJ"
-            },
-            debtor = new
-            {
-                documentNumber = "12345678900",
-                documentType = "CPF"
-            },
-            cadusKey = "008080948C",
-            cadusSerie = "003",
-            creditorArea = "0001",
-            categoryId = "FI",
-            writeOff = new
-            {
-                reason = "1"
-            }
+            creditor = new { documentNumber = "12345678000190", documentType = "CNPJ" },
+            debtor = new { documentNumber = "12345678900", documentType = "CPF" },
+            writeOff = new { reason = "1" }
         };
         var rawJson = System.Text.Json.JsonSerializer.Serialize(payload);
-        var solicitacao = SerasaPefinSolicitacaoCompleta.Criar(
-            numVendaFk: 123,
-            tipoRegistro: SerasaPefinRecordType.Principal,
-            documentoDevedor: "12345678900",
-            documentoCredor: "12345678000190",
-            contractNumber: "123456/00",
-            areaInformante: "0001",
-            valor: 1000.00m,
-            dataVencimento: new DateOnly(2024, 1, 1),
-            operador: "test",
-            payloadAuditoria: "{}");
-        solicitacao.MarcarBaixaAguardandoRetorno(uuid);
+        var baixa = BuildBaixaAguardandoRetorno(uuid);
 
         _repositoryMock.Setup(r => r.WebhookExistsByUuidAsync(uuid, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
-        _repositoryMock.Setup(r => r.GetByTransactionIdAsync(uuid, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(solicitacao);
-        _repositoryMock.Setup(r => r.ApplyWebhookTransactionalAsync(
-            It.IsAny<SerasaPefinSolicitacaoCompleta>(),
+        _baixaRepositoryMock.Setup(r => r.GetByTransactionIdAsync(uuid, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(baixa);
+        _baixaRepositoryMock.Setup(r => r.ApplyWebhookTransactionalAsync(
+            It.IsAny<SerasaPefinBaixaSolicitacao>(),
             It.IsAny<SerasaPefinWebhookRecord>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -266,33 +276,46 @@ public class SerasaWebhookHandlerTests
 
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.Equal(SerasaPefinStatus.NegativadoSucesso, solicitacao.Status);
-        Assert.Equal("008080948C", solicitacao.CadusKey);
-        Assert.Equal("003", solicitacao.CadusSerie);
+        Assert.False(result.WasAlreadyProcessed);
+        Assert.False(result.NoMatchingTransaction);
+        Assert.Equal(SerasaPefinBaixaStatus.BaixadoSucesso, baixa.Status);
+
+        // Persistência via baixa repo (atomic).
+        _baixaRepositoryMock.Verify(r => r.ApplyWebhookTransactionalAsync(
+            It.Is<SerasaPefinBaixaSolicitacao>(b => b.Id == baixa.Id && b.Status == SerasaPefinBaixaStatus.BaixadoSucesso),
+            It.Is<SerasaPefinWebhookRecord>(w => w.MatchedSolicitacaoId == baixa.Id && w.Processado),
+            It.IsAny<CancellationToken>()), Times.Once);
+
+        // Não consulta o repositório de negativação para baixa.
+        _repositoryMock.Verify(r => r.GetByTransactionIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repositoryMock.Verify(r => r.ApplyWebhookTransactionalAsync(
+            It.IsAny<SerasaPefinSolicitacaoCompleta>(),
+            It.IsAny<SerasaPefinWebhookRecord>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+
+        // Notificação ao solicitante (RetornoBaixaSucesso) com payload contendo solicitacaoId/status/solicitante.
+        _notificationDispatcherMock.Verify(d => d.DispatchAsync(
+            NotificationType.RetornoBaixaSucesso,
+            "solicitante.user",
+            123,
+            It.Is<string>(m =>
+                m.Contains("solicitanteUsername") &&
+                m.Contains("solicitacaoId") &&
+                m.Contains("BAIXADO_SUCESSO") &&
+                m.Contains("sucesso")),
+            It.IsAny<DateOnly?>(),
+            It.IsAny<string?>(),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task Handle_BaixaErro_UpdatesStatusToBaixadoErro()
+    public async Task Handle_BaixaErro_ResolvesViaBaixaRepository_AndDispatchesErrorNotification()
     {
         // Arrange
         var uuid = "f1d11b18-b459-4f11-97a8-8143a6c392e4";
         var payload = new
         {
             uuid = uuid,
-            creditor = new
-            {
-                documentNumber = "12345678000190",
-                documentType = "CNPJ"
-            },
-            debtor = new
-            {
-                documentNumber = "12345678900",
-                documentType = "CPF"
-            },
-            cadusKey = "008080948C",
-            cadusSerie = "003",
-            creditorArea = "0001",
-            categoryId = "FI",
             error = new
             {
                 message = "Baixa not allowed",
@@ -300,25 +323,14 @@ public class SerasaWebhookHandlerTests
             }
         };
         var rawJson = System.Text.Json.JsonSerializer.Serialize(payload);
-        var solicitacao = SerasaPefinSolicitacaoCompleta.Criar(
-            numVendaFk: 123,
-            tipoRegistro: SerasaPefinRecordType.Principal,
-            documentoDevedor: "12345678900",
-            documentoCredor: "12345678000190",
-            contractNumber: "123456/00",
-            areaInformante: "0001",
-            valor: 1000.00m,
-            dataVencimento: new DateOnly(2024, 1, 1),
-            operador: "test",
-            payloadAuditoria: "{}");
-        solicitacao.MarcarBaixaAguardandoRetorno(uuid);
+        var baixa = BuildBaixaAguardandoRetorno(uuid);
 
         _repositoryMock.Setup(r => r.WebhookExistsByUuidAsync(uuid, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
-        _repositoryMock.Setup(r => r.GetByTransactionIdAsync(uuid, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(solicitacao);
-        _repositoryMock.Setup(r => r.ApplyWebhookTransactionalAsync(
-            It.IsAny<SerasaPefinSolicitacaoCompleta>(),
+        _baixaRepositoryMock.Setup(r => r.GetByTransactionIdAsync(uuid, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(baixa);
+        _baixaRepositoryMock.Setup(r => r.ApplyWebhookTransactionalAsync(
+            It.IsAny<SerasaPefinBaixaSolicitacao>(),
             It.IsAny<SerasaPefinWebhookRecord>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -331,9 +343,95 @@ public class SerasaWebhookHandlerTests
 
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.Equal(SerasaPefinStatus.NegativadoErro, solicitacao.Status);
-        Assert.Equal("Baixa not allowed", solicitacao.ErrorMessage);
-        Assert.Equal(403, solicitacao.ErrorStatusCode);
+        Assert.Equal(SerasaPefinBaixaStatus.BaixadoErro, baixa.Status);
+        Assert.Equal("Baixa not allowed", baixa.ErrorMessage);
+        Assert.Equal(403, baixa.ErrorStatusCode);
+
+        _baixaRepositoryMock.Verify(r => r.ApplyWebhookTransactionalAsync(
+            It.Is<SerasaPefinBaixaSolicitacao>(b => b.Id == baixa.Id && b.Status == SerasaPefinBaixaStatus.BaixadoErro),
+            It.IsAny<SerasaPefinWebhookRecord>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+
+        _notificationDispatcherMock.Verify(d => d.DispatchAsync(
+            NotificationType.RetornoBaixaErro,
+            "solicitante.user",
+            123,
+            It.Is<string>(m =>
+                m.Contains("Baixa not allowed") &&
+                m.Contains("BAIXADO_ERRO") &&
+                m.Contains("Reenvie")),
+            It.IsAny<DateOnly?>(),
+            It.IsAny<string?>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_BaixaWebhook_DuplicateUuid_ReturnsAlreadyProcessed_NoSecondUpdate()
+    {
+        // Arrange
+        var uuid = "f1d11b18-b459-4f11-97a8-8143a6c392e4";
+        var payload = new { uuid = uuid };
+        var rawJson = System.Text.Json.JsonSerializer.Serialize(payload);
+
+        _repositoryMock.Setup(r => r.WebhookExistsByUuidAsync(uuid, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        // Act
+        var result = await _handler.HandleAsync(
+            WebhookEventType.Baixa,
+            WebhookResultado.Sucesso,
+            rawJson);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.True(result.WasAlreadyProcessed);
+        Assert.Equal(uuid, result.Uuid);
+        _baixaRepositoryMock.Verify(r => r.GetByTransactionIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _baixaRepositoryMock.Verify(r => r.ApplyWebhookTransactionalAsync(
+            It.IsAny<SerasaPefinBaixaSolicitacao>(),
+            It.IsAny<SerasaPefinWebhookRecord>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+        _notificationDispatcherMock.Verify(d => d.DispatchAsync(
+            It.IsAny<NotificationType>(),
+            It.IsAny<string>(),
+            It.IsAny<int?>(),
+            It.IsAny<string>(),
+            It.IsAny<DateOnly?>(),
+            It.IsAny<string?>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_BaixaWebhook_NoMatchingBaixa_PersistsOrphanWebhook()
+    {
+        // Arrange
+        var uuid = "f1d11b18-b459-4f11-97a8-8143a6c392e4";
+        var payload = new { uuid = uuid };
+        var rawJson = System.Text.Json.JsonSerializer.Serialize(payload);
+
+        _repositoryMock.Setup(r => r.WebhookExistsByUuidAsync(uuid, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        _baixaRepositoryMock.Setup(r => r.GetByTransactionIdAsync(uuid, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((SerasaPefinBaixaSolicitacao?)null);
+        _repositoryMock.Setup(r => r.AddWebhookAsync(It.IsAny<SerasaPefinWebhookRecord>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var result = await _handler.HandleAsync(
+            WebhookEventType.Baixa,
+            WebhookResultado.Sucesso,
+            rawJson);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.True(result.NoMatchingTransaction);
+        _repositoryMock.Verify(r => r.AddWebhookAsync(
+            It.Is<SerasaPefinWebhookRecord>(w => !w.Processado && w.MensagemErro == "NoMatchingTransaction"),
+            It.IsAny<CancellationToken>()), Times.Once);
+        _baixaRepositoryMock.Verify(r => r.ApplyWebhookTransactionalAsync(
+            It.IsAny<SerasaPefinBaixaSolicitacao>(),
+            It.IsAny<SerasaPefinWebhookRecord>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -794,64 +892,29 @@ public class SerasaWebhookHandlerTests
     }
 
     [Fact]
-    public async Task Handle_BaixaWebhook_DoesNotDispatchNotification_OutOfScope()
+    public async Task Handle_BaixaWebhook_DoesNotDispatchManyNotification_UsesDispatchAsyncOnly()
     {
-        // Arrange
+        // Garante que o caminho de baixa NUNCA usa DispatchManyAsync (reservado para negativação).
         var uuid = "f1d11b18-b459-4f11-97a8-8143a6c392e4";
-        var payload = new
-        {
-            uuid = uuid,
-            creditor = new
-            {
-                documentNumber = "12345678000190",
-                documentType = "CNPJ"
-            },
-            debtor = new
-            {
-                documentNumber = "12345678900",
-                documentType = "CPF"
-            },
-            cadusKey = "008080948C",
-            cadusSerie = "003",
-            creditorArea = "0001",
-            categoryId = "FI",
-            writeOff = new
-            {
-                reason = "1"
-            }
-        };
+        var payload = new { uuid = uuid };
         var rawJson = System.Text.Json.JsonSerializer.Serialize(payload);
-        var solicitacao = SerasaPefinSolicitacaoCompleta.CriarParaAprovacao(
-            numVendaFk: 123,
-            tipoRegistro: SerasaPefinRecordType.Principal,
-            documentoDevedor: "12345678900",
-            documentoCredor: "12345678000190",
-            contractNumber: "123456/00",
-            areaInformante: "0001",
-            valor: 1000.00m,
-            dataVencimento: new DateOnly(2024, 1, 1),
-            solicitanteUsername: "solicitante.user");
-        solicitacao.MarcarAprovada("aprovador.user", DateTime.UtcNow);
-        solicitacao.MarcarPreparadoParaEnvio("{}");
-        solicitacao.MarcarBaixaAguardandoRetorno(uuid);
+        var baixa = BuildBaixaAguardandoRetorno(uuid);
 
         _repositoryMock.Setup(r => r.WebhookExistsByUuidAsync(uuid, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
-        _repositoryMock.Setup(r => r.GetByTransactionIdAsync(uuid, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(solicitacao);
-        _repositoryMock.Setup(r => r.ApplyWebhookTransactionalAsync(
-            It.IsAny<SerasaPefinSolicitacaoCompleta>(),
+        _baixaRepositoryMock.Setup(r => r.GetByTransactionIdAsync(uuid, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(baixa);
+        _baixaRepositoryMock.Setup(r => r.ApplyWebhookTransactionalAsync(
+            It.IsAny<SerasaPefinBaixaSolicitacao>(),
             It.IsAny<SerasaPefinWebhookRecord>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        // Act
         var result = await _handler.HandleAsync(
             WebhookEventType.Baixa,
             WebhookResultado.Sucesso,
             rawJson);
 
-        // Assert
         Assert.True(result.IsSuccess);
         _notificationDispatcherMock.Verify(d => d.DispatchManyAsync(
             It.IsAny<NotificationType>(),
@@ -861,6 +924,14 @@ public class SerasaWebhookHandlerTests
             It.IsAny<DateOnly?>(),
             It.IsAny<string?>(),
             It.IsAny<CancellationToken>()), Times.Never);
+        _notificationDispatcherMock.Verify(d => d.DispatchAsync(
+            NotificationType.RetornoBaixaSucesso,
+            It.IsAny<string>(),
+            It.IsAny<int?>(),
+            It.IsAny<string>(),
+            It.IsAny<DateOnly?>(),
+            It.IsAny<string?>(),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     #endregion

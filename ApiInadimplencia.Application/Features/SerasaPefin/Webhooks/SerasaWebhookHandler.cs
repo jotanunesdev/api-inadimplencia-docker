@@ -14,15 +14,18 @@ namespace ApiInadimplencia.Application.Features.SerasaPefin.Webhooks;
 public sealed class SerasaWebhookHandler
 {
     private readonly ISerasaPefinRepository _repository;
+    private readonly ISerasaPefinBaixaRepository _baixaRepository;
     private readonly INotificationDispatcher _notificationDispatcher;
     private readonly ILogger<SerasaWebhookHandler> _logger;
 
     public SerasaWebhookHandler(
         ISerasaPefinRepository repository,
+        ISerasaPefinBaixaRepository baixaRepository,
         INotificationDispatcher notificationDispatcher,
         ILogger<SerasaWebhookHandler> logger)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        _baixaRepository = baixaRepository ?? throw new ArgumentNullException(nameof(baixaRepository));
         _notificationDispatcher = notificationDispatcher ?? throw new ArgumentNullException(nameof(notificationDispatcher));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -63,7 +66,7 @@ public sealed class SerasaWebhookHandler
             return WebhookResult.Processed(string.Empty);
         }
 
-        // Check idempotency by UUID
+        // Check idempotency by UUID (shared SERASA_PEFIN_WEBHOOKS table)
         if (await _repository.WebhookExistsByUuidAsync(payload.Uuid, cancellationToken))
         {
             _logger.LogInformation("Webhook with UUID {Uuid} already processed, skipping", payload.Uuid);
@@ -73,7 +76,13 @@ public sealed class SerasaWebhookHandler
         // Resolve transaction ID from payload
         var transactionId = payload.Uuid;
 
-        // Find matching solicitation
+        // Branch: baixa events resolve via the dedicated baixa repository.
+        if (eventType == WebhookEventType.Baixa)
+        {
+            return await HandleBaixaAsync(resultado, transactionId, rawJson, payload, cancellationToken);
+        }
+
+        // Negativação (Inclusao / Avalista) — caminho legado preservado.
         var solicitacao = await _repository.GetByTransactionIdAsync(transactionId, cancellationToken);
         if (solicitacao is null)
         {
@@ -82,10 +91,8 @@ public sealed class SerasaWebhookHandler
             return WebhookResult.OrphanWebhook;
         }
 
-        // Apply webhook to solicitation
         ApplyToSolicitacao(solicitacao, eventType, resultado, payload, rawJson);
 
-        // Persist webhook and update solicitation atomically
         var webhookRecord = BuildWebhookRecord(eventType, resultado, payload.Uuid, transactionId, rawJson, solicitacao.Id, true, null);
         await _repository.ApplyWebhookTransactionalAsync(solicitacao, webhookRecord, cancellationToken);
 
@@ -93,10 +100,146 @@ public sealed class SerasaWebhookHandler
             "Webhook processed successfully. UUID: {Uuid}, TransactionId: {TransactionId}, NewStatus: {Status}",
             payload.Uuid, transactionId, solicitacao.Status);
 
-        // Dispatch notifications for inclusão webhooks (not baixa)
         await DispatchNotificationsAsync(eventType, resultado, solicitacao, payload, cancellationToken);
 
         return WebhookResult.Processed(payload.Uuid);
+    }
+
+    /// <summary>
+    /// Handles a baixa webhook: resolves via the baixa repository, applies the
+    /// state transition on the baixa aggregate, persists transactionally and
+    /// notifies the solicitante.
+    /// </summary>
+    private async Task<WebhookResult> HandleBaixaAsync(
+        WebhookResultado resultado,
+        string transactionId,
+        string rawJson,
+        SerasaWebhookPayload payload,
+        CancellationToken cancellationToken)
+    {
+        var baixa = await _baixaRepository.GetByTransactionIdAsync(transactionId, cancellationToken);
+        if (baixa is null)
+        {
+            _logger.LogWarning(
+                "No matching baixa found for TransactionId {TransactionId}. Persisting orphan webhook.", transactionId);
+            await PersistOrphanWebhookAsync(WebhookEventType.Baixa, resultado, payload.Uuid, transactionId, rawJson, cancellationToken);
+            return WebhookResult.OrphanWebhook;
+        }
+
+        ApplyToBaixa(baixa, resultado, payload, rawJson);
+
+        var webhookRecord = BuildWebhookRecord(
+            WebhookEventType.Baixa, resultado, payload.Uuid, transactionId, rawJson, baixa.Id, true, null);
+
+        await _baixaRepository.ApplyWebhookTransactionalAsync(baixa, webhookRecord, cancellationToken);
+
+        _logger.LogInformation(
+            "Baixa webhook processed. UUID: {Uuid}, TransactionId: {TransactionId}, NewStatus: {Status}",
+            payload.Uuid, transactionId, baixa.Status);
+
+        await DispatchBaixaNotificationAsync(resultado, baixa, payload, cancellationToken);
+
+        return WebhookResult.Processed(payload.Uuid);
+    }
+
+    /// <summary>
+    /// Applies the baixa-specific webhook transition. Sucesso → BaixadoSucesso;
+    /// Erro → BaixadoErro (com mensagem e statusCode capturados).
+    /// </summary>
+    private static void ApplyToBaixa(
+        SerasaPefinBaixaSolicitacao baixa,
+        WebhookResultado resultado,
+        SerasaWebhookPayload payload,
+        string rawJson)
+    {
+        if (resultado == WebhookResultado.Erro)
+        {
+            var errorMessage = payload.Error?.Message ?? "Unknown error";
+            var statusCode = payload.Error?.StatusCode;
+            baixa.AplicarWebhookErro(rawJson, errorMessage, statusCode);
+            return;
+        }
+
+        baixa.AplicarWebhookSucesso(rawJson);
+    }
+
+    /// <summary>
+    /// Notifies the solicitante (in-app) on baixa final state.
+    /// </summary>
+    private async Task DispatchBaixaNotificationAsync(
+        WebhookResultado resultado,
+        SerasaPefinBaixaSolicitacao baixa,
+        SerasaWebhookPayload payload,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(baixa.SolicitanteUsername))
+        {
+            _logger.LogInformation(
+                "No solicitante to notify for baixa {BaixaId} (legacy/orphan record).", baixa.Id);
+            return;
+        }
+
+        var parcela = baixa.NumeroParcela?.ToString() ?? "-";
+
+        try
+        {
+            if (resultado == WebhookResultado.Sucesso)
+            {
+                var mensagem = $"Baixa concluída com sucesso para parcela {parcela} da venda {baixa.NumVendaFk}.";
+                var payloadJson = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    mensagem,
+                    solicitanteUsername = baixa.SolicitanteUsername,
+                    solicitacaoId = baixa.Id,
+                    numVenda = baixa.NumVendaFk,
+                    numeroParcela = baixa.NumeroParcela,
+                    status = baixa.Status.ToDbValue(),
+                });
+
+                await _notificationDispatcher.DispatchAsync(
+                    NotificationType.RetornoBaixaSucesso,
+                    baixa.SolicitanteUsername,
+                    baixa.NumVendaFk,
+                    payloadJson,
+                    null,
+                    baixa.Id.ToString(),
+                    cancellationToken);
+            }
+            else
+            {
+                var serasaErrorMessage = payload.Error?.Message ?? baixa.ErrorMessage ?? "Erro desconhecido";
+                var mensagem =
+                    $"Baixa rejeitada pela Serasa: {serasaErrorMessage}. Reenvie a solicitação se necessário.";
+                var payloadJson = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    mensagem,
+                    solicitanteUsername = baixa.SolicitanteUsername,
+                    solicitacaoId = baixa.Id,
+                    numVenda = baixa.NumVendaFk,
+                    numeroParcela = baixa.NumeroParcela,
+                    status = baixa.Status.ToDbValue(),
+                    errorMessage = serasaErrorMessage,
+                    errorStatusCode = payload.Error?.StatusCode ?? baixa.ErrorStatusCode,
+                    tentativas = baixa.Tentativas,
+                });
+
+                await _notificationDispatcher.DispatchAsync(
+                    NotificationType.RetornoBaixaErro,
+                    baixa.SolicitanteUsername,
+                    baixa.NumVendaFk,
+                    payloadJson,
+                    null,
+                    baixa.Id.ToString(),
+                    cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Falha na notificação não deve reverter o processamento do webhook.
+            _logger.LogWarning(ex,
+                "Failed to dispatch baixa notification. BaixaId: {BaixaId}, Solicitante: {Solicitante}",
+                baixa.Id, baixa.SolicitanteUsername);
+        }
     }
 
     /// <summary>
@@ -126,8 +269,9 @@ public sealed class SerasaWebhookHandler
                 break;
 
             case WebhookEventType.Baixa:
-                // For baixa success, we need to mark as BaixadoSucesso
-                // The entity method AplicarWebhookSucesso handles this based on current status
+                // Baixa events are handled by HandleBaixaAsync via ISerasaPefinBaixaRepository.
+                // This branch is kept only for legacy fallback (e.g., orphan webhook persistence)
+                // and should not be reached in the active code path.
                 solicitacao.AplicarWebhookSucesso(rawJson, payload.CadusKey, payload.CadusSerie);
                 break;
         }
@@ -216,10 +360,9 @@ public sealed class SerasaWebhookHandler
         SerasaWebhookPayload payload,
         CancellationToken cancellationToken)
     {
-        // Baixa webhooks are out of scope for this task
+        // Baixa webhooks are dispatched by DispatchBaixaNotificationAsync, never here.
         if (eventType == WebhookEventType.Baixa)
         {
-            _logger.LogInformation("Baixa webhook - notifications out of scope for this task. EventType: {EventType}, Resultado: {Resultado}", eventType, resultado);
             return;
         }
 

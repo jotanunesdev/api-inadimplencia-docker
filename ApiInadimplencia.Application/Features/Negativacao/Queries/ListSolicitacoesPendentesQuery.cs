@@ -39,4 +39,5 @@ public sealed record SolicitacaoPendenteDto(
     string SolicitanteUsername,
     DateTime DtSolicitacao,
     string Status,
-    decimal Valor);
+    decimal Valor,
+    string Tipo = "NEGATIVACAO");

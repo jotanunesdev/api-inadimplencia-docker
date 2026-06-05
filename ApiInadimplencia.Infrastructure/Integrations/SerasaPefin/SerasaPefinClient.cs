@@ -108,5 +108,82 @@ public class SerasaPefinClient
         return result ?? throw new InvalidOperationException("Failed to deserialize inclusion response");
     }
 
+    /// <summary>
+    /// DELETE para baixa de dívida via header <c>contract-number</c>.
+    /// Endpoint: <c>{CollectionBaseUrl}/debt/contract</c>.
+    /// Body vazio; identificação totalmente via headers conforme contrato Serasa v8.
+    /// </summary>
+    public async Task<SerasaBaixaResponse> DeleteByContractAsync(
+        SerasaBaixaRequest request,
+        string token,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (string.IsNullOrWhiteSpace(request.CreditorDocument))
+        {
+            throw new ArgumentException("creditor-document is required.", nameof(request));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.DebtorDocument))
+        {
+            throw new ArgumentException("debtor-document is required.", nameof(request));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ContractNumber))
+        {
+            throw new ArgumentException("contract-number is required.", nameof(request));
+        }
+
+        var endpoint = $"{_options.CollectionBaseUrl.TrimEnd('/')}/debt/contract";
+
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Delete, endpoint);
+        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        httpRequest.Headers.Add("creditor-document", request.CreditorDocument);
+        httpRequest.Headers.Add("debtor-document", request.DebtorDocument);
+        httpRequest.Headers.Add("contract-number", request.ContractNumber);
+        httpRequest.Headers.Add("reason", request.Reason.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        httpRequest.Headers.Add("type", "PEFIN");
+
+        _logger.LogInformation(
+            "Serasa.Http.Sending baixa DELETE {Endpoint} | TokenLen={TokenLen} | Contract={Contract} | Reason={Reason}",
+            endpoint,
+            token?.Length ?? 0,
+            request.ContractNumber,
+            request.Reason);
+
+        using var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
+        var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "Serasa.Http.Response baixa DELETE Status={StatusCode} Body={Body}",
+            (int)response.StatusCode,
+            responseContent);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError(
+                "Serasa PEFIN baixa DELETE failed. Status: {StatusCode}, Body: {Body}",
+                (int)response.StatusCode,
+                responseContent);
+            throw new ApiInadimplencia.Application.Abstractions.Integrations.SerasaPefinHttpException(
+                (int)response.StatusCode,
+                responseContent,
+                $"Serasa PEFIN baixa DELETE failed with status {response.StatusCode}");
+        }
+
+        var result = JsonSerializer.Deserialize<SerasaBaixaResponse>(
+            responseContent,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        if (result is null || string.IsNullOrWhiteSpace(result.TransactionId))
+        {
+            throw new InvalidOperationException("Failed to deserialize Serasa baixa response (missing transactionId).");
+        }
+
+        return result;
+    }
+
     private record SerasaTokenResponse(string AccessToken, string TokenType, string ExpiresIn);
 }

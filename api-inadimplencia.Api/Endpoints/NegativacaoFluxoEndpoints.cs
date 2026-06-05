@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using ApiInadimplencia.Application.Abstractions.Cqrs;
 using ApiInadimplencia.Application.Abstractions.Persistence;
+using ApiInadimplencia.Application.Features.Negativacao.Baixa.Commands;
+using ApiInadimplencia.Application.Features.Negativacao.Baixa.Queries;
 using ApiInadimplencia.Application.Features.Negativacao.Commands;
 using ApiInadimplencia.Application.Features.Negativacao.Queries;
 using ApiInadimplencia.Application.Features.Negativacao.Dtos;
@@ -156,6 +158,179 @@ public static class NegativacaoFluxoEndpoints
             }
         })
         .WithName($"DecideNegativacaoSolicitacao{nameSuffix}")
+        .WithOpenApi();
+
+        // -------------------------------------------------------------
+        // Sub-grupo /baixa/...
+        // -------------------------------------------------------------
+        var baixa = negativacao.MapGroup("/baixa").WithTags("Baixa Fluxo");
+
+        // POST /baixa/solicitacoes - Solicitar baixa para 1+ parcelas.
+        baixa.MapPost("/solicitacoes", async (
+            [FromBody] RequestBaixaCommand command,
+            [FromServices] ICommandHandler<RequestBaixaCommand, Guid> handler,
+            CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                var solicitacaoId = await handler.HandleAsync(command, cancellationToken);
+                return Results.Created($"/negativacao/baixa/solicitacoes/{solicitacaoId}", new { solicitacaoId });
+            }
+            catch (SerasaPefinBaixaDuplicateActiveException ex)
+            {
+                return Results.Conflict(new { error = ex.Message });
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("JA_EM_APROVACAO", StringComparison.OrdinalIgnoreCase))
+            {
+                return Results.Conflict(new { error = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Results.Json(new { error = ex.Message }, statusCode: StatusCodes.Status401Unauthorized);
+            }
+            catch (ArgumentException ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        })
+        .WithName($"RequestBaixaSolicitacao{nameSuffix}")
+        .WithOpenApi();
+
+        // GET /baixa/solicitacoes/{id}
+        baixa.MapGet("/solicitacoes/{id}", async (
+            string id,
+            [FromServices] IQueryHandler<GetBaixaByIdQuery, BaixaDetalheDto?> handler,
+            CancellationToken cancellationToken) =>
+        {
+            if (!Guid.TryParse(id, out var parsedId))
+            {
+                return Results.Json(new { error = "ID_INVALIDO" }, statusCode: StatusCodes.Status400BadRequest);
+            }
+
+            var result = await handler.HandleAsync(new GetBaixaByIdQuery(parsedId), cancellationToken);
+            return result is null
+                ? Results.NotFound(new { error = "NAO_ENCONTRADA" })
+                : Results.Ok(result);
+        })
+        .WithName($"GetBaixaById{nameSuffix}")
+        .WithOpenApi();
+
+        // GET /baixa/solicitacoes
+        baixa.MapGet("/solicitacoes", async (
+            [FromQuery] string? status,
+            [FromQuery] int? numVenda,
+            [FromQuery] string? solicitanteUsername,
+            [FromQuery] int? take,
+            [FromQuery] int? skip,
+            [FromServices] IQueryHandler<ListBaixasQuery, IReadOnlyList<BaixaResumoDto>> handler,
+            CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                var query = new ListBaixasQuery(
+                    status,
+                    numVenda,
+                    solicitanteUsername,
+                    take ?? 50,
+                    skip ?? 0);
+                var result = await handler.HandleAsync(query, cancellationToken);
+                return Results.Ok(new { data = result });
+            }
+            catch (ArgumentException ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        })
+        .WithName($"ListBaixas{nameSuffix}")
+        .WithOpenApi();
+
+        // POST /baixa/solicitacoes/{id}/decisao
+        baixa.MapPost("/solicitacoes/{id}/decisao", async (
+            string id,
+            [FromBody] DecideNegativacaoRequest request,
+            [FromServices] ICommandHandler<DecideBaixaCommand, bool> handler,
+            CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                if (!Guid.TryParse(id, out var parsedId))
+                {
+                    return Results.Json(new { error = "ID_INVALIDO" }, statusCode: StatusCodes.Status400BadRequest);
+                }
+
+                var command = new DecideBaixaCommand(
+                    parsedId,
+                    request.Decisao,
+                    request.SenhaTransacao,
+                    request.Justificativa);
+                await handler.HandleAsync(command, cancellationToken);
+                return Results.Ok(new { message = "Decisão de baixa registrada com sucesso." });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Results.Json(new { error = ex.Message }, statusCode: StatusCodes.Status401Unauthorized);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return Results.NotFound(new { error = ex.Message });
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("JA_DECIDIDA", StringComparison.OrdinalIgnoreCase))
+            {
+                return Results.Conflict(new { error = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        })
+        .WithName($"DecideBaixaSolicitacao{nameSuffix}")
+        .WithOpenApi();
+
+        // POST /baixa/solicitacoes/{id}/reenvio
+        baixa.MapPost("/solicitacoes/{id}/reenvio", async (
+            string id,
+            [FromServices] ICommandHandler<ResendBaixaCommand, ResendBaixaResult> handler,
+            CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                if (!Guid.TryParse(id, out var parsedId))
+                {
+                    return Results.Json(new { error = "ID_INVALIDO" }, statusCode: StatusCodes.Status400BadRequest);
+                }
+
+                var result = await handler.HandleAsync(new ResendBaixaCommand(parsedId), cancellationToken);
+                return Results.Ok(new
+                {
+                    solicitacaoId = result.BaixaId,
+                    transactionId = result.TransactionId,
+                    tentativas = result.Tentativas,
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Results.Json(new { error = ex.Message }, statusCode: StatusCodes.Status401Unauthorized);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return Results.NotFound(new { error = ex.Message });
+            }
+            catch (InvalidOperationException ex) when (
+                ex.Message.Contains("LIMITE_TENTATIVAS_ATINGIDO", StringComparison.OrdinalIgnoreCase) ||
+                ex.Message.Contains("ESTADO_INVALIDO", StringComparison.OrdinalIgnoreCase))
+            {
+                return Results.Conflict(new { error = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        })
+        .WithName($"ResendBaixaSolicitacao{nameSuffix}")
         .WithOpenApi();
     }
 }

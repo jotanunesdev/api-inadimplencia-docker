@@ -2,6 +2,7 @@ using ApiInadimplencia.Application.Abstractions;
 using ApiInadimplencia.Application.Abstractions.Auth;
 using ApiInadimplencia.Application.Abstractions.Cqrs;
 using ApiInadimplencia.Application.Abstractions.Persistence;
+using ApiInadimplencia.Application.Configuration;
 using ApiInadimplencia.Application.Features.Notifications;
 using ApiInadimplencia.Application.Features.Ocorrencias;
 using ApiInadimplencia.Domain.Negativacao;
@@ -9,6 +10,7 @@ using ApiInadimplencia.Domain.Notifications;
 using ApiInadimplencia.Domain.Ocorrencias;
 using ApiInadimplencia.Domain.SerasaPefin;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace ApiInadimplencia.Application.Features.Negativacao.Commands;
 
@@ -26,6 +28,7 @@ public sealed class RequestNegativacaoFluxoCommandHandler : ICommandHandler<Requ
     private readonly IProtocoloGenerator _protocoloGenerator;
     private readonly IAprovadoresPolicy _aprovadoresPolicy;
     private readonly INotificationDispatcher _notificationDispatcher;
+    private readonly SerasaPefinOptions _serasaOptions;
     private readonly ILogger<RequestNegativacaoFluxoCommandHandler> _logger;
 
     public RequestNegativacaoFluxoCommandHandler(
@@ -37,6 +40,7 @@ public sealed class RequestNegativacaoFluxoCommandHandler : ICommandHandler<Requ
         IProtocoloGenerator protocoloGenerator,
         IAprovadoresPolicy aprovadoresPolicy,
         INotificationDispatcher notificationDispatcher,
+        IOptions<SerasaPefinOptions> serasaOptions,
         ILogger<RequestNegativacaoFluxoCommandHandler> logger)
     {
         _currentUserService = currentUserService;
@@ -47,6 +51,7 @@ public sealed class RequestNegativacaoFluxoCommandHandler : ICommandHandler<Requ
         _protocoloGenerator = protocoloGenerator;
         _aprovadoresPolicy = aprovadoresPolicy;
         _notificationDispatcher = notificationDispatcher;
+        _serasaOptions = serasaOptions.Value;
         _logger = logger;
     }
 
@@ -134,14 +139,28 @@ public sealed class RequestNegativacaoFluxoCommandHandler : ICommandHandler<Requ
             }
         }
 
+        // CNPJ do credor (Jotanunes) e área informante vêm da configuração — usados
+        // pelo gateway Serasa nos headers obrigatórios `creditor-document` e
+        // `creditor-area`. Caso ausentes, falha rápido para não persistir lixo.
+        var creditorDocument = _serasaOptions.CreditorDocument;
+        if (string.IsNullOrWhiteSpace(creditorDocument))
+        {
+            throw new InvalidOperationException(
+                "SerasaPefin:CreditorDocument nao configurado. Defina INAD_SERASA_CREDITOR_DOCUMENT.");
+        }
+
+        var areaInformante = string.IsNullOrWhiteSpace(_serasaOptions.AreaInformante)
+            ? "0001"
+            : _serasaOptions.AreaInformante!;
+
         // 6. Create SerasaPefinSolicitacaoCompleta in AGUARDANDO_APROVACAO status
         var solicitacao = SerasaPefinSolicitacaoCompleta.CriarParaAprovacao(
             numVendaFk: command.NumVenda,
             tipoRegistro: SerasaPefinRecordType.Principal,
             documentoDevedor: vendaResult.DocumentoDevedor,
-            documentoCredor: dividasResult.ContractNumber, // Using contract number as creditor document placeholder
+            documentoCredor: creditorDocument,
             contractNumber: dividasResult.ContractNumber,
-            areaInformante: "0001", // TODO: Get from configuration
+            areaInformante: areaInformante,
             valor: parcelasElegiveisSelecionadas.Sum(p => p.Valor),
             dataVencimento: parcelasElegiveisSelecionadas.Max(p => p.Vencimento),
             solicitanteUsername: username);
@@ -153,9 +172,9 @@ public sealed class RequestNegativacaoFluxoCommandHandler : ICommandHandler<Requ
                 numVendaFk: command.NumVenda,
                 tipoRegistro: SerasaPefinRecordType.Principal,
                 documentoDevedor: vendaResult.DocumentoDevedor,
-                documentoCredor: dividasResult.ContractNumber,
+                documentoCredor: creditorDocument,
                 contractNumber: dividasResult.ContractNumber,
-                areaInformante: "0001",
+                areaInformante: areaInformante,
                 valor: parcela.Valor,
                 dataVencimento: parcela.Vencimento,
                 solicitanteUsername: username,

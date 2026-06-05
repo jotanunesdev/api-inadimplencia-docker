@@ -775,6 +775,18 @@ public sealed class LegacySqlExecutor(
             ORDER BY TOTAL DESC
             """);
 
+        queries["Dashboard.BaixaMotivos"] = new("""
+            SELECT MOTIVO, DESCRICAO, QTD, PERCENTUAL
+            FROM dbo.vw_serasa_pefin_baixa_motivos
+            ORDER BY MOTIVO
+            """);
+
+        queries["Dashboard.NegativacaoBaixaMensal"] = new("""
+            SELECT ANO_MES, QTD_NEGATIVACOES, QTD_BAIXAS
+            FROM dbo.vw_serasa_pefin_negativacao_baixa_mensal
+            ORDER BY ANO_MES
+            """);
+
         queries["Dashboard.UsuariosAtivos"] = new("""
             SELECT
                 CASE WHEN ATIVO = 1 THEN 'Ativo' ELSE 'Inativo' END AS STATUS,

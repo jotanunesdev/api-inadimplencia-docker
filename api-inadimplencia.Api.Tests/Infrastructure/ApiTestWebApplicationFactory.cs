@@ -22,12 +22,14 @@ public class ApiTestWebApplicationFactory : WebApplicationFactory<Program>
         var dbContext = scope.ServiceProvider.GetRequiredService<InadimplenciaDbContext>();
         var senhaRepository = scope.ServiceProvider.GetRequiredService<InMemorySenhaTransacaoRepository>();
         var serasaRepository = scope.ServiceProvider.GetRequiredService<InMemorySerasaPefinRepository>();
+        var baixaRepository = scope.ServiceProvider.GetRequiredService<InMemorySerasaPefinBaixaRepository>();
         var protocoloGenerator = scope.ServiceProvider.GetRequiredService<InMemoryProtocoloGenerator>();
         var entraTokenRepository = scope.ServiceProvider.GetRequiredService<InMemoryEntraTokenRepository>();
         await dbContext.Database.EnsureDeletedAsync();
         await dbContext.Database.EnsureCreatedAsync();
         senhaRepository.Clear();
         serasaRepository.Clear();
+        baixaRepository.Clear();
         protocoloGenerator.Reset();
         entraTokenRepository.Clear();
     }
@@ -76,6 +78,7 @@ public class ApiTestWebApplicationFactory : WebApplicationFactory<Program>
             services.RemoveAll<IInadimplenciaQueryService>();
             services.RemoveAll<ISenhaTransacaoRepository>();
             services.RemoveAll<ISerasaPefinRepository>();
+            services.RemoveAll<ISerasaPefinBaixaRepository>();
             services.RemoveAll<IProtocoloGenerator>();
             services.RemoveAll<IAuthServerClient>();
             services.RemoveAll<IEntraIdAuthClient>();
@@ -110,9 +113,11 @@ public class ApiTestWebApplicationFactory : WebApplicationFactory<Program>
             services.AddSingleton<IInadimplenciaQueryService, TestInadimplenciaQueryService>();
             services.AddSingleton<InMemorySenhaTransacaoRepository>();
             services.AddSingleton<InMemorySerasaPefinRepository>();
+            services.AddSingleton<InMemorySerasaPefinBaixaRepository>();
             services.AddSingleton<InMemoryProtocoloGenerator>();
             services.AddSingleton<ISenhaTransacaoRepository>(sp => sp.GetRequiredService<InMemorySenhaTransacaoRepository>());
             services.AddSingleton<ISerasaPefinRepository>(sp => sp.GetRequiredService<InMemorySerasaPefinRepository>());
+            services.AddSingleton<ISerasaPefinBaixaRepository>(sp => sp.GetRequiredService<InMemorySerasaPefinBaixaRepository>());
             services.AddSingleton<IProtocoloGenerator>(sp => sp.GetRequiredService<InMemoryProtocoloGenerator>());
         });
     }

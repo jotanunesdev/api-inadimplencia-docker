@@ -209,6 +209,8 @@ public static class DependencyInjection
         // Dashboard query handlers
         services.AddScoped<IQueryHandler<ApiInadimplencia.Application.Features.Dashboard.Queries.GetDashboardKpisQuery, ApiInadimplencia.Application.Features.Dashboard.Dtos.DashboardKpisDto>, ApiInadimplencia.Application.Features.Dashboard.Queries.GetDashboardKpisQueryHandler>();
         services.AddScoped<IQueryHandler<ApiInadimplencia.Application.Features.Dashboard.Queries.GetMetricQuery, IReadOnlyList<Dictionary<string, object?>>>, ApiInadimplencia.Application.Features.Dashboard.Queries.GetMetricQueryHandler>();
+        services.AddScoped<IQueryHandler<ApiInadimplencia.Application.Features.Dashboard.Queries.GetMotivosBaixaQuery, IReadOnlyList<ApiInadimplencia.Application.Features.Dashboard.Dtos.MotivoBaixaDto>>, ApiInadimplencia.Application.Features.Dashboard.Queries.GetMotivosBaixaQueryHandler>();
+        services.AddScoped<IQueryHandler<ApiInadimplencia.Application.Features.Dashboard.Queries.GetNegativacoesVsBaixasQuery, IReadOnlyList<ApiInadimplencia.Application.Features.Dashboard.Dtos.NegativacaoBaixaMensalDto>>, ApiInadimplencia.Application.Features.Dashboard.Queries.GetNegativacoesVsBaixasQueryHandler>();
 
         // Serasa PEFIN query/command handlers
         services.AddScoped<IQueryHandler<GetSerasaPreviewQuery, SerasaPefinPreviewResponse>, GetSerasaPreviewQueryHandler>();
@@ -282,6 +284,7 @@ public static class DependencyInjection
         services.AddScoped<SerasaWebhookHandler>();
         services.AddScoped<ISerasaPefinGateway, SerasaPefinGateway>();
         services.AddScoped<ISerasaPefinRepository, SerasaPefinRepository>();
+        services.AddScoped<ISerasaPefinBaixaRepository, SerasaPefinBaixaRepository>();
         services.AddScoped<IInadimplenciaQueryService, InadimplenciaQueryService>();
 
         // Negativacao services
@@ -292,6 +295,12 @@ public static class DependencyInjection
         services.AddScoped<IQueryHandler<GetHasSenhaTransacaoQuery, bool>, GetHasSenhaTransacaoQueryHandler>();
         services.AddScoped<IQueryHandler<GetDividasElegiveisQuery, ApiInadimplencia.Application.Features.Negativacao.Dtos.DividasElegiveisResponse>, GetDividasElegiveisQueryHandler>();
         services.AddScoped<ICommandHandler<RequestNegativacaoFluxoCommand, Guid>, RequestNegativacaoFluxoCommandHandler>();
+        services.AddScoped<ICommandHandler<ApiInadimplencia.Application.Features.Negativacao.Baixa.Commands.RequestBaixaCommand, Guid>, ApiInadimplencia.Application.Features.Negativacao.Baixa.Commands.RequestBaixaCommandHandler>();
+        services.AddScoped<ICommandHandler<ApiInadimplencia.Application.Features.Negativacao.Baixa.Commands.SendBaixaToSerasaCommand, bool>, ApiInadimplencia.Application.Features.Negativacao.Baixa.Commands.SendBaixaToSerasaCommandHandler>();
+        services.AddScoped<ICommandHandler<ApiInadimplencia.Application.Features.Negativacao.Baixa.Commands.DecideBaixaCommand, bool>, ApiInadimplencia.Application.Features.Negativacao.Baixa.Commands.DecideBaixaCommandHandler>();
+        services.AddScoped<ICommandHandler<ApiInadimplencia.Application.Features.Negativacao.Baixa.Commands.ResendBaixaCommand, ApiInadimplencia.Application.Features.Negativacao.Baixa.Commands.ResendBaixaResult>, ApiInadimplencia.Application.Features.Negativacao.Baixa.Commands.ResendBaixaCommandHandler>();
+        services.AddScoped<IQueryHandler<ApiInadimplencia.Application.Features.Negativacao.Baixa.Queries.GetBaixaByIdQuery, ApiInadimplencia.Application.Features.Negativacao.Baixa.Queries.BaixaDetalheDto?>, ApiInadimplencia.Application.Features.Negativacao.Baixa.Queries.GetBaixaByIdQueryHandler>();
+        services.AddScoped<IQueryHandler<ApiInadimplencia.Application.Features.Negativacao.Baixa.Queries.ListBaixasQuery, IReadOnlyList<ApiInadimplencia.Application.Features.Negativacao.Baixa.Queries.BaixaResumoDto>>, ApiInadimplencia.Application.Features.Negativacao.Baixa.Queries.ListBaixasQueryHandler>();
         services.AddScoped<ICommandHandler<DecideNegativacaoCommand, bool>, DecideNegativacaoCommandHandler>();
         services.AddScoped<IQueryHandler<ListSolicitacoesPendentesQuery, IReadOnlyList<SolicitacaoPendenteDto>>, ListSolicitacoesPendentesQueryHandler>();
         services.AddScoped<IQueryHandler<GetSolicitacaoByIdQuery, SolicitacaoDetalheDto?>, GetSolicitacaoByIdQueryHandler>();

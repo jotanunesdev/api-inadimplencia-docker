@@ -105,4 +105,55 @@ public class SerasaPefinGateway : ISerasaPefinGateway
             return await _client.PostGuarantorAsync(payload, token, cancellationToken);
         }
     }
+
+    /// <summary>
+    /// DELETE para baixa de dívida por contrato (header), com retry em 401.
+    /// </summary>
+    public async Task<SerasaBaixaResponse> DeleteByContractAsync(
+        SerasaBaixaRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        try
+        {
+            var token = await GetTokenAsync(cancellationToken);
+
+            _logger.LogInformation(
+                "Requesting Serasa PEFIN baixa DELETE by contract: Contract={Contract}, Reason={Reason}, Creditor={Creditor}, Debtor={Debtor}",
+                request.ContractNumber,
+                request.Reason,
+                MaskDocument(request.CreditorDocument),
+                MaskDocument(request.DebtorDocument));
+
+            var response = await _client.DeleteByContractAsync(request, token, cancellationToken);
+            _logger.LogInformation(
+                "Serasa PEFIN baixa DELETE successful. TransactionId: {TransactionId}",
+                response.TransactionId);
+
+            return response;
+        }
+        catch (SerasaPefinHttpException ex) when (ex.StatusCode == 401)
+        {
+            _logger.LogWarning("Unauthorized baixa request, retrying with new token");
+            _tokenCache.Clear();
+            var token = await GetTokenAsync(cancellationToken);
+            return await _client.DeleteByContractAsync(request, token, cancellationToken);
+        }
+    }
+
+    private static string MaskDocument(string? document)
+    {
+        if (string.IsNullOrEmpty(document))
+        {
+            return "***";
+        }
+
+        if (document.Length <= 4)
+        {
+            return new string('*', document.Length);
+        }
+
+        return $"***{document[^4..]}";
+    }
 }

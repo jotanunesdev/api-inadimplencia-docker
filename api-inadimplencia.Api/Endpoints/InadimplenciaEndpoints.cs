@@ -407,6 +407,40 @@ public static class InadimplenciaEndpoints
             return Results.Ok(new { data = result });
         });
 
+        // GET /dashboard/baixa/motivos?meses=12
+        group.MapGet("/baixa/motivos", async (
+            int? meses,
+            [FromServices] IQueryHandler<GetMotivosBaixaQuery, IReadOnlyList<MotivoBaixaDto>> handler,
+            CancellationToken ct) =>
+        {
+            try
+            {
+                var result = await handler.HandleAsync(new GetMotivosBaixaQuery(meses ?? 12), ct);
+                return Results.Ok(new { data = result });
+            }
+            catch (ArgumentOutOfRangeException ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        // GET /dashboard/baixa/comparativo-mensal?meses=12
+        group.MapGet("/baixa/comparativo-mensal", async (
+            int? meses,
+            [FromServices] IQueryHandler<GetNegativacoesVsBaixasQuery, IReadOnlyList<NegativacaoBaixaMensalDto>> handler,
+            CancellationToken ct) =>
+        {
+            try
+            {
+                var result = await handler.HandleAsync(new GetNegativacoesVsBaixasQuery(meses ?? 12), ct);
+                return Results.Ok(new { data = result });
+            }
+            catch (ArgumentOutOfRangeException ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
         group.MapGet("/{metric}", async (
             string metric,
             string? dataInicio,

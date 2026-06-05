@@ -9,14 +9,29 @@ namespace ApiInadimplencia.Application.Tests.Features.Negativacao;
 public sealed class ListSolicitacoesPendentesQueryHandlerTests
 {
     private readonly Mock<ISerasaPefinRepository> _serasaRepositoryMock;
+    private readonly Mock<ISerasaPefinBaixaRepository> _baixaRepositoryMock;
     private readonly Mock<IInadimplenciaQueryService> _queryServiceMock;
     private readonly ListSolicitacoesPendentesQueryHandler _handler;
 
     public ListSolicitacoesPendentesQueryHandlerTests()
     {
         _serasaRepositoryMock = new Mock<ISerasaPefinRepository>();
+        _baixaRepositoryMock = new Mock<ISerasaPefinBaixaRepository>();
         _queryServiceMock = new Mock<IInadimplenciaQueryService>();
-        _handler = new ListSolicitacoesPendentesQueryHandler(_serasaRepositoryMock.Object, _queryServiceMock.Object);
+        // Default: no baixas in any status filter scenario.
+        _baixaRepositoryMock
+            .Setup(r => r.ListByStatusAsync(
+                It.IsAny<ApiInadimplencia.Domain.SerasaPefin.SerasaPefinBaixaStatus?>(),
+                It.IsAny<int?>(),
+                It.IsAny<string?>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<ApiInadimplencia.Domain.SerasaPefin.SerasaPefinBaixaSolicitacao>());
+        _handler = new ListSolicitacoesPendentesQueryHandler(
+            _serasaRepositoryMock.Object,
+            _baixaRepositoryMock.Object,
+            _queryServiceMock.Object);
     }
 
     [Fact]
