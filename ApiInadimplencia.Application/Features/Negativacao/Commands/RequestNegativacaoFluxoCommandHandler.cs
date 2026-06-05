@@ -107,18 +107,24 @@ public sealed class RequestNegativacaoFluxoCommandHandler : ICommandHandler<Requ
             throw new ArgumentException("NAO_ELEGIVEL: None of the selected parcelas are eligible for negativacao (must have >60 days overdue).");
         }
 
-        // 3. Check for duplicate active solicitation
-        var existsActive = await _serasaRepository.ExistsActiveAsync(
-            command.NumVenda,
-            dividasResult.ContractNumber,
-            dividasResult.Cpf,
-            null, // documentoGarantidor (null for principal)
-            SerasaPefinRecordType.Principal,
-            cancellationToken);
-
-        if (existsActive)
+        // 3. Duplicidade por parcela: a mesma venda pode ter várias solicitações
+        // simultâneas, desde que cada parcela só esteja em uma solicitação ativa.
+        foreach (var parcela in parcelasElegiveisSelecionadas)
         {
-            throw new InvalidOperationException($"JA_EM_APROVACAO: An active solicitation already exists for sale {command.NumVenda}.");
+            var existsActive = await _serasaRepository.ExistsActiveAsync(
+                command.NumVenda,
+                dividasResult.ContractNumber,
+                dividasResult.Cpf,
+                null, // documentoGarantidor (null for principal)
+                SerasaPefinRecordType.Principal,
+                parcela.Id,
+                cancellationToken);
+
+            if (existsActive)
+            {
+                throw new InvalidOperationException(
+                    $"JA_EM_APROVACAO: Parcela {parcela.Id} da venda {command.NumVenda} já está em uma solicitação ativa.");
+            }
         }
 
         // 4. Get venda data for occurrence message

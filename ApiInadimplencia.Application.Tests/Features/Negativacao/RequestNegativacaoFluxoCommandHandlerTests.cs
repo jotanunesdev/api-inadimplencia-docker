@@ -207,6 +207,7 @@ public sealed class RequestNegativacaoFluxoCommandHandlerTests
             "12345678901",
             null,
             SerasaPefinRecordType.Principal,
+            It.IsAny<int?>(),
             It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
@@ -255,6 +256,7 @@ public sealed class RequestNegativacaoFluxoCommandHandlerTests
             "12345678901",
             null,
             SerasaPefinRecordType.Principal,
+            It.IsAny<int?>(),
             It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
@@ -367,6 +369,7 @@ public sealed class RequestNegativacaoFluxoCommandHandlerTests
             "12345678901",
             null,
             SerasaPefinRecordType.Principal,
+            It.IsAny<int?>(),
             It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
@@ -446,6 +449,7 @@ public sealed class RequestNegativacaoFluxoCommandHandlerTests
             "12345678901",
             null,
             SerasaPefinRecordType.Principal,
+            It.IsAny<int?>(),
             It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
@@ -548,6 +552,7 @@ public sealed class RequestNegativacaoFluxoCommandHandlerTests
             "12345678901",
             null,
             SerasaPefinRecordType.Principal,
+            It.IsAny<int?>(),
             It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 

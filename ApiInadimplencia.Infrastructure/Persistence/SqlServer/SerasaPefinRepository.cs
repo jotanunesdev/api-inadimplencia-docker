@@ -407,7 +407,7 @@ public sealed class SerasaPefinRepository(SqlServerConnectionFactory connectionF
               AND CONTRACT_NUMBER = @ContractNumber
               AND DOCUMENTO_DEVEDOR = @DocumentoDevedor
               AND TIPO_REGISTRO = @TipoRegistro
-              AND STATUS IN ('PENDENTE_ENVIO', 'ENVIADO_SERASA', 'AGUARDANDO_RETORNO')
+              AND STATUS IN ('AGUARDANDO_APROVACAO', 'APROVADA', 'PENDENTE_ENVIO', 'ENVIADO_SERASA', 'AGUARDANDO_RETORNO')
               AND ((@NumeroParcela IS NULL AND NUMERO_PARCELA IS NULL)
                 OR NUMERO_PARCELA = @NumeroParcela)
               AND ((@DocumentoGarantidor IS NULL AND DOCUMENTO_GARANTIDOR IS NULL)
