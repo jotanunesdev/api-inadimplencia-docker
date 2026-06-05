@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using ApiInadimplencia.Application.Abstractions.Cqrs;
+using ApiInadimplencia.Application.Abstractions.Integrations;
 using ApiInadimplencia.Application.Abstractions.Persistence;
 using ApiInadimplencia.Application.Features.Negativacao.Baixa.Commands;
 using ApiInadimplencia.Application.Features.Negativacao.Baixa.Queries;
@@ -286,6 +287,20 @@ public static class NegativacaoFluxoEndpoints
             {
                 return Results.BadRequest(new { error = ex.Message });
             }
+            catch (SerasaPefinHttpException ex)
+            {
+                // Decisão foi persistida; falhou apenas o envio downstream ao Serasa.
+                // O agregado já está em APROVADA_FALHA_ENVIO (vide SendBaixaToSerasaCommandHandler).
+                return Results.Json(
+                    new
+                    {
+                        error = "FALHA_ENVIO_SERASA",
+                        message = "Decisão registrada, mas o envio ao Serasa falhou. Use o reenvio.",
+                        serasaStatusCode = (int)ex.StatusCode,
+                        detail = ex.Message,
+                    },
+                    statusCode: StatusCodes.Status502BadGateway);
+            }
         })
         .WithName($"DecideBaixaSolicitacao{nameSuffix}")
         .WithOpenApi();
@@ -328,6 +343,18 @@ public static class NegativacaoFluxoEndpoints
             catch (InvalidOperationException ex)
             {
                 return Results.BadRequest(new { error = ex.Message });
+            }
+            catch (SerasaPefinHttpException ex)
+            {
+                return Results.Json(
+                    new
+                    {
+                        error = "FALHA_ENVIO_SERASA",
+                        message = "Falha ao reenviar a baixa ao Serasa.",
+                        serasaStatusCode = (int)ex.StatusCode,
+                        detail = ex.Message,
+                    },
+                    statusCode: StatusCodes.Status502BadGateway);
             }
         })
         .WithName($"ResendBaixaSolicitacao{nameSuffix}")
