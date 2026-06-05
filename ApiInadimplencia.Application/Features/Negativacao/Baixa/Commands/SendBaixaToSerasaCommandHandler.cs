@@ -55,10 +55,19 @@ public sealed class SendBaixaToSerasaCommandHandler : ICommandHandler<SendBaixaT
             baixa.MarcarPendenteEnvio();
         }
 
+        // Serasa cadastra a dívida com contract = "{ContractNumber}-P{NumeroParcela}"
+        // (vide SerasaPefinPayloadBuilder na inclusão). O DELETE precisa usar o mesmo
+        // formato sufixado, caso contrário a Serasa não localiza a dívida e nunca
+        // dispara o webhook de retorno. Baixas legadas sem NumeroParcela mantêm o
+        // ContractNumber cru por compatibilidade.
+        var contractNumberForRequest = baixa.NumeroParcela.HasValue
+            ? $"{baixa.ContractNumber}-P{baixa.NumeroParcela.Value}"
+            : baixa.ContractNumber;
+
         var request = new SerasaBaixaRequest(
             CreditorDocument: baixa.DocumentoCredor,
             DebtorDocument: baixa.DocumentoDevedor,
-            ContractNumber: baixa.ContractNumber,
+            ContractNumber: contractNumberForRequest,
             Reason: baixa.Motivo.Codigo);
 
         try
