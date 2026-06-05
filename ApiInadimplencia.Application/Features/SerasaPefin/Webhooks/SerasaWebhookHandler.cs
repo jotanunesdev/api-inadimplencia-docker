@@ -128,8 +128,12 @@ public sealed class SerasaWebhookHandler
 
         ApplyToBaixa(baixa, resultado, payload, rawJson);
 
+        // MATCHED_SOLICITACAO_ID tem FK -> SERASA_PEFIN_SOLICITACOES.ID. Como baixa.Id
+        // pertence a SERASA_PEFIN_BAIXAS, usamos a solicitação-mãe (IdSolicitacaoNegativacao)
+        // para satisfazer a constraint. A baixa específica é identificável pelo
+        // transactionId (UUID), que é único.
         var webhookRecord = BuildWebhookRecord(
-            WebhookEventType.Baixa, resultado, payload.Uuid, transactionId, rawJson, baixa.Id, true, null);
+            WebhookEventType.Baixa, resultado, payload.Uuid, transactionId, rawJson, baixa.IdSolicitacaoNegativacao, true, null);
 
         await _baixaRepository.ApplyWebhookTransactionalAsync(baixa, webhookRecord, cancellationToken);
 

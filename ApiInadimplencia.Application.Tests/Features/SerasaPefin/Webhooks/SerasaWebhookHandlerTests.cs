@@ -283,7 +283,7 @@ public class SerasaWebhookHandlerTests
         // Persistência via baixa repo (atomic).
         _baixaRepositoryMock.Verify(r => r.ApplyWebhookTransactionalAsync(
             It.Is<SerasaPefinBaixaSolicitacao>(b => b.Id == baixa.Id && b.Status == SerasaPefinBaixaStatus.BaixadoSucesso),
-            It.Is<SerasaPefinWebhookRecord>(w => w.MatchedSolicitacaoId == baixa.Id && w.Processado),
+            It.Is<SerasaPefinWebhookRecord>(w => w.MatchedSolicitacaoId == baixa.IdSolicitacaoNegativacao && w.Processado),
             It.IsAny<CancellationToken>()), Times.Once);
 
         // Não consulta o repositório de negativação para baixa.
