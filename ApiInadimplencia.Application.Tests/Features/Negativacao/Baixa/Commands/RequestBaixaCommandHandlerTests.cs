@@ -34,6 +34,7 @@ public sealed class RequestBaixaCommandHandlerTests
     private readonly Mock<INotificationDispatcher> _notificationMock = new();
     private readonly Mock<ISerasaPefinGateway> _serasaGatewayMock = new();
     private readonly SerasaPefinOptions _serasaOptions = new() { CreditorDocument = "16202491000193" };
+    private readonly Mock<IInadimplenciaParcelaWriteService> _parcelaWriterMock = new();
 
     private readonly RequestBaixaCommandHandler _handler;
 
@@ -51,6 +52,7 @@ public sealed class RequestBaixaCommandHandlerTests
             _notificationMock.Object,
             _serasaGatewayMock.Object,
             Microsoft.Extensions.Options.Options.Create(_serasaOptions),
+            _parcelaWriterMock.Object,
             NullLogger<RequestBaixaCommandHandler>.Instance);
     }
 

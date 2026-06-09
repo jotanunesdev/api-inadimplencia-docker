@@ -16,17 +16,20 @@ public sealed class SerasaWebhookHandler
     private readonly ISerasaPefinRepository _repository;
     private readonly ISerasaPefinBaixaRepository _baixaRepository;
     private readonly INotificationDispatcher _notificationDispatcher;
+    private readonly IInadimplenciaParcelaWriteService _parcelaWriter;
     private readonly ILogger<SerasaWebhookHandler> _logger;
 
     public SerasaWebhookHandler(
         ISerasaPefinRepository repository,
         ISerasaPefinBaixaRepository baixaRepository,
         INotificationDispatcher notificationDispatcher,
+        IInadimplenciaParcelaWriteService parcelaWriter,
         ILogger<SerasaWebhookHandler> logger)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _baixaRepository = baixaRepository ?? throw new ArgumentNullException(nameof(baixaRepository));
         _notificationDispatcher = notificationDispatcher ?? throw new ArgumentNullException(nameof(notificationDispatcher));
+        _parcelaWriter = parcelaWriter ?? throw new ArgumentNullException(nameof(parcelaWriter));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -100,6 +103,18 @@ public sealed class SerasaWebhookHandler
             "Webhook processed successfully. UUID: {Uuid}, TransactionId: {TransactionId}, NewStatus: {Status}",
             payload.Uuid, transactionId, solicitacao.Status);
 
+        // Sincroniza DW.fat_analise_inadimplencia_parcelas.NEGATIVADO. Best-effort:
+        // o write-service trata exceções internamente para não reverter o webhook.
+        if (resultado == WebhookResultado.Sucesso
+            && solicitacao.Status == SerasaPefinStatus.NegativadoSucesso)
+        {
+            await _parcelaWriter.SetNegativadoByVendaEVencimentoAsync(
+                solicitacao.NumVendaFk,
+                solicitacao.DataVencimento,
+                negativado: true,
+                cancellationToken).ConfigureAwait(false);
+        }
+
         await DispatchNotificationsAsync(eventType, resultado, solicitacao, payload, cancellationToken);
 
         return WebhookResult.Processed(payload.Uuid);
@@ -140,6 +155,30 @@ public sealed class SerasaWebhookHandler
         _logger.LogInformation(
             "Baixa webhook processed. UUID: {Uuid}, TransactionId: {TransactionId}, NewStatus: {Status}",
             payload.Uuid, transactionId, baixa.Status);
+
+        // Sincroniza DW.NEGATIVADO=NAO ao concluir baixa. A baixa não tem DataVencimento,
+        // então buscamos a solicitação-mãe (negativação) para pegar venda+vencimento.
+        if (resultado == WebhookResultado.Sucesso
+            && baixa.Status == SerasaPefinBaixaStatus.BaixadoSucesso)
+        {
+            var parent = await _repository
+                .GetByIdAsync(baixa.IdSolicitacaoNegativacao, cancellationToken)
+                .ConfigureAwait(false);
+            if (parent is not null)
+            {
+                await _parcelaWriter.SetNegativadoByVendaEVencimentoAsync(
+                    parent.NumVendaFk,
+                    parent.DataVencimento,
+                    negativado: false,
+                    cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Não foi possível atualizar DW NEGATIVADO=NAO: solicitação-mãe {ParentId} não encontrada para baixa {BaixaId}.",
+                    baixa.IdSolicitacaoNegativacao, baixa.Id);
+            }
+        }
 
         await DispatchBaixaNotificationAsync(resultado, baixa, payload, cancellationToken);
 

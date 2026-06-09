@@ -34,6 +34,7 @@ public sealed class RequestBaixaCommandHandler : ICommandHandler<RequestBaixaCom
     private readonly INotificationDispatcher _notificationDispatcher;
     private readonly ISerasaPefinGateway _serasaGateway;
     private readonly SerasaPefinOptions _serasaOptions;
+    private readonly IInadimplenciaParcelaWriteService _parcelaWriter;
     private readonly ILogger<RequestBaixaCommandHandler> _logger;
 
     public RequestBaixaCommandHandler(
@@ -48,6 +49,7 @@ public sealed class RequestBaixaCommandHandler : ICommandHandler<RequestBaixaCom
         INotificationDispatcher notificationDispatcher,
         ISerasaPefinGateway serasaGateway,
         IOptions<SerasaPefinOptions> serasaOptions,
+        IInadimplenciaParcelaWriteService parcelaWriter,
         ILogger<RequestBaixaCommandHandler> logger)
     {
         _currentUserService = currentUserService;
@@ -61,6 +63,7 @@ public sealed class RequestBaixaCommandHandler : ICommandHandler<RequestBaixaCom
         _notificationDispatcher = notificationDispatcher;
         _serasaGateway = serasaGateway;
         _serasaOptions = serasaOptions?.Value ?? throw new ArgumentNullException(nameof(serasaOptions));
+        _parcelaWriter = parcelaWriter ?? throw new ArgumentNullException(nameof(parcelaWriter));
         _logger = logger;
     }
 
@@ -310,7 +313,15 @@ public sealed class RequestBaixaCommandHandler : ICommandHandler<RequestBaixaCom
             "Baixa RM enviada. Venda={NumVenda} Contract={Contract} TransactionId={TransactionId}",
             command.NumVenda, contractNumber, response.TransactionId);
 
-        // 6. Retorna o transactionId da Serasa como Guid (Serasa devolve UUID).
+        // 6. Sincroniza DW.fat_analise_inadimplencia_parcelas.NEGATIVADO=NAO. No modo
+        // RM não há webhook, então este é o único ponto onde refletimos a baixa no DW.
+        // Best-effort: o write-service trata exceções internamente.
+        await _parcelaWriter.SetNegativadoByNumeroDocumentoAsync(
+            contractNumber,
+            negativado: false,
+            cancellationToken).ConfigureAwait(false);
+
+        // 7. Retorna o transactionId da Serasa como Guid (Serasa devolve UUID).
         // O endpoint mapeia esse valor como 'solicitacaoId' no JSON de resposta.
         return Guid.TryParse(response.TransactionId, out var txGuid) ? txGuid : Guid.Empty;
     }

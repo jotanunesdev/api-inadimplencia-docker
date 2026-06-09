@@ -286,6 +286,7 @@ public static class DependencyInjection
         services.AddScoped<ISerasaPefinRepository, SerasaPefinRepository>();
         services.AddScoped<ISerasaPefinBaixaRepository, SerasaPefinBaixaRepository>();
         services.AddScoped<IInadimplenciaQueryService, InadimplenciaQueryService>();
+        services.AddScoped<IInadimplenciaParcelaWriteService, InadimplenciaParcelaWriteService>();
 
         // Negativacao services
         services.AddScoped<ISenhaTransacaoRepository, SenhaTransacaoRepository>();

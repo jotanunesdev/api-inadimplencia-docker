@@ -14,6 +14,7 @@ public class SerasaWebhookHandlerTests
     private readonly Mock<ISerasaPefinRepository> _repositoryMock;
     private readonly Mock<ISerasaPefinBaixaRepository> _baixaRepositoryMock;
     private readonly Mock<INotificationDispatcher> _notificationDispatcherMock;
+    private readonly Mock<IInadimplenciaParcelaWriteService> _parcelaWriterMock;
     private readonly Mock<ILogger<SerasaWebhookHandler>> _loggerMock;
     private readonly SerasaWebhookHandler _handler;
 
@@ -22,11 +23,13 @@ public class SerasaWebhookHandlerTests
         _repositoryMock = new Mock<ISerasaPefinRepository>();
         _baixaRepositoryMock = new Mock<ISerasaPefinBaixaRepository>();
         _notificationDispatcherMock = new Mock<INotificationDispatcher>();
+        _parcelaWriterMock = new Mock<IInadimplenciaParcelaWriteService>();
         _loggerMock = new Mock<ILogger<SerasaWebhookHandler>>();
         _handler = new SerasaWebhookHandler(
             _repositoryMock.Object,
             _baixaRepositoryMock.Object,
             _notificationDispatcherMock.Object,
+            _parcelaWriterMock.Object,
             _loggerMock.Object);
     }
 
