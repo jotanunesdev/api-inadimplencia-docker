@@ -93,7 +93,33 @@ public sealed class InadimplenciaAuthMiddleware(RequestDelegate next)
             return false;
         }
 
+        // Integração TOTVS RM (Fórmula Visual): qualquer requisição que enviar o header
+        // "rm: true" pula autenticação. A rede interna é considerada confiável para o
+        // RM; nunca exponha esse caminho via proxy público sem WAF/IP allowlist.
+        if (HasRmBypassHeader(context))
+        {
+            return false;
+        }
+
         return !PublicPaths.Contains(pathValue);
+    }
+
+    private static bool HasRmBypassHeader(HttpContext context)
+    {
+        if (!context.Request.Headers.TryGetValue("rm", out var values))
+        {
+            return false;
+        }
+
+        foreach (var value in values)
+        {
+            if (string.Equals(value, "true", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static async Task<AuthIdentity?> ResolveIdentityAsync(

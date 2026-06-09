@@ -1,6 +1,8 @@
 using ApiInadimplencia.Application.Abstractions;
 using ApiInadimplencia.Application.Abstractions.Auth;
+using ApiInadimplencia.Application.Abstractions.Integrations;
 using ApiInadimplencia.Application.Abstractions.Persistence;
+using ApiInadimplencia.Application.Configuration;
 using ApiInadimplencia.Application.Features.Negativacao.Baixa.Commands;
 using ApiInadimplencia.Application.Features.Notifications;
 using ApiInadimplencia.Application.Features.Ocorrencias;
@@ -30,6 +32,8 @@ public sealed class RequestBaixaCommandHandlerTests
     private readonly Mock<IProtocoloGenerator> _protocoloMock = new();
     private readonly Mock<IAprovadoresPolicy> _aprovadoresMock = new();
     private readonly Mock<INotificationDispatcher> _notificationMock = new();
+    private readonly Mock<ISerasaPefinGateway> _serasaGatewayMock = new();
+    private readonly SerasaPefinOptions _serasaOptions = new() { CreditorDocument = "16202491000193" };
 
     private readonly RequestBaixaCommandHandler _handler;
 
@@ -45,6 +49,8 @@ public sealed class RequestBaixaCommandHandlerTests
             _protocoloMock.Object,
             _aprovadoresMock.Object,
             _notificationMock.Object,
+            _serasaGatewayMock.Object,
+            Microsoft.Extensions.Options.Options.Create(_serasaOptions),
             NullLogger<RequestBaixaCommandHandler>.Instance);
     }
 

@@ -1,13 +1,16 @@
 using ApiInadimplencia.Application.Abstractions;
 using ApiInadimplencia.Application.Abstractions.Auth;
 using ApiInadimplencia.Application.Abstractions.Cqrs;
+using ApiInadimplencia.Application.Abstractions.Integrations;
 using ApiInadimplencia.Application.Abstractions.Persistence;
+using ApiInadimplencia.Application.Configuration;
 using ApiInadimplencia.Application.Features.Notifications;
 using ApiInadimplencia.Application.Features.Ocorrencias;
 using ApiInadimplencia.Domain.Notifications;
 using ApiInadimplencia.Domain.Ocorrencias;
 using ApiInadimplencia.Domain.SerasaPefin;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace ApiInadimplencia.Application.Features.Negativacao.Baixa.Commands;
 
@@ -29,6 +32,8 @@ public sealed class RequestBaixaCommandHandler : ICommandHandler<RequestBaixaCom
     private readonly IProtocoloGenerator _protocoloGenerator;
     private readonly IAprovadoresPolicy _aprovadoresPolicy;
     private readonly INotificationDispatcher _notificationDispatcher;
+    private readonly ISerasaPefinGateway _serasaGateway;
+    private readonly SerasaPefinOptions _serasaOptions;
     private readonly ILogger<RequestBaixaCommandHandler> _logger;
 
     public RequestBaixaCommandHandler(
@@ -41,6 +46,8 @@ public sealed class RequestBaixaCommandHandler : ICommandHandler<RequestBaixaCom
         IProtocoloGenerator protocoloGenerator,
         IAprovadoresPolicy aprovadoresPolicy,
         INotificationDispatcher notificationDispatcher,
+        ISerasaPefinGateway serasaGateway,
+        IOptions<SerasaPefinOptions> serasaOptions,
         ILogger<RequestBaixaCommandHandler> logger)
     {
         _currentUserService = currentUserService;
@@ -52,6 +59,8 @@ public sealed class RequestBaixaCommandHandler : ICommandHandler<RequestBaixaCom
         _protocoloGenerator = protocoloGenerator;
         _aprovadoresPolicy = aprovadoresPolicy;
         _notificationDispatcher = notificationDispatcher;
+        _serasaGateway = serasaGateway;
+        _serasaOptions = serasaOptions?.Value ?? throw new ArgumentNullException(nameof(serasaOptions));
         _logger = logger;
     }
 
@@ -60,7 +69,15 @@ public sealed class RequestBaixaCommandHandler : ICommandHandler<RequestBaixaCom
     {
         ArgumentNullException.ThrowIfNull(command);
 
-        // 0. Authentication
+        // Modo RM: integração TOTVS RM Fórmula Visual. Fire-and-forget direto ao
+        // Serasa via DELETE por contract-number; sem persistência nem auth.
+        // A rastreabilidade fica a cargo do próprio RM (transactionId no retorno).
+        if (command.Rm)
+        {
+            return await HandleRmAsync(command, cancellationToken).ConfigureAwait(false);
+        }
+
+        // Modo padrão: exige usuário autenticado.
         if (!_currentUserService.IsAuthenticated || string.IsNullOrWhiteSpace(_currentUserService.Username))
         {
             throw new UnauthorizedAccessException("User must be authenticated to request baixa.");
@@ -68,7 +85,7 @@ public sealed class RequestBaixaCommandHandler : ICommandHandler<RequestBaixaCom
 
         var username = _currentUserService.Username!;
 
-        // 1. Senha de transação
+        // 1. Senha de transação (apenas no modo padrão)
         var senhaResult = await _senhaValidator.ValidateAsync(username, command.SenhaTransacao, cancellationToken);
         switch (senhaResult)
         {
@@ -223,5 +240,78 @@ public sealed class RequestBaixaCommandHandler : ICommandHandler<RequestBaixaCom
         }
 
         return primeiraBaixa.Id;
+    }
+
+    /// <summary>
+    /// Fluxo da integração TOTVS RM (Fórmula Visual). Recebe o
+    /// <c>NumeroDocumento</c> e envia DELETE direto à Serasa por contract-number,
+    /// resolvendo o CPF do devedor a partir do <c>NumVenda</c> via
+    /// <c>fat_analise_inadimplencia_v4</c>. Sem persistência local — o RM
+    /// é responsável pela rastreabilidade usando o <c>transactionId</c> retornado.
+    /// </summary>
+    private async Task<Guid> HandleRmAsync(RequestBaixaCommand command, CancellationToken cancellationToken)
+    {
+        // 1. Validações de entrada específicas do modo RM.
+        if (string.IsNullOrWhiteSpace(command.NumeroDocumento))
+        {
+            throw new ArgumentException(
+                "NUMERO_DOCUMENTO_OBRIGATORIO: campo 'numeroDocumento' é obrigatório quando rm=true.",
+                nameof(command));
+        }
+
+        if (command.NumVenda <= 0)
+        {
+            throw new ArgumentException(
+                "NUM_VENDA_OBRIGATORIO: campo 'numVenda' é obrigatório quando rm=true.",
+                nameof(command));
+        }
+
+        // 2. Motivo (whitelist Serasa: 1, 2, 3, 4, 19, 43, 45).
+        var motivo = SerasaPefinBaixaMotivo.From(command.MotivoBaixa);
+
+        // 3. Resolve CPF/CNPJ do devedor pela venda (fat_analise_inadimplencia_v4).
+        var venda = await _queryService.GetVendaAsync(command.NumVenda, cancellationToken).ConfigureAwait(false);
+        if (venda is null || string.IsNullOrWhiteSpace(venda.DocumentoDevedor))
+        {
+            throw new ArgumentException(
+                $"VENDA_NAO_ENCONTRADA: não foi possível resolver o devedor para a venda {command.NumVenda}.",
+                nameof(command));
+        }
+
+        // 4. Credor: fixo via configuração SerasaPefinOptions.CreditorDocument.
+        if (string.IsNullOrWhiteSpace(_serasaOptions.CreditorDocument))
+        {
+            throw new InvalidOperationException(
+                "SERASA_CREDITOR_DOCUMENT_NAO_CONFIGURADO: defina SerasaPefin:CreditorDocument no appsettings.");
+        }
+
+        var contractNumber = command.NumeroDocumento!.Trim();
+        var debtorDoc = SerasaPefinConstants.DigitsOnly(venda.DocumentoDevedor);
+        var creditorDoc = SerasaPefinConstants.DigitsOnly(_serasaOptions.CreditorDocument);
+
+        _logger.LogInformation(
+            "Baixa RM: enviando DELETE para Serasa. Venda={NumVenda} Contract={Contract} Reason={Reason} Debtor=***{DebtorLast4}",
+            command.NumVenda,
+            contractNumber,
+            motivo.Codigo,
+            debtorDoc.Length >= 4 ? debtorDoc[^4..] : debtorDoc);
+
+        // 5. Chamada direta ao gateway. Erros HTTP propagam SerasaPefinHttpException,
+        // tratada pelo endpoint para retornar 502 ao cliente.
+        var response = await _serasaGateway.DeleteByContractAsync(
+            new SerasaBaixaRequest(
+                CreditorDocument: creditorDoc,
+                DebtorDocument: debtorDoc,
+                ContractNumber: contractNumber,
+                Reason: motivo.Codigo),
+            cancellationToken).ConfigureAwait(false);
+
+        _logger.LogInformation(
+            "Baixa RM enviada. Venda={NumVenda} Contract={Contract} TransactionId={TransactionId}",
+            command.NumVenda, contractNumber, response.TransactionId);
+
+        // 6. Retorna o transactionId da Serasa como Guid (Serasa devolve UUID).
+        // O endpoint mapeia esse valor como 'solicitacaoId' no JSON de resposta.
+        return Guid.TryParse(response.TransactionId, out var txGuid) ? txGuid : Guid.Empty;
     }
 }

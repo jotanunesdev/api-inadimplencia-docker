@@ -66,4 +66,22 @@ public sealed class TestInadimplenciaQueryService : IInadimplenciaQueryService
             Parcelas: parcelas,
             Endereco: Endereco));
     }
+
+    public Task<ParcelaPorIdLanQueryResult?> GetParcelaByIdLanAsync(long idLan, CancellationToken cancellationToken = default)
+    {
+        if (idLan != 12345)
+        {
+            return Task.FromResult<ParcelaPorIdLanQueryResult?>(null);
+        }
+
+        return Task.FromResult<ParcelaPorIdLanQueryResult?>(new ParcelaPorIdLanQueryResult(
+            IdLan: 12345,
+            NumVenda: 295,
+            NumeroDocumento: "029501X",
+            DataVencimento: new DateOnly(2024, 1, 1),
+            Valor: 1000.00m,
+            Inadimplente: "SIM",
+            Negativado: null,
+            DiasAtraso: 120));
+    }
 }

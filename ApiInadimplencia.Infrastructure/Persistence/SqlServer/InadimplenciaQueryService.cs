@@ -435,4 +435,60 @@ public sealed class InadimplenciaQueryService(
             ? baseAddress
             : $"{baseAddress}, {number}";
     }
+
+    /// <inheritdoc />
+    public async Task<ParcelaPorIdLanQueryResult?> GetParcelaByIdLanAsync(long idLan, CancellationToken cancellationToken = default)
+    {
+        using var connection = await connectionFactory.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+
+        const string query = $"""
+            SELECT TOP 1
+                IDLAN,
+                NUM_VENDA,
+                NUMERO_DOCUMENTO,
+                CONVERT(varchar(10), DATAVENCIMENTO, 23) AS DATAVENCIMENTO,
+                CAST(VALOR AS decimal(18,2)) AS VALOR,
+                INADIMPLENTE,
+                NEGATIVADO,
+                DATEDIFF(day, DATAVENCIMENTO, GETDATE()) AS DIAS_ATRASO
+            FROM {TableParcelas}
+            WHERE IDLAN = @idLan
+            """;
+
+        using var command = new SqlCommand(query, connection);
+        command.Parameters.AddWithValue("@idLan", idLan);
+
+        using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            return null;
+        }
+
+        var idLanValue = reader.GetInt64(reader.GetOrdinal("IDLAN"));
+        var numVenda = Convert.ToInt32(reader.GetValue(reader.GetOrdinal("NUM_VENDA")));
+        var numeroDocumento = GetNullableString(reader, "NUMERO_DOCUMENTO");
+        var dataVencimentoStr = reader.GetString(reader.GetOrdinal("DATAVENCIMENTO"));
+        var valor = reader.GetDecimal(reader.GetOrdinal("VALOR"));
+        var inadimplente = GetNullableString(reader, "INADIMPLENTE");
+        var negativado = GetNullableString(reader, "NEGATIVADO");
+        var diasAtraso = reader.GetInt32(reader.GetOrdinal("DIAS_ATRASO"));
+
+        if (!DateOnly.TryParseExact(dataVencimentoStr, "yyyy-MM-dd", out var dataVencimento))
+        {
+            logger.LogWarning(
+                "Failed to parse DATAVENCIMENTO '{DataVencimento}' for IDLAN {IdLan}",
+                dataVencimentoStr, idLanValue);
+            return null;
+        }
+
+        return new ParcelaPorIdLanQueryResult(
+            IdLan: idLanValue,
+            NumVenda: numVenda,
+            NumeroDocumento: numeroDocumento,
+            DataVencimento: dataVencimento,
+            Valor: valor,
+            Inadimplente: inadimplente,
+            Negativado: negativado,
+            DiasAtraso: diasAtraso);
+    }
 }

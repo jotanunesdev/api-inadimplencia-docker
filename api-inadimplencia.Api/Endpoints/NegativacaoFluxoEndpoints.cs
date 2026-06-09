@@ -50,6 +50,39 @@ public static class NegativacaoFluxoEndpoints
         .WithName($"GetDividasElegiveis{nameSuffix}")
         .WithOpenApi();
 
+        // GET /negativacao/parcelas/idlan/{idLan} - RM integration lookup by IDLAN.
+        // Auth: o middleware permite bypass quando o header "rm: true" estiver presente.
+        negativacao.MapGet("/parcelas/idlan/{idLan}", async (
+            string idLan,
+            [FromServices] IInadimplenciaQueryService queryService,
+            CancellationToken cancellationToken) =>
+        {
+            if (!long.TryParse(idLan, out var parsedIdLan) || parsedIdLan <= 0)
+            {
+                return Results.Json(new { error = "IDLAN_INVALIDO" }, statusCode: StatusCodes.Status400BadRequest);
+            }
+
+            var parcela = await queryService.GetParcelaByIdLanAsync(parsedIdLan, cancellationToken);
+            if (parcela is null)
+            {
+                return Results.NotFound(new { error = "IDLAN_NAO_ENCONTRADO", idLan = parsedIdLan });
+            }
+
+            return Results.Ok(new
+            {
+                idLan = parcela.IdLan,
+                numVenda = parcela.NumVenda,
+                numeroDocumento = parcela.NumeroDocumento,
+                dataVencimento = parcela.DataVencimento.ToString("yyyy-MM-dd"),
+                valor = parcela.Valor,
+                inadimplente = parcela.Inadimplente,
+                negativado = parcela.Negativado,
+                diasAtraso = parcela.DiasAtraso,
+            });
+        })
+        .WithName($"GetParcelaByIdLan{nameSuffix}")
+        .WithOpenApi();
+
         // POST /negativacao/solicitacoes - Request a new negativacao solicitation
         negativacao.MapPost("/solicitacoes", async (
             [FromBody] RequestNegativacaoFluxoCommand command,

@@ -36,6 +36,17 @@ public interface IInadimplenciaQueryService
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Eligible debts data, or null if sale not found.</returns>
     Task<DividasElegiveisQueryResult?> GetDividasElegiveisAsync(int numVenda, int diasAtrasoMinimo, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves a single parcela row from <c>DW.fat_analise_inadimplencia_parcelas</c>
+    /// by its <c>IDLAN</c> identifier (TOTVS RM internal id). Returns the raw columns
+    /// without any business filtering. Used by the RM integration to lookup a specific
+    /// installment before requesting a baixa.
+    /// </summary>
+    /// <param name="idLan">RM IDLAN identifier (BIGINT in source).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Parcela data, or null if no row matches the IDLAN.</returns>
+    Task<ParcelaPorIdLanQueryResult?> GetParcelaByIdLanAsync(long idLan, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -138,3 +149,25 @@ public sealed record ParcelaElegivelDto(
     int DiasAtraso,
     bool Elegivel,
     string? StatusSerasa = null);
+
+/// <summary>
+/// Result DTO for the RM integration lookup by IDLAN against
+/// <c>DW.fat_analise_inadimplencia_parcelas</c>.
+/// </summary>
+/// <param name="IdLan">TOTVS RM internal identifier (IDLAN).</param>
+/// <param name="NumVenda">Sale number.</param>
+/// <param name="NumeroDocumento">Document number (NUMERO_DOCUMENTO), nullable.</param>
+/// <param name="DataVencimento">Due date.</param>
+/// <param name="Valor">Installment value.</param>
+/// <param name="Inadimplente">Inadimplente flag (SIM / NAO / null).</param>
+/// <param name="Negativado">Negativado flag (SIM / NAO / null).</param>
+/// <param name="DiasAtraso">Days overdue from DATAVENCIMENTO to today.</param>
+public sealed record ParcelaPorIdLanQueryResult(
+    long IdLan,
+    int NumVenda,
+    string? NumeroDocumento,
+    DateOnly DataVencimento,
+    decimal Valor,
+    string? Inadimplente,
+    string? Negativado,
+    int DiasAtraso);
