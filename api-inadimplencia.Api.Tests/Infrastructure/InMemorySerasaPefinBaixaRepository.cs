@@ -137,6 +137,22 @@ public sealed class InMemorySerasaPefinBaixaRepository : ISerasaPefinBaixaReposi
         }
     }
 
+    public Task<IReadOnlySet<int>> ListParcelasComBaixaConcluidaAsync(
+        int numVendaFk,
+        CancellationToken cancellationToken)
+    {
+        lock (_gate)
+        {
+            var set = _baixas.Values
+                .Where(b => b.NumVendaFk == numVendaFk
+                            && b.Status == SerasaPefinBaixaStatus.BaixadoSucesso
+                            && b.NumeroParcela.HasValue)
+                .Select(b => b.NumeroParcela!.Value)
+                .ToHashSet();
+            return Task.FromResult<IReadOnlySet<int>>(set);
+        }
+    }
+
     public Task ApplyWebhookTransactionalAsync(
         SerasaPefinBaixaSolicitacao baixa,
         SerasaPefinWebhookRecord webhook,

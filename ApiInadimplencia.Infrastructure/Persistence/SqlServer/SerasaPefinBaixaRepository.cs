@@ -226,6 +226,32 @@ public sealed class SerasaPefinBaixaRepository(SqlServerConnectionFactory connec
     }
 
     /// <inheritdoc />
+    public async Task<IReadOnlySet<int>> ListParcelasComBaixaConcluidaAsync(
+        int numVendaFk,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+            SELECT DISTINCT NUMERO_PARCELA
+            FROM dbo.SERASA_PEFIN_BAIXAS
+            WHERE NUM_VENDA_FK = @NumVendaFk
+              AND STATUS = 'BAIXADO_SUCESSO'
+              AND NUMERO_PARCELA IS NOT NULL;
+            """;
+
+        await using var connection = await _connectionFactory.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        await using var command = new SqlCommand(sql, connection);
+        command.Parameters.Add("@NumVendaFk", SqlDbType.Int).Value = numVendaFk;
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+
+        var result = new HashSet<int>();
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        {
+            result.Add(reader.GetInt32(0));
+        }
+        return result;
+    }
+
+    /// <inheritdoc />
     public async Task ApplyWebhookTransactionalAsync(
         SerasaPefinBaixaSolicitacao baixa,
         SerasaPefinWebhookRecord webhook,

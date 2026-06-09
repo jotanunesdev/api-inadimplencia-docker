@@ -13,6 +13,7 @@ public sealed class GetDividasElegiveisQueryHandlerTests
 {
     private readonly Mock<IInadimplenciaQueryService> _queryServiceMock;
     private readonly Mock<ISerasaPefinRepository> _serasaRepositoryMock;
+    private readonly Mock<ISerasaPefinBaixaRepository> _baixaRepositoryMock;
     private readonly Mock<IOptions<NegativacaoOptions>> _optionsMock;
     private readonly GetDividasElegiveisQueryHandler _handler;
 
@@ -23,11 +24,16 @@ public sealed class GetDividasElegiveisQueryHandlerTests
         _serasaRepositoryMock
             .Setup(r => r.ListByNumVendaAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<SerasaPefinSolicitacaoCompleta>());
+        _baixaRepositoryMock = new Mock<ISerasaPefinBaixaRepository>();
+        _baixaRepositoryMock
+            .Setup(r => r.ListParcelasComBaixaConcluidaAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlySet<int>)new HashSet<int>());
         _optionsMock = new Mock<IOptions<NegativacaoOptions>>();
         _optionsMock.Setup(o => o.Value).Returns(new NegativacaoOptions { DiasAtrasoMinimo = 60 });
         _handler = new GetDividasElegiveisQueryHandler(
             _queryServiceMock.Object,
             _serasaRepositoryMock.Object,
+            _baixaRepositoryMock.Object,
             _optionsMock.Object);
     }
 
@@ -117,6 +123,38 @@ public sealed class GetDividasElegiveisQueryHandlerTests
         Assert.Equal(2, result.Parcelas.Count);
         Assert.True(result.Parcelas[0].Elegivel);
         Assert.False(result.Parcelas[1].Elegivel);
+    }
+
+    [Fact]
+    public async Task HandleAsync_ParcelaComBaixadoSucesso_DevePermanecerElegivelParaRenegativacao()
+    {
+        // Regress\u00e3o: ap\u00f3s uma baixa concluida (parcela j\u00e1 retirada do Serasa),
+        // a parcela deve continuar elegivel para uma NOVA negativa\u00e7\u00e3o (caso o operador
+        // tenha errado dados na primeira), mas n\u00e3o pode mais aparecer no modal
+        // de baixa (StatusSerasa=BAIXADO_SUCESSO sinaliza isso para a UI).
+        var query = new GetDividasElegiveisQuery(18592);
+        var queryResult = new DividasElegiveisQueryResult(
+            NumVenda: 18592,
+            Cliente: "Raiza",
+            Cpf: "05440404570",
+            ContractNumber: "18592",
+            Parcelas: new List<ParcelaElegivelDto>
+            {
+                new(1, 31.01m, new DateOnly(2023, 3, 20), 1177, true),
+            }.AsReadOnly());
+
+        _queryServiceMock.Setup(s => s.GetDividasElegiveisAsync(18592, 60, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(queryResult);
+        _baixaRepositoryMock
+            .Setup(r => r.ListParcelasComBaixaConcluidaAsync(18592, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlySet<int>)new HashSet<int> { 1 });
+
+        var result = await _handler.HandleAsync(query, CancellationToken.None);
+
+        Assert.True(result.ClientePodeNegativar);
+        Assert.Single(result.Parcelas);
+        Assert.True(result.Parcelas[0].Elegivel);
+        Assert.Equal("BAIXADO_SUCESSO", result.Parcelas[0].StatusSerasa);
     }
 
     [Fact]

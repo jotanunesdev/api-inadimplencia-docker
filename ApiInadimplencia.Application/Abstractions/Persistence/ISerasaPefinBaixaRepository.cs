@@ -65,6 +65,16 @@ public interface ISerasaPefinBaixaRepository
         SerasaPefinBaixaSolicitacao baixa,
         SerasaPefinWebhookRecord webhook,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Returns the set of <c>NUMERO_PARCELA</c> values that already have at least
+    /// one baixa in <c>BAIXADO_SUCESSO</c> status for the given venda. Used by
+    /// the dividas-elegiveis listing to mark parcelas as already settled, so the
+    /// UI does not offer them again for negativacao or baixa.
+    /// </summary>
+    Task<IReadOnlySet<int>> ListParcelasComBaixaConcluidaAsync(
+        int numVendaFk,
+        CancellationToken cancellationToken);
 }
 
 /// <summary>

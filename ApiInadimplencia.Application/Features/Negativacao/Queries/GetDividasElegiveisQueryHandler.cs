@@ -15,15 +15,18 @@ public sealed class GetDividasElegiveisQueryHandler : IQueryHandler<GetDividasEl
 {
     private readonly IInadimplenciaQueryService _queryService;
     private readonly ISerasaPefinRepository _serasaRepository;
+    private readonly ISerasaPefinBaixaRepository _baixaRepository;
     private readonly IOptions<NegativacaoOptions> _options;
 
     public GetDividasElegiveisQueryHandler(
         IInadimplenciaQueryService queryService,
         ISerasaPefinRepository serasaRepository,
+        ISerasaPefinBaixaRepository baixaRepository,
         IOptions<NegativacaoOptions> options)
     {
         _queryService = queryService;
         _serasaRepository = serasaRepository;
+        _baixaRepository = baixaRepository;
         _options = options;
     }
 
@@ -46,22 +49,42 @@ public sealed class GetDividasElegiveisQueryHandler : IQueryHandler<GetDividasEl
                 Parcelas: []);
         }
 
-        // Enriquece cada parcela com o status Serasa (quando houver solicitacao ativa ou negativada).
-        // Status terminais que NAO bloqueiam nova selecao: REJEITADA, NEGATIVADO_ERRO, BAIXADO_SUCESSO, BAIXADO_ERRO.
+        // Enriquece cada parcela com o status Serasa.
+        // Regras:
+        //   - Status BLOQUEANTE (negativacao em curso ou ativa) -> Elegivel=false.
+        //     Status terminais NAO-bloqueantes: REJEITADA, NEGATIVADO_ERRO, BAIXADO_ERRO.
+        //   - Parcela com baixa concluida (BAIXADO_SUCESSO) E sem solicitacao
+        //     bloqueante atual -> mantem Elegivel original (permite re-negativar
+        //     apos baixa) mas sinaliza StatusSerasa=BAIXADO_SUCESSO para que a UI
+        //     de baixa nao a ofereca novamente.
+        //   - A negativacao-mae permanece em NEGATIVADO_SUCESSO mesmo apos a baixa
+        //     (a baixa vive em SERASA_PEFIN_BAIXAS), por isso cruzamos as duas tabelas.
         var solicitacoesSerasa = await _serasaRepository.ListByNumVendaAsync(query.NumVenda, cancellationToken);
-        var statusPorParcela = BuildStatusMap(solicitacoesSerasa);
+        var statusBloqueantePorParcela = BuildStatusMap(solicitacoesSerasa);
+
+        var parcelasComBaixaConcluida = await _baixaRepository
+            .ListParcelasComBaixaConcluidaAsync(query.NumVenda, cancellationToken)
+            .ConfigureAwait(false);
 
         var parcelasEnriquecidas = result.Parcelas
             .Select(parcela =>
             {
-                if (statusPorParcela.TryGetValue(parcela.Id, out var status))
+                if (statusBloqueantePorParcela.TryGetValue(parcela.Id, out var statusBloqueante))
                 {
                     return parcela with
                     {
                         Elegivel = false,
-                        StatusSerasa = status,
+                        StatusSerasa = statusBloqueante,
                     };
                 }
+
+                if (parcelasComBaixaConcluida.Contains(parcela.Id))
+                {
+                    // Mantem Elegivel original (apto a ser re-negativada) e
+                    // marca o status para a UI de baixa nao a oferecer.
+                    return parcela with { StatusSerasa = "BAIXADO_SUCESSO" };
+                }
+
                 return parcela;
             })
             .ToList();
