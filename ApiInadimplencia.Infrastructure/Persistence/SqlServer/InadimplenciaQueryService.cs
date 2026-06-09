@@ -456,7 +456,12 @@ public sealed class InadimplenciaQueryService(
             """;
 
         using var command = new SqlCommand(query, connection);
-        command.Parameters.AddWithValue("@idLan", idLan);
+        // IDLAN é varchar no DW — passamos string para evitar conversão implícita que
+        // invalida o uso de índice e gera erros como "Unable to cast 'String' to 'Int64'".
+        command.Parameters.Add(new SqlParameter("@idLan", System.Data.SqlDbType.VarChar, 32)
+        {
+            Value = idLan.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        });
 
         using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
         if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
@@ -464,7 +469,16 @@ public sealed class InadimplenciaQueryService(
             return null;
         }
 
-        var idLanValue = reader.GetInt64(reader.GetOrdinal("IDLAN"));
+        var idLanRaw = reader.GetValue(reader.GetOrdinal("IDLAN"));
+        if (!long.TryParse(
+                Convert.ToString(idLanRaw, System.Globalization.CultureInfo.InvariantCulture),
+                System.Globalization.NumberStyles.Integer,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out var idLanValue))
+        {
+            logger.LogWarning("IDLAN '{IdLan}' returned by DW is not a valid Int64", idLanRaw);
+            return null;
+        }
         var numVenda = Convert.ToInt32(reader.GetValue(reader.GetOrdinal("NUM_VENDA")));
         var numeroDocumento = GetNullableString(reader, "NUMERO_DOCUMENTO");
         var dataVencimentoStr = reader.GetString(reader.GetOrdinal("DATAVENCIMENTO"));
