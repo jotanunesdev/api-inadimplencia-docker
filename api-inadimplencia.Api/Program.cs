@@ -36,6 +36,11 @@ builder.Services.AddProblemDetails();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    // TOTVS RM (Fórmula Visual) e outros clientes frequentemente serializam números
+    // como string (ex.: "idLan": "920714", "motivoBaixa": "3"). Sem isso, o binding
+    // de campos numéricos (long?/byte/int) falha com JsonException -> HTTP 400 antes
+    // do handler rodar. Permitir ler número a partir de string evita esse 400.
+    options.SerializerOptions.NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString;
 });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
