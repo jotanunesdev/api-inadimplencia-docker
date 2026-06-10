@@ -262,26 +262,38 @@ public sealed class RequestBaixaCommandHandler : ICommandHandler<RequestBaixaCom
                 nameof(command));
         }
 
-        if (command.NumVenda <= 0)
+        if (command.IdLan is not { } idLan || idLan <= 0)
         {
             throw new ArgumentException(
-                "NUM_VENDA_OBRIGATORIO: campo 'numVenda' é obrigatório quando rm=true.",
+                "IDLAN_OBRIGATORIO: campo 'idLan' é obrigatório quando rm=true.",
                 nameof(command));
         }
 
         // 2. Motivo (whitelist Serasa: 1, 2, 3, 4, 19, 43, 45).
         var motivo = SerasaPefinBaixaMotivo.From(command.MotivoBaixa);
 
-        // 3. Resolve CPF/CNPJ do devedor pela venda (fat_analise_inadimplencia_v4).
-        var venda = await _queryService.GetVendaAsync(command.NumVenda, cancellationToken).ConfigureAwait(false);
-        if (venda is null || string.IsNullOrWhiteSpace(venda.DocumentoDevedor))
+        // 3. Resolve o NUM_VENDA a partir do IDLAN (fat_analise_inadimplencia_parcelas).
+        // O payload do RM não envia numVenda — ele só conhece o IDLAN da parcela.
+        var parcela = await _queryService.GetParcelaByIdLanAsync(idLan, cancellationToken).ConfigureAwait(false);
+        if (parcela is null)
         {
             throw new ArgumentException(
-                $"VENDA_NAO_ENCONTRADA: não foi possível resolver o devedor para a venda {command.NumVenda}.",
+                $"IDLAN_NAO_ENCONTRADO: não foi possível localizar a parcela para o idLan {idLan}.",
                 nameof(command));
         }
 
-        // 4. Credor: fixo via configuração SerasaPefinOptions.CreditorDocument.
+        var numVenda = parcela.NumVenda;
+
+        // 4. Resolve CPF/CNPJ do devedor pela venda (fat_analise_inadimplencia_v4).
+        var venda = await _queryService.GetVendaAsync(numVenda, cancellationToken).ConfigureAwait(false);
+        if (venda is null || string.IsNullOrWhiteSpace(venda.DocumentoDevedor))
+        {
+            throw new ArgumentException(
+                $"VENDA_NAO_ENCONTRADA: não foi possível resolver o devedor para a venda {numVenda} (idLan {idLan}).",
+                nameof(command));
+        }
+
+        // 5. Credor: fixo via configuração SerasaPefinOptions.CreditorDocument.
         if (string.IsNullOrWhiteSpace(_serasaOptions.CreditorDocument))
         {
             throw new InvalidOperationException(
@@ -294,12 +306,12 @@ public sealed class RequestBaixaCommandHandler : ICommandHandler<RequestBaixaCom
 
         _logger.LogInformation(
             "Baixa RM: enviando DELETE para Serasa. Venda={NumVenda} Contract={Contract} Reason={Reason} Debtor=***{DebtorLast4}",
-            command.NumVenda,
+            numVenda,
             contractNumber,
             motivo.Codigo,
             debtorDoc.Length >= 4 ? debtorDoc[^4..] : debtorDoc);
 
-        // 5. Chamada direta ao gateway. Erros HTTP propagam SerasaPefinHttpException,
+        // 6. Chamada direta ao gateway. Erros HTTP propagam SerasaPefinHttpException,
         // tratada pelo endpoint para retornar 502 ao cliente.
         var response = await _serasaGateway.DeleteByContractAsync(
             new SerasaBaixaRequest(
@@ -311,9 +323,9 @@ public sealed class RequestBaixaCommandHandler : ICommandHandler<RequestBaixaCom
 
         _logger.LogInformation(
             "Baixa RM enviada. Venda={NumVenda} Contract={Contract} TransactionId={TransactionId}",
-            command.NumVenda, contractNumber, response.TransactionId);
+            numVenda, contractNumber, response.TransactionId);
 
-        // 6. Sincroniza DW.fat_analise_inadimplencia_parcelas.NEGATIVADO=NAO. No modo
+        // 7. Sincroniza DW.fat_analise_inadimplencia_parcelas.NEGATIVADO=NAO. No modo
         // RM não há webhook, então este é o único ponto onde refletimos a baixa no DW.
         // Best-effort: o write-service trata exceções internamente.
         await _parcelaWriter.SetNegativadoByNumeroDocumentoAsync(
@@ -321,7 +333,7 @@ public sealed class RequestBaixaCommandHandler : ICommandHandler<RequestBaixaCom
             negativado: false,
             cancellationToken).ConfigureAwait(false);
 
-        // 7. Retorna o transactionId da Serasa como Guid (Serasa devolve UUID).
+        // 8. Retorna o transactionId da Serasa como Guid (Serasa devolve UUID).
         // O endpoint mapeia esse valor como 'solicitacaoId' no JSON de resposta.
         return Guid.TryParse(response.TransactionId, out var txGuid) ? txGuid : Guid.Empty;
     }

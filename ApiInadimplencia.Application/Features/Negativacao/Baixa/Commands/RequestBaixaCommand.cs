@@ -27,6 +27,12 @@ namespace ApiInadimplencia.Application.Features.Negativacao.Baixa.Commands;
 /// quando <c>Rm=true</c>. Enviado como <c>contract-number</c> diretamente ao Serasa,
 /// sem qualquer sufixo de parcela. Ignorado quando <c>Rm=false</c>.
 /// </param>
+/// <param name="IdLan">
+/// IDLAN da parcela no TOTVS RM. Obrigatório quando <c>Rm=true</c>. Usado para
+/// resolver o <c>NUM_VENDA</c> (e, por consequência, o CPF/CNPJ do devedor) via
+/// <c>fat_analise_inadimplencia_parcelas</c>, dispensando o envio de <c>numVenda</c>
+/// no payload do RM. Ignorado quando <c>Rm=false</c>.
+/// </param>
 public sealed record RequestBaixaCommand(
     int NumVenda,
     IReadOnlyList<int> ParcelaIds,
@@ -34,4 +40,5 @@ public sealed record RequestBaixaCommand(
     string SenhaTransacao,
     string? Justificativa = null,
     bool Rm = false,
-    string? NumeroDocumento = null) : ICommand<Guid>;
+    string? NumeroDocumento = null,
+    long? IdLan = null) : ICommand<Guid>;

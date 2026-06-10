@@ -70,6 +70,108 @@ public sealed class RequestBaixaCommandHandlerTests
         string? justificativa = "Cliente quitou as parcelas") =>
         new(numVenda, parcelaIds ?? new[] { 1, 2 }, motivo, senha, justificativa);
 
+    private static RequestBaixaCommand BuildRmCommand(
+        string? numeroDocumento = "19793002005005",
+        byte motivo = 3,
+        long? idLan = 920713) =>
+        new(
+            NumVenda: 0,
+            ParcelaIds: Array.Empty<int>(),
+            MotivoBaixa: motivo,
+            SenhaTransacao: string.Empty,
+            Justificativa: "Baixa realizada via fórmula visual RM",
+            Rm: true,
+            NumeroDocumento: numeroDocumento,
+            IdLan: idLan);
+
+    private static ParcelaPorIdLanQueryResult BuildParcela(long idLan = 920713, int numVenda = 19793) =>
+        new(
+            IdLan: idLan,
+            NumVenda: numVenda,
+            NumeroDocumento: "19793002005005",
+            DataVencimento: new DateOnly(2023, 4, 15),
+            Valor: 106.63m,
+            Inadimplente: "SIM",
+            Negativado: "SIM",
+            DiasAtraso: 1000);
+
+    private static InadimplenciaQueryResult BuildVenda(int numVenda = 19793) =>
+        new(
+            NumVenda: numVenda,
+            DocumentoDevedor: "72465441515",
+            NomeDevedor: "JOSE JEAN TELES DA SILVA",
+            Cliente: "JOSE JEAN TELES DA SILVA",
+            Empreendimento: "VIDA NOVA",
+            Bloco: "13B105",
+            Unidade: "3",
+            Valor: 106.63m,
+            DataVencimento: new DateOnly(2023, 4, 15),
+            Endereco: null);
+
+    // ---------------------------------------------------------------------
+    // MODO RM (TOTVS Fórmula Visual)
+    // ---------------------------------------------------------------------
+
+    [Fact]
+    public async Task HandleAsync_Rm_SemIdLan_DeveLancarIdLanObrigatorio()
+    {
+        var act = () => _handler.HandleAsync(BuildRmCommand(idLan: null), CancellationToken.None);
+
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*IDLAN_OBRIGATORIO*");
+    }
+
+    [Fact]
+    public async Task HandleAsync_Rm_SemNumeroDocumento_DeveLancarNumeroDocumentoObrigatorio()
+    {
+        var act = () => _handler.HandleAsync(BuildRmCommand(numeroDocumento: null), CancellationToken.None);
+
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*NUMERO_DOCUMENTO_OBRIGATORIO*");
+    }
+
+    [Fact]
+    public async Task HandleAsync_Rm_IdLanInexistente_DeveLancarIdLanNaoEncontrado()
+    {
+        _queryServiceMock.Setup(q => q.GetParcelaByIdLanAsync(920713, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ParcelaPorIdLanQueryResult?)null);
+
+        var act = () => _handler.HandleAsync(BuildRmCommand(), CancellationToken.None);
+
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*IDLAN_NAO_ENCONTRADO*");
+    }
+
+    [Fact]
+    public async Task HandleAsync_Rm_ResolveNumVendaPorIdLanEEnviaDeleteAoSerasa()
+    {
+        _queryServiceMock.Setup(q => q.GetParcelaByIdLanAsync(920713, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildParcela());
+        _queryServiceMock.Setup(q => q.GetVendaAsync(19793, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildVenda());
+        _serasaGatewayMock.Setup(g => g.DeleteByContractAsync(It.IsAny<SerasaBaixaRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SerasaBaixaResponse("a1b2c3d4-0000-0000-0000-000000000000"));
+
+        var result = await _handler.HandleAsync(BuildRmCommand(), CancellationToken.None);
+
+        result.Should().Be(Guid.Parse("a1b2c3d4-0000-0000-0000-000000000000"));
+
+        // Resolve a venda a partir do idLan (não do payload, que vem com NumVenda=0).
+        _queryServiceMock.Verify(q => q.GetVendaAsync(19793, It.IsAny<CancellationToken>()), Times.Once);
+
+        // Envia DELETE com o numeroDocumento como contract-number e o devedor resolvido.
+        _serasaGatewayMock.Verify(g => g.DeleteByContractAsync(
+            It.Is<SerasaBaixaRequest>(r =>
+                r.ContractNumber == "19793002005005" &&
+                r.DebtorDocument == "72465441515" &&
+                r.Reason == 3),
+            It.IsAny<CancellationToken>()), Times.Once);
+
+        // Reflete a baixa no DW (NEGATIVADO=NAO) pelo numero do documento.
+        _parcelaWriterMock.Verify(w => w.SetNegativadoByNumeroDocumentoAsync(
+            "19793002005005", false, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     /// <summary>
     /// Cria um child de <c>SerasaPefinSolicitacaoCompleta</c> hidratado simulando
     /// uma parcela já com a integração completa. <paramref name="status"/> permite
