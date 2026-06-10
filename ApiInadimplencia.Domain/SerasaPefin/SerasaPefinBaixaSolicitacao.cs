@@ -151,6 +151,90 @@ public sealed class SerasaPefinBaixaSolicitacao
     }
 
     /// <summary>
+    /// Factory para a integração TOTVS RM (Fórmula Visual): cria uma baixa já
+    /// CONCLUÍDA (<see cref="SerasaPefinBaixaStatus.BaixadoSucesso"/>) após o DELETE
+    /// ter sido aceito pela Serasa, sem passar pelo fluxo de aprovação/webhook.
+    /// Usada apenas no modo RM, onde não há aprovador humano nem retorno via webhook.
+    /// </summary>
+    /// <param name="idSolicitacaoNegativacao">FK obrigatória para a negativação de origem.</param>
+    /// <param name="transactionId">UUID retornado pela Serasa (pode ser null/vazio se a Serasa não retornar).</param>
+    /// <exception cref="ArgumentException">Quando algum campo obrigatório é inválido.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Quando algum valor numérico é inválido.</exception>
+    public static SerasaPefinBaixaSolicitacao CriarRmConcluida(
+        Guid idSolicitacaoNegativacao,
+        int numVendaFk,
+        int? numeroParcela,
+        string contractNumber,
+        string documentoDevedor,
+        string documentoCredor,
+        SerasaPefinBaixaMotivo motivo,
+        string? transactionId,
+        string solicitanteUsername = "TOTVS_RM")
+    {
+        if (idSolicitacaoNegativacao == Guid.Empty)
+        {
+            throw new ArgumentException("ID_SOLICITACAO_NEGATIVACAO is required.", nameof(idSolicitacaoNegativacao));
+        }
+
+        if (numVendaFk <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(numVendaFk), "NUM_VENDA_FK must be positive.");
+        }
+
+        if (numeroParcela.HasValue && numeroParcela.Value <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(numeroParcela), "NUMERO_PARCELA must be positive when provided.");
+        }
+
+        if (string.IsNullOrWhiteSpace(contractNumber))
+        {
+            throw new ArgumentException("CONTRACT_NUMBER is required.", nameof(contractNumber));
+        }
+
+        if (string.IsNullOrWhiteSpace(documentoDevedor))
+        {
+            throw new ArgumentException("DOCUMENTO_DEVEDOR is required.", nameof(documentoDevedor));
+        }
+
+        if (string.IsNullOrWhiteSpace(documentoCredor))
+        {
+            throw new ArgumentException("DOCUMENTO_CREDOR is required.", nameof(documentoCredor));
+        }
+
+        if (motivo is null)
+        {
+            throw new ArgumentNullException(nameof(motivo), "MOTIVO is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(solicitanteUsername))
+        {
+            throw new ArgumentException("SOLICITANTE_USERNAME is required.", nameof(solicitanteUsername));
+        }
+
+        var now = DateTime.UtcNow;
+
+        return new SerasaPefinBaixaSolicitacao
+        {
+            Id = Guid.NewGuid(),
+            IdSolicitacaoNegativacao = idSolicitacaoNegativacao,
+            NumVendaFk = numVendaFk,
+            NumeroParcela = numeroParcela,
+            ContractNumber = contractNumber.Trim(),
+            DocumentoDevedor = SerasaPefinConstants.DigitsOnly(documentoDevedor),
+            DocumentoCredor = SerasaPefinConstants.DigitsOnly(documentoCredor),
+            Motivo = motivo,
+            Status = SerasaPefinBaixaStatus.BaixadoSucesso,
+            SolicitanteUsername = solicitanteUsername.Trim(),
+            AprovadorUsername = solicitanteUsername.Trim(),
+            DtAprovacao = now,
+            TransactionId = string.IsNullOrWhiteSpace(transactionId) ? null : transactionId.Trim(),
+            Tentativas = 1,
+            DtCriacao = now,
+            DtAtualizacao = now,
+        };
+    }
+
+    /// <summary>
     /// Reidrata uma instância a partir da persistência, sem validar invariantes de criação.
     /// </summary>
     public static SerasaPefinBaixaSolicitacao Hydrate(

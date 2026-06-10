@@ -338,40 +338,106 @@ public sealed class RequestBaixaCommandHandler : ICommandHandler<RequestBaixaCom
                 "SERASA_CREDITOR_DOCUMENT_NAO_CONFIGURADO: defina SerasaPefin:CreditorDocument no appsettings.");
         }
 
-        var contractNumber = command.NumeroDocumento!.Trim();
         var debtorDoc = SerasaPefinConstants.DigitsOnly(venda.DocumentoDevedor);
         var creditorDoc = SerasaPefinConstants.DigitsOnly(_serasaOptions.CreditorDocument);
 
+        // 6. Resolve a negativação PRINCIPAL/NEGATIVADO_SUCESSO da parcela (casada pelo
+        // vencimento) para reconstruir o contract-number EXATAMENTE como foi incluído no
+        // Serasa: "{ContractNumber}-P{NumeroParcela}" (vide SerasaPefinPayloadBuilder e
+        // SendBaixaToSerasaCommandHandler). Enviar o número cru (sem o sufixo -P) faz a
+        // Serasa retornar "Debt not found" (404) e a baixa nunca se efetiva.
+        var solicitacoesVenda = await _serasaRepository
+            .ListByNumVendaAsync(numVenda, cancellationToken)
+            .ConfigureAwait(false);
+
+        var negativacao = solicitacoesVenda
+            .Where(s => s.TipoRegistro == SerasaPefinRecordType.Principal
+                && s.Status == SerasaPefinStatus.NegativadoSucesso
+                && s.DataVencimento == parcela.DataVencimento)
+            .OrderByDescending(s => s.DtCriacao)
+            .FirstOrDefault();
+
+        if (negativacao is null)
+        {
+            _logger.LogWarning(
+                "Baixa RM rejeitada (400): NEGATIVACAO_NAO_ENCONTRADA. Venda={NumVenda} Vencimento={Vencimento} (idLan {IdLan}). " +
+                "Sem negativação PRINCIPAL/NEGATIVADO_SUCESSO correspondente não é possível reconstruir o contract-number.",
+                numVenda, parcela.DataVencimento, idLan);
+            throw new ArgumentException(
+                $"NEGATIVACAO_NAO_ENCONTRADA: nenhuma negativação ativa (NEGATIVADO_SUCESSO) encontrada para a parcela " +
+                $"(venda {numVenda}, vencimento {parcela.DataVencimento:yyyy-MM-dd}).",
+                nameof(command));
+        }
+
+        // Contract base (armazenado) + sufixo de parcela, idêntico ao fluxo padrão de baixa.
+        var contractBase = negativacao.ContractNumber;
+        var contractForSerasa = negativacao.NumeroParcela.HasValue
+            ? $"{contractBase}-P{negativacao.NumeroParcela.Value}"
+            : contractBase;
+
         _logger.LogInformation(
-            "Baixa RM: enviando DELETE para Serasa. Venda={NumVenda} Contract={Contract} Reason={Reason} Debtor=***{DebtorLast4}",
+            "Baixa RM: enviando DELETE para Serasa. Venda={NumVenda} Contract={Contract} (base={ContractBase}, parcela={Parcela}) Reason={Reason} Debtor=***{DebtorLast4}",
             numVenda,
-            contractNumber,
+            contractForSerasa,
+            contractBase,
+            negativacao.NumeroParcela,
             motivo.Codigo,
             debtorDoc.Length >= 4 ? debtorDoc[^4..] : debtorDoc);
 
-        // 6. Chamada direta ao gateway. Erros HTTP propagam SerasaPefinHttpException,
-        // tratada pelo endpoint para retornar 502 ao cliente.
+        // 7. Chamada direta ao gateway. Erros HTTP propagam SerasaPefinHttpException.
         var response = await _serasaGateway.DeleteByContractAsync(
             new SerasaBaixaRequest(
                 CreditorDocument: creditorDoc,
                 DebtorDocument: debtorDoc,
-                ContractNumber: contractNumber,
+                ContractNumber: contractForSerasa,
                 Reason: motivo.Codigo),
             cancellationToken).ConfigureAwait(false);
 
         _logger.LogInformation(
             "Baixa RM enviada. Venda={NumVenda} Contract={Contract} TransactionId={TransactionId}",
-            numVenda, contractNumber, response.TransactionId);
+            numVenda, contractForSerasa, response.TransactionId);
 
-        // 7. Sincroniza DW.fat_analise_inadimplencia_parcelas.NEGATIVADO=NAO. No modo
-        // RM não há webhook, então este é o único ponto onde refletimos a baixa no DW.
-        // Best-effort: o write-service trata exceções internamente.
+        // 8. Persiste a baixa em dbo.SERASA_PEFIN_BAIXAS (BAIXADO_SUCESSO), vinculada à
+        // negativação. Armazena o ContractNumber BASE (sem sufixo), igual ao fluxo padrão.
+        // Best-effort: a baixa já foi efetivada no Serasa; falha aqui não derruba a request.
+        try
+        {
+            var baixa = SerasaPefinBaixaSolicitacao.CriarRmConcluida(
+                idSolicitacaoNegativacao: negativacao.Id,
+                numVendaFk: numVenda,
+                numeroParcela: negativacao.NumeroParcela,
+                contractNumber: contractBase,
+                documentoDevedor: debtorDoc,
+                documentoCredor: creditorDoc,
+                motivo: motivo,
+                transactionId: response.TransactionId);
+
+            await _baixaRepository.AddAsync(baixa, cancellationToken).ConfigureAwait(false);
+
+            _logger.LogInformation(
+                "Baixa RM persistida em SERASA_PEFIN_BAIXAS. BaixaId={BaixaId} NegativacaoId={NegativacaoId} " +
+                "Venda={NumVenda} Parcela={Parcela} Contract={Contract} Status=BAIXADO_SUCESSO.",
+                baixa.Id, negativacao.Id, numVenda, negativacao.NumeroParcela, contractForSerasa);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Baixa RM: falha ao persistir em SERASA_PEFIN_BAIXAS. Venda={NumVenda} Contract={Contract}. " +
+                "A baixa já foi efetivada no Serasa (TransactionId={TransactionId}).",
+                numVenda, contractForSerasa, response.TransactionId);
+        }
+
+        // 9. Sincroniza DW.fat_analise_inadimplencia_parcelas.NEGATIVADO=NAO usando o
+        // NUMERO_DOCUMENTO do DW (origem do idLan), não o contract-number do Serasa.
+        var numeroDocumentoDw = !string.IsNullOrWhiteSpace(parcela.NumeroDocumento)
+            ? parcela.NumeroDocumento!
+            : command.NumeroDocumento!.Trim();
         await _parcelaWriter.SetNegativadoByNumeroDocumentoAsync(
-            contractNumber,
+            numeroDocumentoDw,
             negativado: false,
             cancellationToken).ConfigureAwait(false);
 
-        // 8. Retorna o transactionId da Serasa como Guid (Serasa devolve UUID).
+        // 10. Retorna o transactionId da Serasa como Guid (Serasa devolve UUID).
         // O endpoint mapeia esse valor como 'solicitacaoId' no JSON de resposta.
         return Guid.TryParse(response.TransactionId, out var txGuid) ? txGuid : Guid.Empty;
     }

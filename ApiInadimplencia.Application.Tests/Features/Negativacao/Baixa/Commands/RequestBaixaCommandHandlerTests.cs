@@ -149,8 +149,25 @@ public sealed class RequestBaixaCommandHandlerTests
             .ReturnsAsync(BuildParcela());
         _queryServiceMock.Setup(q => q.GetVendaAsync(19793, It.IsAny<CancellationToken>()))
             .ReturnsAsync(BuildVenda());
+
+        // Negativação PRINCIPAL/NEGATIVADO_SUCESSO da parcela (casada pelo vencimento),
+        // com contract base "19793" e parcela 5 -> contract enviado = "19793-P5".
+        var negativacao = BuildChild(
+            numeroParcela: 5,
+            numVenda: 19793,
+            status: SerasaPefinStatus.NegativadoSucesso,
+            contractNumber: "19793",
+            dataVencimento: new DateOnly(2023, 4, 15));
+        _serasaRepoMock.Setup(r => r.ListByNumVendaAsync(19793, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { negativacao });
+
         _serasaGatewayMock.Setup(g => g.DeleteByContractAsync(It.IsAny<SerasaBaixaRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new SerasaBaixaResponse("a1b2c3d4-0000-0000-0000-000000000000"));
+
+        SerasaPefinBaixaSolicitacao? persisted = null;
+        _baixaRepoMock.Setup(r => r.AddAsync(It.IsAny<SerasaPefinBaixaSolicitacao>(), It.IsAny<CancellationToken>()))
+            .Callback<SerasaPefinBaixaSolicitacao, CancellationToken>((b, _) => persisted = b)
+            .ReturnsAsync(Guid.NewGuid());
 
         var result = await _handler.HandleAsync(BuildRmCommand(), CancellationToken.None);
 
@@ -159,17 +176,45 @@ public sealed class RequestBaixaCommandHandlerTests
         // Resolve a venda a partir do idLan (não do payload, que vem com NumVenda=0).
         _queryServiceMock.Verify(q => q.GetVendaAsync(19793, It.IsAny<CancellationToken>()), Times.Once);
 
-        // Envia DELETE com o numeroDocumento como contract-number e o devedor resolvido.
+        // Envia DELETE com o contract-number reconstruído ("{base}-P{parcela}").
         _serasaGatewayMock.Verify(g => g.DeleteByContractAsync(
             It.Is<SerasaBaixaRequest>(r =>
-                r.ContractNumber == "19793002005005" &&
+                r.ContractNumber == "19793-P5" &&
                 r.DebtorDocument == "72465441515" &&
                 r.Reason == 3),
             It.IsAny<CancellationToken>()), Times.Once);
 
-        // Reflete a baixa no DW (NEGATIVADO=NAO) pelo numero do documento.
+        // Persiste a baixa em BAIXADO_SUCESSO, vinculada à negativação, com o contract BASE.
+        _baixaRepoMock.Verify(r => r.AddAsync(
+            It.IsAny<SerasaPefinBaixaSolicitacao>(), It.IsAny<CancellationToken>()), Times.Once);
+        persisted.Should().NotBeNull();
+        persisted!.Status.Should().Be(SerasaPefinBaixaStatus.BaixadoSucesso);
+        persisted.ContractNumber.Should().Be("19793");
+        persisted.NumeroParcela.Should().Be(5);
+        persisted.IdSolicitacaoNegativacao.Should().Be(negativacao.Id);
+
+        // Reflete a baixa no DW (NEGATIVADO=NAO) pelo numero do documento do DW.
         _parcelaWriterMock.Verify(w => w.SetNegativadoByNumeroDocumentoAsync(
             "19793002005005", false, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task HandleAsync_Rm_SemNegativacaoCorrespondente_DeveLancarNegativacaoNaoEncontrada()
+    {
+        _queryServiceMock.Setup(q => q.GetParcelaByIdLanAsync(920713, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildParcela());
+        _queryServiceMock.Setup(q => q.GetVendaAsync(19793, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildVenda());
+        _serasaRepoMock.Setup(r => r.ListByNumVendaAsync(19793, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<SerasaPefinSolicitacaoCompleta>());
+
+        var act = () => _handler.HandleAsync(BuildRmCommand(), CancellationToken.None);
+
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithMessage("*NEGATIVACAO_NAO_ENCONTRADA*");
+
+        _serasaGatewayMock.Verify(g => g.DeleteByContractAsync(
+            It.IsAny<SerasaBaixaRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     /// <summary>
@@ -183,7 +228,8 @@ public sealed class RequestBaixaCommandHandlerTests
         SerasaPefinStatus status = SerasaPefinStatus.NegativadoSucesso,
         string contractNumber = "CTR-12345",
         string documentoDevedor = "12345678901",
-        string documentoCredor = "98765432100123") =>
+        string documentoCredor = "98765432100123",
+        DateOnly? dataVencimento = null) =>
         SerasaPefinSolicitacaoCompleta.Hydrate(
             id: Guid.NewGuid(),
             numVendaFk: numVenda,
@@ -198,7 +244,7 @@ public sealed class RequestBaixaCommandHandlerTests
             categoryId: "FI",
             areaInformante: "0001",
             valor: 1000m,
-            dataVencimento: new DateOnly(2024, 1, 1),
+            dataVencimento: dataVencimento ?? new DateOnly(2024, 1, 1),
             status: status,
             transactionId: "uuid-1",
             cadusKey: null,
