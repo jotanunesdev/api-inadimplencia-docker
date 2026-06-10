@@ -441,7 +441,15 @@ public sealed class InadimplenciaQueryService(
     {
         using var connection = await connectionFactory.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
 
+        // Alinha SET options com o SSMS (que executa essa query em milissegundos).
+        // ADO.NET usa ARITHABORT OFF por padrao, o que coloca o plano cacheado em
+        // outro "slot" no SQL Server e pode disparar plan-cache pollution + bad plans
+        // (timeout 30s aleatorio). OPTION(RECOMPILE) garante plano fresco — custo
+        // desprezivel em lookup pontual por IDLAN (linha unica).
         const string query = $"""
+            SET ARITHABORT ON;
+            SET ANSI_NULLS ON;
+            SET ANSI_WARNINGS ON;
             SELECT TOP 1
                 IDLAN,
                 NUM_VENDA,
@@ -453,9 +461,15 @@ public sealed class InadimplenciaQueryService(
                 DATEDIFF(day, DATAVENCIMENTO, GETDATE()) AS DIAS_ATRASO
             FROM {TableParcelas}
             WHERE IDLAN = @idLan
+            OPTION (RECOMPILE);
             """;
 
-        using var command = new SqlCommand(query, connection);
+        using var command = new SqlCommand(query, connection)
+        {
+            // Rede de seguranca: 60s em vez do default 30s. A query deveria executar
+            // em milissegundos; o timeout maior so existe para evitar 500 em pico.
+            CommandTimeout = 60,
+        };
         // IDLAN é varchar no DW — passamos string para evitar conversão implícita que
         // invalida o uso de índice e gera erros como "Unable to cast 'String' to 'Int64'".
         command.Parameters.Add(new SqlParameter("@idLan", System.Data.SqlDbType.VarChar, 32)
