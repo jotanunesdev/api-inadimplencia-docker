@@ -254,9 +254,24 @@ public sealed class RequestBaixaCommandHandler : ICommandHandler<RequestBaixaCom
     /// </summary>
     private async Task<Guid> HandleRmAsync(RequestBaixaCommand command, CancellationToken cancellationToken)
     {
+        // Log de entrada: mostra exatamente o que o RM enviou (campos recebidos).
+        // Essencial para diagnosticar 400 — revela campos faltando/zerados/errados.
+        _logger.LogInformation(
+            "Baixa RM recebida. Campos: rm={Rm} idLan={IdLan} numeroDocumento='{NumeroDocumento}' " +
+            "motivoBaixa={MotivoBaixa} numVenda={NumVenda} parcelaIds=[{ParcelaIds}]",
+            command.Rm,
+            command.IdLan,
+            command.NumeroDocumento,
+            command.MotivoBaixa,
+            command.NumVenda,
+            command.ParcelaIds is null ? "null" : string.Join(",", command.ParcelaIds));
+
         // 1. Validações de entrada específicas do modo RM.
         if (string.IsNullOrWhiteSpace(command.NumeroDocumento))
         {
+            _logger.LogWarning(
+                "Baixa RM rejeitada (400): NUMERO_DOCUMENTO_OBRIGATORIO. Valor recebido: '{NumeroDocumento}'.",
+                command.NumeroDocumento ?? "(null)");
             throw new ArgumentException(
                 "NUMERO_DOCUMENTO_OBRIGATORIO: campo 'numeroDocumento' é obrigatório quando rm=true.",
                 nameof(command));
@@ -264,30 +279,53 @@ public sealed class RequestBaixaCommandHandler : ICommandHandler<RequestBaixaCom
 
         if (command.IdLan is not { } idLan || idLan <= 0)
         {
+            _logger.LogWarning(
+                "Baixa RM rejeitada (400): IDLAN_OBRIGATORIO. Valor recebido: {IdLan}.",
+                command.IdLan);
             throw new ArgumentException(
-                "IDLAN_OBRIGATORIO: campo 'idLan' é obrigatório quando rm=true.",
+                "IDLAN_OBRIGATORIO: campo 'idLan' é obrigatório e deve ser > 0 quando rm=true.",
                 nameof(command));
         }
 
         // 2. Motivo (whitelist Serasa: 1, 2, 3, 4, 19, 43, 45).
-        var motivo = SerasaPefinBaixaMotivo.From(command.MotivoBaixa);
+        SerasaPefinBaixaMotivo motivo;
+        try
+        {
+            motivo = SerasaPefinBaixaMotivo.From(command.MotivoBaixa);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(
+                "Baixa RM rejeitada (400): MOTIVO_INVALIDO. Valor recebido: {MotivoBaixa}. Detalhe: {Detalhe}",
+                command.MotivoBaixa, ex.Message);
+            throw;
+        }
 
         // 3. Resolve o NUM_VENDA a partir do IDLAN (fat_analise_inadimplencia_parcelas).
         // O payload do RM não envia numVenda — ele só conhece o IDLAN da parcela.
         var parcela = await _queryService.GetParcelaByIdLanAsync(idLan, cancellationToken).ConfigureAwait(false);
         if (parcela is null)
         {
+            _logger.LogWarning(
+                "Baixa RM rejeitada (400): IDLAN_NAO_ENCONTRADO. idLan={IdLan} não existe em fat_analise_inadimplencia_parcelas.",
+                idLan);
             throw new ArgumentException(
                 $"IDLAN_NAO_ENCONTRADO: não foi possível localizar a parcela para o idLan {idLan}.",
                 nameof(command));
         }
 
         var numVenda = parcela.NumVenda;
+        _logger.LogInformation(
+            "Baixa RM: idLan={IdLan} resolvido para numVenda={NumVenda} (numeroDocumentoDW='{NumeroDocumentoDW}').",
+            idLan, numVenda, parcela.NumeroDocumento ?? "(null)");
 
         // 4. Resolve CPF/CNPJ do devedor pela venda (fat_analise_inadimplencia_v4).
         var venda = await _queryService.GetVendaAsync(numVenda, cancellationToken).ConfigureAwait(false);
         if (venda is null || string.IsNullOrWhiteSpace(venda.DocumentoDevedor))
         {
+            _logger.LogWarning(
+                "Baixa RM rejeitada (400): VENDA_NAO_ENCONTRADA. numVenda={NumVenda} (idLan {IdLan}). vendaNula={VendaNula}.",
+                numVenda, idLan, venda is null);
             throw new ArgumentException(
                 $"VENDA_NAO_ENCONTRADA: não foi possível resolver o devedor para a venda {numVenda} (idLan {idLan}).",
                 nameof(command));

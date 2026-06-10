@@ -28,6 +28,11 @@ public class SensitiveDataMaskingMiddleware
         _logger.LogInformation("Request: {Method} {Path}", context.Request.Method, context.Request.Path);
         _logger.LogDebug("Request Headers: {Headers}", maskedRequestHeaders);
 
+        // Log do corpo da requisição (mascarado) para POST/PUT/PATCH. Essencial para
+        // diagnosticar 400 vindos da integração TOTVS RM: mostra exatamente o JSON
+        // recebido (e o Content-Type), permitindo identificar campos faltando/errados.
+        await LogRequestBodyAsync(context);
+
         if (IsServerSentEventsRequest(context.Request))
         {
             await _next(context);
@@ -48,9 +53,11 @@ public class SensitiveDataMaskingMiddleware
             // Aplicar em HTML/JS/CSS (ex.: Swagger UI) corrompe os assets, pois a regex
             // de "tokens genéricos longos" trunca nomes de arquivos e identificadores
             // (ex.: swagger-ui-bundle.js -> swagger-***), causando 404 no navegador.
+            // Detecta qualquer variação de JSON: "application/json",
+            // "application/problem+json" (erros de binding/validação do minimal API), etc.
             var contentType = context.Response.ContentType ?? string.Empty;
-            var shouldMaskBody = _isDevelopment
-                && contentType.Contains("application/json", StringComparison.OrdinalIgnoreCase);
+            var isJson = contentType.Contains("json", StringComparison.OrdinalIgnoreCase);
+            var shouldMaskBody = _isDevelopment && isJson;
 
             if (shouldMaskBody)
             {
@@ -63,9 +70,19 @@ public class SensitiveDataMaskingMiddleware
                 context.Response.Body = originalBodyStream;
                 await context.Response.Body.WriteAsync(maskedBytes);
 
-                _logger.LogDebug("Response: {StatusCode} Body (first 500 chars): {Body}",
-                    context.Response.StatusCode,
-                    MaskSensitiveData(responseBody.Substring(0, Math.Min(500, responseBody.Length))));
+                // Respostas de erro (>= 400) são logadas em INFO para facilitar o
+                // diagnóstico em produção (ex.: 400 do RM com o JSON de erro detalhado).
+                var maskedForLog = MaskSensitiveData(responseBody.Substring(0, Math.Min(1000, responseBody.Length)));
+                if (context.Response.StatusCode >= 400)
+                {
+                    _logger.LogInformation("Response: {StatusCode} Body: {Body}",
+                        context.Response.StatusCode, maskedForLog);
+                }
+                else
+                {
+                    _logger.LogDebug("Response: {StatusCode} Body (first 1000 chars): {Body}",
+                        context.Response.StatusCode, maskedForLog);
+                }
             }
             else
             {
@@ -81,6 +98,67 @@ public class SensitiveDataMaskingMiddleware
         finally
         {
             context.Response.Body = originalBodyStream;
+        }
+    }
+
+    /// <summary>
+    /// Lê e loga o corpo da requisição (mascarado) para métodos com payload
+    /// (POST/PUT/PATCH). Usa <c>EnableBuffering</c> para permitir que o pipeline
+    /// releia o stream depois (model binding). Crucial para diagnosticar 400 do RM:
+    /// mostra o JSON exato recebido e o Content-Type, revelando campos faltando,
+    /// números como string, content-type errado, body vazio, etc.
+    /// </summary>
+    private async Task LogRequestBodyAsync(HttpContext context)
+    {
+        var method = context.Request.Method;
+        var hasBodyMethod =
+            HttpMethods.IsPost(method) ||
+            HttpMethods.IsPut(method) ||
+            HttpMethods.IsPatch(method);
+
+        if (!hasBodyMethod)
+        {
+            return;
+        }
+
+        try
+        {
+            // Permite reler o body depois (o model binding do minimal API precisa dele).
+            context.Request.EnableBuffering();
+
+            var contentType = context.Request.ContentType ?? "(vazio)";
+            var contentLength = context.Request.ContentLength ?? -1;
+
+            string body;
+            using (var reader = new StreamReader(
+                context.Request.Body,
+                Encoding.UTF8,
+                detectEncodingFromByteOrderMarks: true,
+                bufferSize: 4096,
+                leaveOpen: true))
+            {
+                body = await reader.ReadToEndAsync();
+            }
+
+            // Rebobina para o início — senão o handler recebe um stream vazio.
+            context.Request.Body.Position = 0;
+
+            var maskedBody = string.IsNullOrEmpty(body)
+                ? "(corpo vazio)"
+                : MaskSensitiveData(body.Substring(0, Math.Min(2000, body.Length)));
+
+            _logger.LogInformation(
+                "Request Body: {Method} {Path} | Content-Type: {ContentType} | Content-Length: {ContentLength} | Body: {Body}",
+                method,
+                context.Request.Path,
+                contentType,
+                contentLength,
+                maskedBody);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Falha ao logar o corpo da requisição {Method} {Path}.",
+                method, context.Request.Path);
         }
     }
 
