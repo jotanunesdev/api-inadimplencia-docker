@@ -12,6 +12,7 @@ namespace ApiInadimplencia.Application.Features.Dashboard.Queries;
 /// <param name="Faixa">Optional aging range filter.</param>
 /// <param name="Score">Optional score filter.</param>
 /// <param name="Qtd">Optional installment quantity filter.</param>
+/// <param name="NomeUsuario">Optional username filter.</param>
 public sealed record GetMetricQuery(
     string Metric,
     string? DataInicio = null,
@@ -19,4 +20,5 @@ public sealed record GetMetricQuery(
     int? Limit = null,
     string? Faixa = null,
     string? Score = null,
-    string? Qtd = null) : IQuery<IReadOnlyList<Dictionary<string, object?>>>;
+    string? Qtd = null,
+    string? NomeUsuario = null) : IQuery<IReadOnlyList<Dictionary<string, object?>>>;

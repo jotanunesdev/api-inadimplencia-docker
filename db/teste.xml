@@ -1,0 +1,2534 @@
+
+Fórmula Visual: 'BAIXA NEGATIVACAO SERASA'.
+<Parametros>
+  <xs:schema id="Parametros" xmlns="" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xs:element name="Parametros" msdata:IsDataSet="true" msdata:UseCurrentLocale="true">
+      <xs:complexType>
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+          <xs:element name="Parametros">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="DataBaixa" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="CodMoeda" type="xs:string" minOccurs="0" />
+                <xs:element name="UsarDataVencimentoBaixa" type="xs:boolean" minOccurs="0" />
+                <xs:element name="IdFormaPagto" type="xs:int" minOccurs="0" />
+                <xs:element name="CodColCxa" type="xs:int" minOccurs="0" />
+                <xs:element name="CodCxa" type="xs:string" minOccurs="0" />
+                <xs:element name="TipoGeracaoExtrato" type="xs:string" minOccurs="0" />
+                <xs:element name="TipoBaixa" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemContabilizacao" type="xs:string" minOccurs="0" />
+                <xs:element name="IsBoleto" type="xs:boolean" minOccurs="0" />
+                <xs:element name="Usuario" type="xs:string" minOccurs="0" />
+                <xs:element name="NumDocExtrato" type="xs:string" minOccurs="0" />
+                <xs:element name="MotivoBxProtheus" type="xs:string" minOccurs="0" />
+                <xs:element name="IdTransacaoPIX" type="xs:int" minOccurs="0" />
+                <xs:element name="NSUTransacaoPIX" type="xs:string" minOccurs="0" />
+                <xs:element name="TIDTransacaoPIX" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="DataSistema" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="HistoricoBaixa" type="xs:string" minOccurs="0" />
+                <xs:element name="CotacaoBaixa" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ContabilizarPosBaixa" type="xs:boolean" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="IdLan" type="xs:int" minOccurs="0" />
+                <xs:element name="PagRec" type="xs:string" minOccurs="0" />
+                <xs:element name="StatusAprovacao" type="xs:string" minOccurs="0" />
+                <xs:element name="StatusLan" type="xs:string" minOccurs="0" />
+                <xs:element name="ModoCalculoBx" type="xs:string" minOccurs="0" />
+                <xs:element name="ClassificacaoFatura" type="xs:string" minOccurs="0" />
+                <xs:element name="Classificacao" type="xs:string" minOccurs="0" />
+                <xs:element name="StatusRepasse" type="xs:string" minOccurs="0" />
+                <xs:element name="CodSistema" type="xs:string" minOccurs="0" />
+                <xs:element name="TipoContabil" type="xs:string" minOccurs="0" />
+                <xs:element name="TipoJurosDia" type="xs:string" minOccurs="0" />
+                <xs:element name="MultaDia" type="xs:decimal" minOccurs="0" />
+                <xs:element name="NumBloqueios" type="xs:string" minOccurs="0" />
+                <xs:element name="CapMensal" type="xs:decimal" minOccurs="0" />
+                <xs:element name="JurosDia" type="xs:decimal" minOccurs="0" />
+                <xs:element name="CarenciaJuros" type="xs:int" minOccurs="0" />
+                <xs:element name="CodColCfo" type="xs:int" minOccurs="0" />
+                <xs:element name="CodCfo" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColCxa" type="xs:int" minOccurs="0" />
+                <xs:element name="CodCxa" type="xs:string" minOccurs="0" />
+                <xs:element name="CodTdo" type="xs:string" minOccurs="0" />
+                <xs:element name="Nome" type="xs:string" minOccurs="0" />
+                <xs:element name="CGC" type="xs:string" minOccurs="0" />
+                <xs:element name="CodFilial" type="xs:int" minOccurs="0" />
+                <xs:element name="CodDepartamento" type="xs:string" minOccurs="0" />
+                <xs:element name="CodCCusto" type="xs:string" minOccurs="0" />
+                <xs:element name="DataEmissao" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="DataVencimento" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="DataVencimentoAnterior" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="DataBaixa" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="DataPrevBaixa" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="FormulaJuros" type="xs:string" minOccurs="0" />
+                <xs:element name="FormulaDesconto" type="xs:string" minOccurs="0" />
+                <xs:element name="FormulaMulta" type="xs:string" minOccurs="0" />
+                <xs:element name="FormulaCapitalizacao" type="xs:string" minOccurs="0" />
+                <xs:element name="FormulaValorOp1" type="xs:string" minOccurs="0" />
+                <xs:element name="FormulaValorOp2" type="xs:string" minOccurs="0" />
+                <xs:element name="FormulaValorOp3" type="xs:string" minOccurs="0" />
+                <xs:element name="FormulaValorOp4" type="xs:string" minOccurs="0" />
+                <xs:element name="FormulaValorOp5" type="xs:string" minOccurs="0" />
+                <xs:element name="FormulaValorOp6" type="xs:string" minOccurs="0" />
+                <xs:element name="FormulaValorOp7" type="xs:string" minOccurs="0" />
+                <xs:element name="FormulaValorOp8" type="xs:string" minOccurs="0" />
+                <xs:element name="NumeroDocumento" type="xs:string" minOccurs="0" />
+                <xs:element name="NumeroContabilInclusao" type="xs:string" minOccurs="0" />
+                <xs:element name="SegundoNumero" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorOriginal" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorDescontoAcordo" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorJurosAcordo" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorAcrescimoAcordo" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorDesconto" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorDescontoPontual" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorJuros" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorMulta" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorCap" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValordaBaixadoLancto" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorBaixado" type="xs:decimal" minOccurs="0" />
+                <xs:element name="JurosVendor" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorRetencoes" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorIRRF" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorINSS" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorSESTSENAT" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorDevolucao" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorNotaCredito" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorAdiantamento" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorVinculado" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp1" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp2" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp3" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp4" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp5" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp6" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp7" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp8" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOpComSinal1" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOpComSinal2" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOpComSinal3" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOpComSinal4" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOpComSinal5" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOpComSinal6" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOpComSinal7" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOpComSinal8" type="xs:decimal" minOccurs="0" />
+                <xs:element name="SinalOp1" type="xs:string" minOccurs="0" />
+                <xs:element name="SinalOp2" type="xs:string" minOccurs="0" />
+                <xs:element name="SinalOp3" type="xs:string" minOccurs="0" />
+                <xs:element name="SinalOp4" type="xs:string" minOccurs="0" />
+                <xs:element name="SinalOp5" type="xs:string" minOccurs="0" />
+                <xs:element name="SinalOp6" type="xs:string" minOccurs="0" />
+                <xs:element name="SinalOp7" type="xs:string" minOccurs="0" />
+                <xs:element name="SinalOp8" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorLiquido" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorLiquidoParcial" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorLimiteRetencoes" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorIRRF_IntegracaoProtheus" type="xs:decimal" minOccurs="0" />
+                <xs:element name="RetencoesBx_IntegracaoProtheus" type="xs:decimal" minOccurs="0" />
+                <xs:element name="SESTSENATBx_IntegracaoProtheus" type="xs:decimal" minOccurs="0" />
+                <xs:element name="BaseCalculoTributosLancamento" type="xs:decimal" minOccurs="0" />
+                <xs:element name="CodTb1Flx" type="xs:string" minOccurs="0" />
+                <xs:element name="CodTb2Flx" type="xs:string" minOccurs="0" />
+                <xs:element name="CodTb3Flx" type="xs:string" minOccurs="0" />
+                <xs:element name="CodTb4Flx" type="xs:string" minOccurs="0" />
+                <xs:element name="CodTb5Flx" type="xs:string" minOccurs="0" />
+                <xs:element name="DataOp1" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="DataOp2" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="DataOp3" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="DataOp4" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="DataOp5" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="CampoAlfaOp1" type="xs:string" minOccurs="0" />
+                <xs:element name="CampoAlfaOp2" type="xs:string" minOccurs="0" />
+                <xs:element name="CampoAlfaOp3" type="xs:string" minOccurs="0" />
+                <xs:element name="Historico" type="xs:string" minOccurs="0" />
+                <xs:element name="Chapa" type="xs:string" minOccurs="0" />
+                <xs:element name="MesdeCompetencia" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="CodIndexador" type="xs:string" minOccurs="0" />
+                <xs:element name="CodMoeda" type="xs:string" minOccurs="0" />
+                <xs:element name="CodMoedaCxa" type="xs:string" minOccurs="0" />
+                <xs:element name="CotacaoBaixa" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ClassificacaoTipoDoc" type="xs:string" minOccurs="0" />
+                <xs:element name="Descontado" type="xs:boolean" minOccurs="0" />
+                <xs:element name="Antecipado" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorOriginalIndexado" type="xs:decimal" minOccurs="0" />
+                <xs:element name="IdBoleto" type="xs:int" minOccurs="0" />
+                <xs:element name="IdBordero" type="xs:int" minOccurs="0" />
+                <xs:element name="IdFormaPagto" type="xs:int" minOccurs="0" />
+                <xs:element name="StatusLiqDuvidosa" type="xs:string" minOccurs="0" />
+                <xs:element name="DataLiqDuvidosa" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="AlteracaoBloqueada" type="xs:int" minOccurs="0" />
+                <xs:element name="StatusExtrato" type="xs:string" minOccurs="0" />
+                <xs:element name="TemChequeParcial" type="xs:boolean" minOccurs="0" />
+                <xs:element name="ValorCheque" type="xs:decimal" minOccurs="0" />
+                <xs:element name="StatusCNAB" type="xs:string" minOccurs="0" />
+                <xs:element name="AplicarDescontoTotal" type="xs:boolean" minOccurs="0" />
+                <xs:element name="ComBoletoParcial" type="xs:boolean" minOccurs="0" />
+                <xs:element name="NumMovNuclues" type="xs:string" minOccurs="0" />
+                <xs:element name="CodEventoAux" type="xs:short" minOccurs="0" />
+                <xs:element name="IdBaixa" type="xs:int" minOccurs="0" />
+                <xs:element name="ServicoAlteracaoRepasse" type="xs:boolean" minOccurs="0" />
+                <xs:element name="Coligada" type="xs:int" minOccurs="0" />
+                <xs:element name="ID" type="xs:int" minOccurs="0" />
+                <xs:element name="Codigo" type="xs:string" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+                <xs:element name="DataContabilizacaoInclusao" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="BaixaInvalida" type="xs:boolean" minOccurs="0" />
+                <xs:element name="BaixaInvaldaMsg" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.OrigemValoresParaCalculoValorLiquido">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="OrigemValorDesconto" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorJuros" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorMulta" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorCap" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp1" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp2" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp3" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp4" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp5" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp6" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp7" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp8" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorIntegracao" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValoresAcordo" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.Valores">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="ValorOriginal" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorDescontoAcordo" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorJurosAcordo" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorAcrescimoAcordo" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorDesconto" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorDescontoPontual" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorJuros" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorMulta" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorCap" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp1" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp2" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp3" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp4" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp5" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp6" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp7" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp8" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorINSS" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorIRRF" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorSESTSENAT" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorDevolucao" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorNotaCredito" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorAdiantamento" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorJurosVendor" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorRetencoes" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorPerdaFinanceira" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorLiquido" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValordaBaixadoLancto" type="xs:decimal" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="IdLan" type="xs:int" minOccurs="0" />
+                <xs:element name="IdBaixa" type="xs:int" minOccurs="0" />
+                <xs:element name="ServicoAlteracaoRepasse" type="xs:boolean" minOccurs="0" />
+                <xs:element name="Coligada" type="xs:int" minOccurs="0" />
+                <xs:element name="ID" type="xs:int" minOccurs="0" />
+                <xs:element name="Codigo" type="xs:string" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaVaLorIntegracaoLancamento">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="IdCampo" type="xs:int" minOccurs="0" />
+                <xs:element name="IdLan" type="xs:int" minOccurs="0" />
+                <xs:element name="Valor" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorBx" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorComSinal" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorReaj" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorReajComSinal" type="xs:decimal" minOccurs="0" />
+                <xs:element name="RecCreatedBy" type="xs:string" minOccurs="0" />
+                <xs:element name="RecModifiedBy" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemCalculo" type="xs:string" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaVaLorIntegracaoLancamento.Definicao">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="IdCampo" type="xs:int" minOccurs="0" />
+                <xs:element name="CodAplicacao" type="xs:string" minOccurs="0" />
+                <xs:element name="Descricao" type="xs:string" minOccurs="0" />
+                <xs:element name="Acao" type="xs:string" minOccurs="0" />
+                <xs:element name="Ordem" type="xs:int" minOccurs="0" />
+                <xs:element name="Formula" type="xs:string" minOccurs="0" />
+                <xs:element name="DiasAtraso" type="xs:int" minOccurs="0" />
+                <xs:element name="AteVencimento" type="xs:boolean" minOccurs="0" />
+                <xs:element name="CompoeValorExtratoCliFor" type="xs:boolean" minOccurs="0" />
+                <xs:element name="CompoeValorAVP" type="xs:boolean" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ValorLiquidoFLogValores">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="IdLan" type="xs:int" minOccurs="0" />
+                <xs:element name="IdLog" type="xs:int" minOccurs="0" />
+                <xs:element name="Data" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="IdBaixa" type="xs:int" minOccurs="0" />
+                <xs:element name="ValorOriginal" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorDesconto" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorDescontoPontual" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorJuros" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorMulta" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorCap" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp1" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp2" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp3" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp4" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp5" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp6" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp7" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp8" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorINSS" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorIRRF" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorSESTSENAT" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorDevolucao" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorNotaCredito" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorAdiantamento" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorJurosVendor" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorRetencoes" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorPerdaFinanceira" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorDescontoAcordo" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorJurosAcordo" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorAcrescimoAcordo" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorLiquido" type="xs:decimal" minOccurs="0" />
+                <xs:element name="Operacao" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorDescontoCalc" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorMultaCalc" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorCapCalc" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorOp1Calc" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorOp2Calc" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorOp3Calc" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorOp4Calc" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorOp5Calc" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorOp6Calc" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorOp7Calc" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorOp8Calc" type="xs:string" minOccurs="0" />
+                <xs:element name="ServicoAlteracaoRepasse" type="xs:boolean" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ValorLiquidoFLogValores.ListaHistoricoValoresIntegracao">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="IdValoresIntegracao" type="xs:int" minOccurs="0" />
+                <xs:element name="IdLan" type="xs:int" minOccurs="0" />
+                <xs:element name="IdLog" type="xs:int" minOccurs="0" />
+                <xs:element name="IdCampo" type="xs:int" minOccurs="0" />
+                <xs:element name="Valor" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorComSinal" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorCalc" type="xs:string" minOccurs="0" />
+                <xs:element name="ServicoAlteracaoRepasse" type="xs:boolean" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ValorLiquidoFLogValores.ListaHistoricoValoresIntegracao.Definicao">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="ServicoAlteracaoRepasse" type="xs:boolean" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="CodSistema" type="xs:string" minOccurs="0" />
+                <xs:element name="Descricao" type="xs:string" minOccurs="0" />
+                <xs:element name="Acao" type="xs:string" minOccurs="0" />
+                <xs:element name="Formula" type="xs:string" minOccurs="0" />
+                <xs:element name="DiasAtraso" type="xs:int" minOccurs="0" />
+                <xs:element name="AteVencimento" type="xs:boolean" minOccurs="0" />
+                <xs:element name="CompoeValorExtratoCliFor" type="xs:boolean" minOccurs="0" />
+                <xs:element name="CompoeValorAVP" type="xs:boolean" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ValorLiquidoCalculado">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="IdLan" type="xs:int" minOccurs="0" />
+                <xs:element name="Operacao" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorDescontoCalc" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorDescontoPontualidadeCalc" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorJurosCalc" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorMultaCalc" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorCapCalc" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorOp1Calc" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorOp2Calc" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorOp3Calc" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorOp4Calc" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorOp5Calc" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorOp6Calc" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorOp7Calc" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorOp8Calc" type="xs:string" minOccurs="0" />
+                <xs:element name="IdLog" type="xs:int" minOccurs="0" />
+                <xs:element name="Data" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="ValorOriginal" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorDesconto" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorJuros" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorMulta" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorCap" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp1" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp2" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp3" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp4" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp5" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp6" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp7" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp8" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorINSS" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorIRRF" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorSESTSENAT" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorDevolucao" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorNotaCredito" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorAdiantamento" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorJurosVendor" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorRetencoes" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorPerdaFinanceira" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorDescontoAcordo" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorJurosAcordo" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorAcrescimoAcordo" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorLiquido" type="xs:decimal" minOccurs="0" />
+                <xs:element name="IdBaixa" type="xs:int" minOccurs="0" />
+                <xs:element name="ServicoAlteracaoRepasse" type="xs:boolean" minOccurs="0" />
+                <xs:element name="Coligada" type="xs:int" minOccurs="0" />
+                <xs:element name="ID" type="xs:int" minOccurs="0" />
+                <xs:element name="Codigo" type="xs:string" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.TipoDocumento">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="CodTdo" type="xs:string" minOccurs="0" />
+                <xs:element name="Classificacao" type="xs:string" minOccurs="0" />
+                <xs:element name="GeraNumDoc" type="xs:string" minOccurs="0" />
+                <xs:element name="PagRec" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColCfo" type="xs:int" minOccurs="0" />
+                <xs:element name="CodCfo" type="xs:string" minOccurs="0" />
+                <xs:element name="UsarParametrosGerais" type="xs:boolean" minOccurs="0" />
+                <xs:element name="GerarExtCompNaBaixa" type="xs:boolean" minOccurs="0" />
+                <xs:element name="NaoContabilizaBx0" type="xs:boolean" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.RatCCusto">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="IdLan" type="xs:int" minOccurs="0" />
+                <xs:element name="CodCCusto" type="xs:string" minOccurs="0" />
+                <xs:element name="Valor" type="xs:decimal" minOccurs="0" />
+                <xs:element name="Historico" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColNatFinanceira" type="xs:int" minOccurs="0" />
+                <xs:element name="CodNatFinanceira" type="xs:string" minOccurs="0" />
+                <xs:element name="Percentual" type="xs:decimal" minOccurs="0" />
+                <xs:element name="IdPrj" type="xs:int" minOccurs="0" />
+                <xs:element name="IdTrf" type="xs:int" minOccurs="0" />
+                <xs:element name="CodTbGrupoOrc" type="xs:string" minOccurs="0" />
+                <xs:element name="ItemContabil" type="xs:int" minOccurs="0" />
+                <xs:element name="ClasseValor" type="xs:int" minOccurs="0" />
+                <xs:element name="IdRatCCu" type="xs:int" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.RatDepto">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="IdLan" type="xs:int" minOccurs="0" />
+                <xs:element name="CodFilial" type="xs:int" minOccurs="0" />
+                <xs:element name="CodDepartamento" type="xs:string" minOccurs="0" />
+                <xs:element name="Valor" type="xs:decimal" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListTributos">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="RefTributo" type="xs:int" minOccurs="0" />
+                <xs:element name="IdLan" type="xs:int" minOccurs="0" />
+                <xs:element name="CodTrb" type="xs:string" minOccurs="0" />
+                <xs:element name="BaseDeCalculo" type="xs:decimal" minOccurs="0" />
+                <xs:element name="Aliquota" type="xs:decimal" minOccurs="0" />
+                <xs:element name="Valor" type="xs:decimal" minOccurs="0" />
+                <xs:element name="CodRetencao" type="xs:string" minOccurs="0" />
+                <xs:element name="Editado" type="xs:boolean" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="ValorBaixa" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOriginal" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorDesconto" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorDescontoPontual" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorDescontoAcordo" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorJurosAcordo" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorAcrescimoAcordo" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorJuros" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorMulta" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorCap" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp1" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp2" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp3" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp4" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp5" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp6" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp7" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp8" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorINSS" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorSESTSENAT" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorIRRF" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorDevolucao" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorNotaCredito" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorNotaCreditoAdiantamento" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorVinculado" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorJurosVendor" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorRetencoes" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorPerdaFinanceira" type="xs:decimal" minOccurs="0" />
+                <xs:element name="OrigemValorDesconto" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorJuros" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorMulta" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorCap" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp1" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp2" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp3" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp4" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp5" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp6" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp7" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp8" type="xs:string" minOccurs="0" />
+                <xs:element name="IdBaixa" type="xs:int" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="IdLan" type="xs:int" minOccurs="0" />
+                <xs:element name="OrigemContabilizacao" type="xs:string" minOccurs="0" />
+                <xs:element name="IdFormaPagto" type="xs:int" minOccurs="0" />
+                <xs:element name="TipoFormaPagto" type="xs:string" minOccurs="0" />
+                <xs:element name="TipoTransacao" type="xs:string" minOccurs="0" />
+                <xs:element name="IdParcelamento" type="xs:int" minOccurs="0" />
+                <xs:element name="OpcaoParcelamento" type="xs:int" minOccurs="0" />
+                <xs:element name="SequencialPagto" type="xs:int" minOccurs="0" />
+                <xs:element name="IdTransacaoSiTef" type="xs:int" minOccurs="0" />
+                <xs:element name="PagRec" type="xs:string" minOccurs="0" />
+                <xs:element name="IdPagto" type="xs:int" minOccurs="0" />
+                <xs:element name="DataBaixa" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="DataVencimentoLancamento" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="DataCompensacaoExtrato" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="CompensarExtratoBaixa" type="xs:string" minOccurs="0" />
+                <xs:element name="DataContabilizBx" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="CodEventoBaixa" type="xs:int" minOccurs="0" />
+                <xs:element name="NumEventoBaixa" type="xs:int" minOccurs="0" />
+                <xs:element name="CodColCxa" type="xs:int" minOccurs="0" />
+                <xs:element name="CodCxa" type="xs:string" minOccurs="0" />
+                <xs:element name="MotivoBxProtheus" type="xs:string" minOccurs="0" />
+                <xs:element name="Usuario" type="xs:string" minOccurs="0" />
+                <xs:element name="OperacaoValorOp1" type="xs:string" minOccurs="0" />
+                <xs:element name="OperacaoValorOp2" type="xs:string" minOccurs="0" />
+                <xs:element name="OperacaoValorOp3" type="xs:string" minOccurs="0" />
+                <xs:element name="OperacaoValorOp4" type="xs:string" minOccurs="0" />
+                <xs:element name="OperacaoValorOp5" type="xs:string" minOccurs="0" />
+                <xs:element name="OperacaoValorOp6" type="xs:string" minOccurs="0" />
+                <xs:element name="OperacaoValorOp7" type="xs:string" minOccurs="0" />
+                <xs:element name="OperacaoValorOp8" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorOpComSinal1" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOpComSinal2" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOpComSinal3" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOpComSinal4" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOpComSinal5" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOpComSinal6" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOpComSinal7" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOpComSinal8" type="xs:decimal" minOccurs="0" />
+                <xs:element name="SinalOp1" type="xs:string" minOccurs="0" />
+                <xs:element name="SinalOp2" type="xs:string" minOccurs="0" />
+                <xs:element name="SinalOp3" type="xs:string" minOccurs="0" />
+                <xs:element name="SinalOp4" type="xs:string" minOccurs="0" />
+                <xs:element name="SinalOp5" type="xs:string" minOccurs="0" />
+                <xs:element name="SinalOp6" type="xs:string" minOccurs="0" />
+                <xs:element name="SinalOp7" type="xs:string" minOccurs="0" />
+                <xs:element name="SinalOp8" type="xs:string" minOccurs="0" />
+                <xs:element name="CodTabOp1" type="xs:string" minOccurs="0" />
+                <xs:element name="CodTabOp2" type="xs:string" minOccurs="0" />
+                <xs:element name="CodTabOp3" type="xs:string" minOccurs="0" />
+                <xs:element name="CodTabOp4" type="xs:string" minOccurs="0" />
+                <xs:element name="CodTabOp5" type="xs:string" minOccurs="0" />
+                <xs:element name="DataOp1" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="DataOp2" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="DataOp3" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="DataOp4" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="DataOp5" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="CampoAlfaOp1" type="xs:string" minOccurs="0" />
+                <xs:element name="CampoAlfaOp2" type="xs:string" minOccurs="0" />
+                <xs:element name="CampoAlfaOp3" type="xs:string" minOccurs="0" />
+                <xs:element name="CodDepartamento" type="xs:string" minOccurs="0" />
+                <xs:element name="CotacaoBaixa" type="xs:decimal" minOccurs="0" />
+                <xs:element name="CodColXCX" type="xs:int" minOccurs="0" />
+                <xs:element name="IdXCX" type="xs:int" minOccurs="0" />
+                <xs:element name="IdTransacao" type="xs:int" minOccurs="0" />
+                <xs:element name="ModeloContabilizacao" type="xs:int" minOccurs="0" />
+                <xs:element name="DataCheque" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="TipoRetornoBancario" type="xs:string" minOccurs="0" />
+                <xs:element name="TipoBaixa" type="xs:string" minOccurs="0" />
+                <xs:element name="CodUsuario" type="xs:string" minOccurs="0" />
+                <xs:element name="TipoDiferenca" type="xs:string" minOccurs="0" />
+                <xs:element name="CampoDiferenca" type="xs:string" minOccurs="0" />
+                <xs:element name="ValorDiferenca" type="xs:decimal" minOccurs="0" />
+                <xs:element name="AplicarDescontoTotal" type="xs:boolean" minOccurs="0" />
+                <xs:element name="NaoIncluirBaixa" type="xs:boolean" minOccurs="0" />
+                <xs:element name="ServicoAlteracaoRepasse" type="xs:boolean" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+                <xs:element name="CodFilial" type="xs:int" minOccurs="0" />
+                <xs:element name="CodCCusto" type="xs:string" minOccurs="0" />
+                <xs:element name="NumeroCheque" type="xs:string" minOccurs="0" />
+                <xs:element name="ImprimirCheque" type="xs:boolean" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.OrigemValores">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="OrigemValorDesconto" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorJuros" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorMulta" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorCap" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp1" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp2" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp3" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp4" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp5" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp6" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp7" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp8" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorIntegracao" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValoresAcordo" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.ListaValoresIntegracaoItemBaixaPar">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="IdCampo" type="xs:int" minOccurs="0" />
+                <xs:element name="IdLan" type="xs:int" minOccurs="0" />
+                <xs:element name="IdBaixa" type="xs:int" minOccurs="0" />
+                <xs:element name="Valor" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorComSinal" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ServicoAlteracaoRepasse" type="xs:boolean" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.ListaValoresIntegracaoItemBaixaPar.Definicao">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="ServicoAlteracaoRepasse" type="xs:boolean" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="CodSistema" type="xs:string" minOccurs="0" />
+                <xs:element name="Descricao" type="xs:string" minOccurs="0" />
+                <xs:element name="Acao" type="xs:string" minOccurs="0" />
+                <xs:element name="Formula" type="xs:string" minOccurs="0" />
+                <xs:element name="DiasAtraso" type="xs:int" minOccurs="0" />
+                <xs:element name="AteVencimento" type="xs:boolean" minOccurs="0" />
+                <xs:element name="CompoeValorExtratoCliFor" type="xs:boolean" minOccurs="0" />
+                <xs:element name="CompoeValorAVP" type="xs:boolean" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.ListaDeExtrato">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="IdXcx" type="xs:int" minOccurs="0" />
+                <xs:element name="NumeroDocumento" type="xs:string" minOccurs="0" />
+                <xs:element name="Tipo" type="xs:string" minOccurs="0" />
+                <xs:element name="Compensado" type="xs:string" minOccurs="0" />
+                <xs:element name="Reconciliado" type="xs:int" minOccurs="0" />
+                <xs:element name="Historico" type="xs:string" minOccurs="0" />
+                <xs:element name="CodCxa" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColCxa" type="xs:int" minOccurs="0" />
+                <xs:element name="CodCCusto" type="xs:string" minOccurs="0" />
+                <xs:element name="CodFilial" type="xs:int" minOccurs="0" />
+                <xs:element name="CodDepartamento" type="xs:string" minOccurs="0" />
+                <xs:element name="Valor" type="xs:decimal" minOccurs="0" />
+                <xs:element name="Data" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="DataVencimento" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="DataCompensacao" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="DataCancelamento" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="DataEstorno" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="DataContabiliz" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="DataReconciliacao" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="DataProrrogacao" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="DataCustodiaFilial" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="DataCustodiaBanco" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="CodEvento" type="xs:int" minOccurs="0" />
+                <xs:element name="NumContabil" type="xs:string" minOccurs="0" />
+                <xs:element name="IdSessao" type="xs:int" minOccurs="0" />
+                <xs:element name="CodColXcxTransf" type="xs:int" minOccurs="0" />
+                <xs:element name="IdXcxTransf" type="xs:int" minOccurs="0" />
+                <xs:element name="CodCxaTransf" type="xs:string" minOccurs="0" />
+                <xs:element name="IdAplFin" type="xs:int" minOccurs="0" />
+                <xs:element name="Contabil" type="xs:string" minOccurs="0" />
+                <xs:element name="FilialContabil" type="xs:int" minOccurs="0" />
+                <xs:element name="CodTb1Flx" type="xs:string" minOccurs="0" />
+                <xs:element name="CodTb2Flx" type="xs:string" minOccurs="0" />
+                <xs:element name="CodTb3Flx" type="xs:string" minOccurs="0" />
+                <xs:element name="CodTb4Flx" type="xs:string" minOccurs="0" />
+                <xs:element name="CodTb5Flx" type="xs:string" minOccurs="0" />
+                <xs:element name="ECheque" type="xs:int" minOccurs="0" />
+                <xs:element name="PreDatado" type="xs:int" minOccurs="0" />
+                <xs:element name="Estornado" type="xs:int" minOccurs="0" />
+                <xs:element name="NumLoteContabil" type="xs:int" minOccurs="0" />
+                <xs:element name="TipoMovCH" type="xs:string" minOccurs="0" />
+                <xs:element name="DataCriacao" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="CodColNatFinanceira" type="xs:int" minOccurs="0" />
+                <xs:element name="CodNatFinanceira" type="xs:string" minOccurs="0" />
+                <xs:element name="ModeloContabilizacao" type="xs:string" minOccurs="0" />
+                <xs:element name="IdOperacaoCont" type="xs:int" minOccurs="0" />
+                <xs:element name="IdConvenio" type="xs:int" minOccurs="0" />
+                <xs:element name="RECCREATEDBY" type="xs:string" minOccurs="0" />
+                <xs:element name="RECMODIFIEDBY" type="xs:string" minOccurs="0" />
+                <xs:element name="RECCREATEDON" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="RECMODIFIEDON" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="ServicoAlteracaoRepasse" type="xs:boolean" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+                <xs:element name="IdPagto" type="xs:int" minOccurs="0" />
+                <xs:element name="CartaoOperadora" type="xs:int" minOccurs="0" />
+                <xs:element name="CartaoBandeira" type="xs:int" minOccurs="0" />
+                <xs:element name="CartaoNsu" type="xs:string" minOccurs="0" />
+                <xs:element name="CartaoAutorizacao" type="xs:string" minOccurs="0" />
+                <xs:element name="CartaoTid" type="xs:string" minOccurs="0" />
+                <xs:element name="CartaoNumParcela" type="xs:int" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.LancamentoLiquido">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="IdLan" type="xs:int" minOccurs="0" />
+                <xs:element name="ValorOriginal" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorDesconto" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorJuros" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorMulta" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorCap" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp1" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp2" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp3" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp4" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp5" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp6" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp7" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorOp8" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorINSS" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorIRRF" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorSESTSENAT" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorDevolucao" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorNotaCredito" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorAdiantamento" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorJurosVendor" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorRetencoes" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorPerdaFinanceira" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorLiquido" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorDescontoAcordo" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorJurosAcordo" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorAcrescimoAcordo" type="xs:decimal" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.LancamentoLiquido.OrigemValoresParaCalculoValorLiquido">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="OrigemValorDesconto" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorJuros" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorMulta" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorCap" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp1" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp2" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp3" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp4" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp5" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp6" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp7" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorOp8" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValorIntegracao" type="xs:string" minOccurs="0" />
+                <xs:element name="OrigemValoresAcordo" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.CamposComplementares">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="VALOR" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.contabil">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="StatusContabilizacao" type="xs:string" minOccurs="0" />
+                <xs:element name="FiltroProc_LookupEventoContabil" type="xs:string" minOccurs="0" />
+                <xs:element name="HasFilterProc_EventoContabil" type="xs:boolean" minOccurs="0" />
+                <xs:element name="HasChanges" type="xs:boolean" minOccurs="0" />
+                <xs:element name="UsaEventoContabil" type="xs:boolean" minOccurs="0" />
+                <xs:element name="LancamentosAutomaticos" type="xs:boolean" minOccurs="0" />
+                <xs:element name="ValidaContaContabilSemRateio" type="xs:boolean" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="IdOperacao" type="xs:int" minOccurs="0" />
+                <xs:element name="IdOperacao_LancamentoExcluido" type="xs:int" minOccurs="0" />
+                <xs:element name="LancamentoExcluido" type="xs:boolean" minOccurs="0" />
+                <xs:element name="CodLoteDefault" type="xs:int" minOccurs="0" />
+                <xs:element name="DataContabilizacaoDefault" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="DataContabilizacao" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="DescricaoDefault" type="xs:string" minOccurs="0" />
+                <xs:element name="NumDocumentoPartida" type="xs:string" minOccurs="0" />
+                <xs:element name="ExecutaEventoContabilAutomatico" type="xs:boolean" minOccurs="0" />
+                <xs:element name="PermiteAlterarLanctoLoteZero" type="xs:boolean" minOccurs="0" />
+                <xs:element name="TipoParticipante" type="xs:string" minOccurs="0" />
+                <xs:element name="Processo" type="xs:string" minOccurs="0" />
+                <xs:element name="CodigoCliFor_Filial" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColCFO" type="xs:int" minOccurs="0" />
+                <xs:element name="ContabilizacaoReadOnly" type="xs:boolean" minOccurs="0" />
+                <xs:element name="DesabilitarVisualizacaoEdicaoPartida" type="xs:boolean" minOccurs="0" />
+                <xs:element name="PermitirManutencaoLanLoteZero" type="xs:boolean" minOccurs="0" />
+                <xs:element name="CodEventoContabil" type="xs:int" minOccurs="0" />
+                <xs:element name="CodEventoContabilDefault" type="xs:int" minOccurs="0" />
+                <xs:element name="PermiteExcluirLancamento" type="xs:boolean" minOccurs="0" />
+                <xs:element name="IdLogEventoContabil" type="xs:string" minOccurs="0" />
+                <xs:element name="LogAtivado" type="xs:boolean" minOccurs="0" />
+                <xs:element name="NaoVisualizarInfoEventoContabil" type="xs:boolean" minOccurs="0" />
+                <xs:element name="HabilitaInfoEventoContabil" type="xs:boolean" minOccurs="0" />
+                <xs:element name="ValidaUsuarioModificouContabilizacaoGeradaPeloEvento" type="xs:boolean" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+                <xs:element name="IdOperacao" type="xs:int" minOccurs="0" />
+                <xs:element name="IntegraAplicacao" type="xs:string" minOccurs="0" />
+                <xs:element name="Estorno" type="xs:boolean" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="IdLancamento" type="xs:int" minOccurs="0" />
+                <xs:element name="CodLote" type="xs:int" minOccurs="0" />
+                <xs:element name="Descricao" type="xs:string" minOccurs="0" />
+                <xs:element name="CodUsuario" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="CodLote" type="xs:int" minOccurs="0" />
+                <xs:element name="IdLancamento" type="xs:int" minOccurs="0" />
+                <xs:element name="IdPartida" type="xs:int" minOccurs="0" />
+                <xs:element name="IdCont" type="xs:int" minOccurs="0" />
+                <xs:element name="CodFilial" type="xs:int" minOccurs="0" />
+                <xs:element name="CodDepartamento" type="xs:string" minOccurs="0" />
+                <xs:element name="CodCCusto" type="xs:string" minOccurs="0" />
+                <xs:element name="Documento" type="xs:string" minOccurs="0" />
+                <xs:element name="Data" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="CodColDebito" type="xs:int" minOccurs="0" />
+                <xs:element name="Debito" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColCredito" type="xs:int" minOccurs="0" />
+                <xs:element name="Credito" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColPartida" type="xs:int" minOccurs="0" />
+                <xs:element name="Partida" type="xs:string" minOccurs="0" />
+                <xs:element name="Valor" type="xs:decimal" minOccurs="0" />
+                <xs:element name="Valor2" type="xs:decimal" minOccurs="0" />
+                <xs:element name="Data2" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="CodHistp" type="xs:string" minOccurs="0" />
+                <xs:element name="Complemento" type="xs:string" minOccurs="0" />
+                <xs:element name="IntegraAplicacao" type="xs:string" minOccurs="0" />
+                <xs:element name="idParticipante" type="xs:int" minOccurs="0" />
+                <xs:element name="Usuario" type="xs:string" minOccurs="0" />
+                <xs:element name="IdItemContabilProtheus" type="xs:int" minOccurs="0" />
+                <xs:element name="IdClasseValorProtheus" type="xs:int" minOccurs="0" />
+                <xs:element name="CodColEliminacao" type="xs:int" minOccurs="0" />
+                <xs:element name="CodColContaEliminacao" type="xs:int" minOccurs="0" />
+                <xs:element name="CodContaEliminacao" type="xs:string" minOccurs="0" />
+                <xs:element name="NomeFilial" type="xs:string" minOccurs="0" />
+                <xs:element name="NomeDepartamento" type="xs:string" minOccurs="0" />
+                <xs:element name="DescricaoHistp" type="xs:string" minOccurs="0" />
+                <xs:element name="ReduzidoDebito" type="xs:string" minOccurs="0" />
+                <xs:element name="ReduzidoCredito" type="xs:string" minOccurs="0" />
+                <xs:element name="DescricaoDebito" type="xs:string" minOccurs="0" />
+                <xs:element name="DescricaoCredito" type="xs:string" minOccurs="0" />
+                <xs:element name="NomeCCusto" type="xs:string" minOccurs="0" />
+                <xs:element name="ReduzidoCCusto" type="xs:string" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+                <xs:element name="Image" type="xs:int" minOccurs="0" />
+                <xs:element name="ExigeRateioDebito" type="xs:int" minOccurs="0" />
+                <xs:element name="ExigeRateioCredito" type="xs:int" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.RateioDebito">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="LctRef" type="xs:int" minOccurs="0" />
+                <xs:element name="Data" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="CodColConta" type="xs:int" minOccurs="0" />
+                <xs:element name="CodConta" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColGerencial" type="xs:int" minOccurs="0" />
+                <xs:element name="ContaGerencialInativa" type="xs:short" minOccurs="0" />
+                <xs:element name="CodGerencial" type="xs:string" minOccurs="0" />
+                <xs:element name="VlrDebito" type="xs:decimal" minOccurs="0" />
+                <xs:element name="VlrCredito" type="xs:decimal" minOccurs="0" />
+                <xs:element name="CodLote" type="xs:int" minOccurs="0" />
+                <xs:element name="IdRateio" type="xs:int" minOccurs="0" />
+                <xs:element name="IdPartida" type="xs:int" minOccurs="0" />
+                <xs:element name="IdCont" type="xs:int" minOccurs="0" />
+                <xs:element name="Valor" type="xs:string" minOccurs="0" />
+                <xs:element name="Percentual" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.RateioCredito">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="LctRef" type="xs:int" minOccurs="0" />
+                <xs:element name="Data" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="CodColConta" type="xs:int" minOccurs="0" />
+                <xs:element name="CodConta" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColGerencial" type="xs:int" minOccurs="0" />
+                <xs:element name="ContaGerencialInativa" type="xs:short" minOccurs="0" />
+                <xs:element name="CodGerencial" type="xs:string" minOccurs="0" />
+                <xs:element name="VlrDebito" type="xs:decimal" minOccurs="0" />
+                <xs:element name="VlrCredito" type="xs:decimal" minOccurs="0" />
+                <xs:element name="CodLote" type="xs:int" minOccurs="0" />
+                <xs:element name="IdRateio" type="xs:int" minOccurs="0" />
+                <xs:element name="IdPartida" type="xs:int" minOccurs="0" />
+                <xs:element name="IdCont" type="xs:int" minOccurs="0" />
+                <xs:element name="Valor" type="xs:string" minOccurs="0" />
+                <xs:element name="Percentual" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.Dimensao">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="IdPartida" type="xs:int" minOccurs="0" />
+                <xs:element name="IdCont" type="xs:int" minOccurs="0" />
+                <xs:element name="IdDimensaoPartida" type="xs:int" minOccurs="0" />
+                <xs:element name="CodColDimensao" type="xs:int" minOccurs="0" />
+                <xs:element name="IdDimensao" type="xs:int" minOccurs="0" />
+                <xs:element name="Entidade" type="xs:string" minOccurs="0" />
+                <xs:element name="Valor" type="xs:string" minOccurs="0" />
+                <xs:element name="Percentual" type="xs:decimal" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.RateioDimensao">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="IdPartida" type="xs:int" minOccurs="0" />
+                <xs:element name="IdCont" type="xs:int" minOccurs="0" />
+                <xs:element name="IdRateioDimensao" type="xs:int" minOccurs="0" />
+                <xs:element name="Valor" type="xs:decimal" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.RateioDimensao.Dimensao">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="IdPartida" type="xs:int" minOccurs="0" />
+                <xs:element name="IdCont" type="xs:int" minOccurs="0" />
+                <xs:element name="IdDimensaoPartida" type="xs:int" minOccurs="0" />
+                <xs:element name="CodColDimensao" type="xs:int" minOccurs="0" />
+                <xs:element name="IdDimensao" type="xs:int" minOccurs="0" />
+                <xs:element name="Entidade" type="xs:string" minOccurs="0" />
+                <xs:element name="Valor" type="xs:string" minOccurs="0" />
+                <xs:element name="Percentual" type="xs:decimal" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.OwnerData">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.OwnerData">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.ItemEvento">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="TipoLog" type="xs:string" minOccurs="0" />
+                <xs:element name="Title" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.ItemEvento.Log">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Lancamento">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="TipoLog" type="xs:string" minOccurs="0" />
+                <xs:element name="Title" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Rateio">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Rateio.Rateio">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="TipoLog" type="xs:string" minOccurs="0" />
+                <xs:element name="Title" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Rateio.Rateios">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="TipoLog" type="xs:string" minOccurs="0" />
+                <xs:element name="Title" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Departamento">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Departamento.Departamento">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="TipoLog" type="xs:string" minOccurs="0" />
+                <xs:element name="Title" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Departamento.Ccusto">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="TipoLog" type="xs:string" minOccurs="0" />
+                <xs:element name="Title" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Dimensao">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Dimensao.Dimensao">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="TipoLog" type="xs:string" minOccurs="0" />
+                <xs:element name="Title" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Dimensao.Dimensoes">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="TipoLog" type="xs:string" minOccurs="0" />
+                <xs:element name="Title" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.RateiosCCuLan">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="IdBaixa" type="xs:int" minOccurs="0" />
+                <xs:element name="IdLan" type="xs:int" minOccurs="0" />
+                <xs:element name="IdRatCCu" type="xs:int" minOccurs="0" />
+                <xs:element name="CodCCusto" type="xs:string" minOccurs="0" />
+                <xs:element name="Valor" type="xs:decimal" minOccurs="0" />
+                <xs:element name="Percentual" type="xs:decimal" minOccurs="0" />
+                <xs:element name="CodColNatFinanceira" type="xs:int" minOccurs="0" />
+                <xs:element name="CodNatFinanceira" type="xs:string" minOccurs="0" />
+                <xs:element name="IdPrj" type="xs:int" minOccurs="0" />
+                <xs:element name="IdTrf" type="xs:int" minOccurs="0" />
+                <xs:element name="CodTbGrupoOrc" type="xs:string" minOccurs="0" />
+                <xs:element name="CodUsuario" type="xs:string" minOccurs="0" />
+                <xs:element name="ServicoAlteracaoRepasse" type="xs:boolean" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.RateiosCCu">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="IdBaixa" type="xs:int" minOccurs="0" />
+                <xs:element name="IdLan" type="xs:int" minOccurs="0" />
+                <xs:element name="IdRatCCu" type="xs:int" minOccurs="0" />
+                <xs:element name="CodCCusto" type="xs:string" minOccurs="0" />
+                <xs:element name="Valor" type="xs:decimal" minOccurs="0" />
+                <xs:element name="Percentual" type="xs:decimal" minOccurs="0" />
+                <xs:element name="CodColNatFinanceira" type="xs:int" minOccurs="0" />
+                <xs:element name="CodNatFinanceira" type="xs:string" minOccurs="0" />
+                <xs:element name="IdPrj" type="xs:int" minOccurs="0" />
+                <xs:element name="IdTrf" type="xs:int" minOccurs="0" />
+                <xs:element name="CodTbGrupoOrc" type="xs:string" minOccurs="0" />
+                <xs:element name="CodUsuario" type="xs:string" minOccurs="0" />
+                <xs:element name="ServicoAlteracaoRepasse" type="xs:boolean" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.RateiosDepto">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="IdBaixa" type="xs:int" minOccurs="0" />
+                <xs:element name="IdLan" type="xs:int" minOccurs="0" />
+                <xs:element name="CodFilial" type="xs:int" minOccurs="0" />
+                <xs:element name="CodDepartamento" type="xs:string" minOccurs="0" />
+                <xs:element name="Valor" type="xs:decimal" minOccurs="0" />
+                <xs:element name="Percentual" type="xs:decimal" minOccurs="0" />
+                <xs:element name="CodUsuario" type="xs:string" minOccurs="0" />
+                <xs:element name="ServicoAlteracaoRepasse" type="xs:boolean" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.Lancamentos.ListaDeItemBaixa.ListTributos">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="IdBaixa" type="xs:int" minOccurs="0" />
+                <xs:element name="IdLan" type="xs:int" minOccurs="0" />
+                <xs:element name="RefTributo" type="xs:int" minOccurs="0" />
+                <xs:element name="CodTrb" type="xs:string" minOccurs="0" />
+                <xs:element name="Aliquota" type="xs:decimal" minOccurs="0" />
+                <xs:element name="Valor" type="xs:decimal" minOccurs="0" />
+                <xs:element name="BaseDeCalculo" type="xs:decimal" minOccurs="0" />
+                <xs:element name="CodRetencao" type="xs:string" minOccurs="0" />
+                <xs:element name="CodUsuario" type="xs:string" minOccurs="0" />
+                <xs:element name="CGCCFO" type="xs:string" minOccurs="0" />
+                <xs:element name="TipoTribFisc" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColNatFinanceira" type="xs:int" minOccurs="0" />
+                <xs:element name="CodNatFinanceira" type="xs:string" minOccurs="0" />
+                <xs:element name="ServicoAlteracaoRepasse" type="xs:boolean" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.FormasPagamento">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="IdLan" type="xs:int" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="CodFormaPagto" type="xs:string" minOccurs="0" />
+                <xs:element name="IdPagto" type="xs:int" minOccurs="0" />
+                <xs:element name="CodFilial" type="xs:int" minOccurs="0" />
+                <xs:element name="DescFormaPagto" type="xs:string" minOccurs="0" />
+                <xs:element name="IdFormaPagto" type="xs:int" minOccurs="0" />
+                <xs:element name="TipoFormaPagto" type="xs:string" minOccurs="0" />
+                <xs:element name="TipoTransacao" type="xs:string" minOccurs="0" />
+                <xs:element name="OpcaoParcelamento" type="xs:int" minOccurs="0" />
+                <xs:element name="IdParcelamento" type="xs:int" minOccurs="0" />
+                <xs:element name="SequencialPagto" type="xs:int" minOccurs="0" />
+                <xs:element name="Valor" type="xs:decimal" minOccurs="0" />
+                <xs:element name="CodColCxa" type="xs:int" minOccurs="0" />
+                <xs:element name="CodCxa" type="xs:string" minOccurs="0" />
+                <xs:element name="MotivoBxProtheus" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColProp" type="xs:int" minOccurs="0" />
+                <xs:element name="PagRec" type="xs:string" minOccurs="0" />
+                <xs:element name="DataCompensacaoExtrato" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="CompensarExtratoBaixa" type="xs:string" minOccurs="0" />
+                <xs:element name="CodImg" type="xs:int" minOccurs="0" />
+                <xs:element name="ImprimeCheque" type="xs:boolean" minOccurs="0" />
+                <xs:element name="CodUsuario" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.FormasPagamento.Img">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.FormasPagamento.Cheque">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="Numero" type="xs:string" minOccurs="0" />
+                <xs:element name="Valor" type="xs:decimal" minOccurs="0" />
+                <xs:element name="Data" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="CodFilial" type="xs:int" minOccurs="0" />
+                <xs:element name="CodNatFinanceira" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColNatFinanceira" type="xs:int" minOccurs="0" />
+                <xs:element name="CodDepartamento" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColCxa" type="xs:int" minOccurs="0" />
+                <xs:element name="CodCxa" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColProp" type="xs:int" minOccurs="0" />
+                <xs:element name="CodCCusto" type="xs:string" minOccurs="0" />
+                <xs:element name="Contabil" type="xs:int" minOccurs="0" />
+                <xs:element name="CodEvento" type="xs:short" minOccurs="0" />
+                <xs:element name="Nominal" type="xs:string" minOccurs="0" />
+                <xs:element name="Historico" type="xs:string" minOccurs="0" />
+                <xs:element name="PreDatado" type="xs:int" minOccurs="0" />
+                <xs:element name="CodTb1Flx" type="xs:string" minOccurs="0" />
+                <xs:element name="CodTb2Flx" type="xs:string" minOccurs="0" />
+                <xs:element name="CodTb3Flx" type="xs:string" minOccurs="0" />
+                <xs:element name="CodTb4Flx" type="xs:string" minOccurs="0" />
+                <xs:element name="CodTb5Flx" type="xs:string" minOccurs="0" />
+                <xs:element name="CodigoBanco" type="xs:string" minOccurs="0" />
+                <xs:element name="CodigoAgencia" type="xs:string" minOccurs="0" />
+                <xs:element name="ContaCorrente" type="xs:string" minOccurs="0" />
+                <xs:element name="DataVencimento" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="DataProrrogacao" type="xs:dateTime" minOccurs="0" />
+                <xs:element name="NomeEmitente" type="xs:string" minOccurs="0" />
+                <xs:element name="TelEmitente" type="xs:string" minOccurs="0" />
+                <xs:element name="PracaCheque" type="xs:string" minOccurs="0" />
+                <xs:element name="TipoInscricaoCh" type="xs:string" minOccurs="0" />
+                <xs:element name="CpfCnpj" type="xs:string" minOccurs="0" />
+                <xs:element name="AtualizaProximoNumeroCheque" type="xs:boolean" minOccurs="0" />
+                <xs:element name="ImprimirCheque" type="xs:boolean" minOccurs="0" />
+                <xs:element name="LinhaDigitavel" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.FormasPagamento.Cartao">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="IdPagto" type="xs:int" minOccurs="0" />
+                <xs:element name="CartaoOperadora" type="xs:int" minOccurs="0" />
+                <xs:element name="CartaoBandeira" type="xs:int" minOccurs="0" />
+                <xs:element name="CartaoEstabelecimento" type="xs:string" minOccurs="0" />
+                <xs:element name="CartaoNsu" type="xs:string" minOccurs="0" />
+                <xs:element name="CartaoAutorizacao" type="xs:string" minOccurs="0" />
+                <xs:element name="CartaoTid" type="xs:string" minOccurs="0" />
+                <xs:element name="CartaoNumParcela" type="xs:int" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.FormasPagamento.Contabilizacao">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.FormasPagamento.Mutuo">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="CodFilial" type="xs:short" minOccurs="0" />
+                <xs:element name="CodDepartamento" type="xs:string" minOccurs="0" />
+                <xs:element name="CodCCusto" type="xs:string" minOccurs="0" />
+                <xs:element name="CodEvento" type="xs:short" minOccurs="0" />
+                <xs:element name="CodTb1Flx" type="xs:string" minOccurs="0" />
+                <xs:element name="CodTb2Flx" type="xs:string" minOccurs="0" />
+                <xs:element name="CodTb3Flx" type="xs:string" minOccurs="0" />
+                <xs:element name="CodTb4Flx" type="xs:string" minOccurs="0" />
+                <xs:element name="CodTb5Flx" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColNatFinanceira" type="xs:short" minOccurs="0" />
+                <xs:element name="CodNatFinanceira" type="xs:string" minOccurs="0" />
+                <xs:element name="UsarDadosMutuo" type="xs:boolean" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.PagtoPorLan">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="CodFormaPagto" type="xs:string" minOccurs="0" />
+                <xs:element name="IdPagto" type="xs:int" minOccurs="0" />
+                <xs:element name="IdLan" type="xs:int" minOccurs="0" />
+                <xs:element name="IdFormaPagto" type="xs:int" minOccurs="0" />
+                <xs:element name="Valor" type="xs:decimal" minOccurs="0" />
+                <xs:element name="IdParcela" type="xs:int" minOccurs="0" />
+                <xs:element name="MotivoBxProtheus" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.ListContabilLan">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="IdLan" type="xs:int" minOccurs="0" />
+                <xs:element name="IdFormaPagto" type="xs:int" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.ListContabilLan.contabilizacao">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="CodColEliminacao" type="xs:int" minOccurs="0" />
+                <xs:element name="CodColContaEliminacao" type="xs:int" minOccurs="0" />
+                <xs:element name="CodContaEliminacao" type="xs:string" minOccurs="0" />
+                <xs:element name="Tipo" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColConta" type="xs:int" minOccurs="0" />
+                <xs:element name="CodConta" type="xs:string" minOccurs="0" />
+                <xs:element name="ReduzidoConta" type="xs:string" minOccurs="0" />
+                <xs:element name="DescricaoConta" type="xs:string" minOccurs="0" />
+                <xs:element name="CodFilial" type="xs:int" minOccurs="0" />
+                <xs:element name="CodDepartamento" type="xs:string" minOccurs="0" />
+                <xs:element name="CodCCusto" type="xs:string" minOccurs="0" />
+                <xs:element name="CodHistP" type="xs:string" minOccurs="0" />
+                <xs:element name="ComplHistorico" type="xs:string" minOccurs="0" />
+                <xs:element name="Valor" type="xs:decimal" minOccurs="0" />
+                <xs:element name="ValorSegundaMoeda" type="xs:decimal" minOccurs="0" />
+                <xs:element name="CodeAplicarNoValor" type="xs:string" minOccurs="0" />
+                <xs:element name="NumeroInterno" type="xs:int" minOccurs="0" />
+                <xs:element name="IdLogEventoContabil" type="xs:string" minOccurs="0" />
+                <xs:element name="LogEventoAtivado" type="xs:boolean" minOccurs="0" />
+                <xs:element name="IdItemContabil" type="xs:int" minOccurs="0" />
+                <xs:element name="IdClasseValor" type="xs:int" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.ListContabilLan.contabilizacao.Rateio">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColContaGer" type="xs:int" minOccurs="0" />
+                <xs:element name="ContaGerencialInativa" type="xs:short" minOccurs="0" />
+                <xs:element name="CodContaGer" type="xs:string" minOccurs="0" />
+                <xs:element name="Valor" type="xs:decimal" minOccurs="0" />
+                <xs:element name="PercentualAplicado" type="xs:decimal" minOccurs="0" />
+                <xs:element name="AplicaNo" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.ListContabilLan.contabilizacao.Rateio.CentroCustoOrigem">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="VALOR" type="xs:string" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.ListContabilLan.contabilizacao.Dimensao">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColDimensao" type="xs:int" minOccurs="0" />
+                <xs:element name="IdDimensao" type="xs:int" minOccurs="0" />
+                <xs:element name="Entidade" type="xs:string" minOccurs="0" />
+                <xs:element name="Valor" type="xs:string" minOccurs="0" />
+                <xs:element name="Percentual" type="xs:decimal" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.ListContabilLan.contabilizacao.RateioDimensao">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+                <xs:element name="IdRateio" type="xs:int" minOccurs="0" />
+                <xs:element name="Valor" type="xs:decimal" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.ListContabilLan.contabilizacao.RateioDimensao.Dimensao">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="InternalId" type="xs:string" minOccurs="0" />
+                <xs:element name="CodColDimensao" type="xs:int" minOccurs="0" />
+                <xs:element name="IdDimensao" type="xs:int" minOccurs="0" />
+                <xs:element name="Entidade" type="xs:string" minOccurs="0" />
+                <xs:element name="Valor" type="xs:string" minOccurs="0" />
+                <xs:element name="Percentual" type="xs:decimal" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.ListContabilLan.contabilizacao.LogEvc">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="Parametros.ListaIdBoletoBaixa">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="OBJECTID" msdata:AutoIncrement="true" type="xs:int" />
+                <xs:element name="PARENTOBJECTID" type="xs:int" minOccurs="0" />
+                <xs:element name="CodColigada" type="xs:int" minOccurs="0" />
+                <xs:element name="IdBoleto" type="xs:int" minOccurs="0" />
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+        </xs:choice>
+      </xs:complexType>
+      <xs:unique name="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.OrigemValoresParaCalculoValorLiquido_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.OrigemValoresParaCalculoValorLiquido" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.Valores_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.Valores" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaVaLorIntegracaoLancamento_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaVaLorIntegracaoLancamento" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaVaLorIntegracaoLancamento.Definicao_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaVaLorIntegracaoLancamento.Definicao" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ValorLiquidoFLogValores_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ValorLiquidoFLogValores" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ValorLiquidoFLogValores.ListaHistoricoValoresIntegracao_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ValorLiquidoFLogValores.ListaHistoricoValoresIntegracao" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ValorLiquidoFLogValores.ListaHistoricoValoresIntegracao.Definicao_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ValorLiquidoFLogValores.ListaHistoricoValoresIntegracao.Definicao" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ValorLiquidoCalculado_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ValorLiquidoCalculado" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.TipoDocumento_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.TipoDocumento" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.RatCCusto_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.RatCCusto" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.RatDepto_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.RatDepto" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListTributos_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListTributos" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.OrigemValores_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.OrigemValores" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.ListaValoresIntegracaoItemBaixaPar_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.ListaValoresIntegracaoItemBaixaPar" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.ListaValoresIntegracaoItemBaixaPar.Definicao_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.ListaValoresIntegracaoItemBaixaPar.Definicao" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.ListaDeExtrato_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.ListaDeExtrato" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.LancamentoLiquido_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.LancamentoLiquido" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.LancamentoLiquido.OrigemValoresParaCalculoValorLiquido_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.LancamentoLiquido.OrigemValoresParaCalculoValorLiquido" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.CamposComplementares_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.CamposComplementares" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.contabil_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.RateioDebito_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.RateioDebito" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.RateioCredito_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.RateioCredito" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.Dimensao_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.Dimensao" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.RateioDimensao_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.RateioDimensao" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.RateioDimensao.Dimensao_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.RateioDimensao.Dimensao" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.OwnerData_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.OwnerData" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.OwnerData_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.OwnerData" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.ItemEvento_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.ItemEvento" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.ItemEvento.Log_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.ItemEvento.Log" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Lancamento_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Lancamento" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Rateio_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Rateio" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Rateio.Rateio_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Rateio.Rateio" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Rateio.Rateios_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Rateio.Rateios" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Departamento_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Departamento" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Departamento.Departamento_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Departamento.Departamento" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Departamento.Ccusto_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Departamento.Ccusto" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Dimensao_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Dimensao" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Dimensao.Dimensao_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Dimensao.Dimensao" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Dimensao.Dimensoes_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Dimensao.Dimensoes" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.RateiosCCuLan_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.RateiosCCuLan" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.RateiosCCu_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.RateiosCCu" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.RateiosDepto_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.RateiosDepto" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.Lancamentos.ListaDeItemBaixa.ListTributos_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.ListTributos" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.FormasPagamento_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.FormasPagamento" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.FormasPagamento.Img_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.FormasPagamento.Img" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.FormasPagamento.Cheque_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.FormasPagamento.Cheque" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.FormasPagamento.Cartao_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.FormasPagamento.Cartao" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.FormasPagamento.Contabilizacao_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.FormasPagamento.Contabilizacao" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.FormasPagamento.Mutuo_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.FormasPagamento.Mutuo" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.PagtoPorLan_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.PagtoPorLan" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.ListContabilLan_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.ListContabilLan" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.ListContabilLan.contabilizacao_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.ListContabilLan.contabilizacao" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.ListContabilLan.contabilizacao.Rateio_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.ListContabilLan.contabilizacao.Rateio" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.ListContabilLan.contabilizacao.Rateio.CentroCustoOrigem_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.ListContabilLan.contabilizacao.Rateio.CentroCustoOrigem" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.ListContabilLan.contabilizacao.Dimensao_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.ListContabilLan.contabilizacao.Dimensao" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.ListContabilLan.contabilizacao.RateioDimensao_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.ListContabilLan.contabilizacao.RateioDimensao" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.ListContabilLan.contabilizacao.RateioDimensao.Dimensao_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.ListContabilLan.contabilizacao.RateioDimensao.Dimensao" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.ListContabilLan.contabilizacao.LogEvc_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.ListContabilLan.contabilizacao.LogEvc" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:unique name="Parametros.ListaIdBoletoBaixa_Constraint1" msdata:ConstraintName="Constraint1" msdata:PrimaryKey="true">
+        <xs:selector xpath=".//Parametros.ListaIdBoletoBaixa" />
+        <xs:field xpath="OBJECTID" />
+      </xs:unique>
+      <xs:keyref name="Parametros_Parametros.ListaIdBoletoBaixa" refer="Constraint1">
+        <xs:selector xpath=".//Parametros.ListaIdBoletoBaixa" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.ListContabilLan.contabilizacao_Parametros.ListContabilLan.contabilizacao.LogEvc" refer="Parametros.ListContabilLan.contabilizacao_Constraint1">
+        <xs:selector xpath=".//Parametros.ListContabilLan.contabilizacao.LogEvc" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.ListContabilLan.contabilizacao.RateioDimensao_Parametros.ListContabilLan.contabilizacao.RateioDimensao.Dimensao" refer="Parametros.ListContabilLan.contabilizacao.RateioDimensao_Constraint1">
+        <xs:selector xpath=".//Parametros.ListContabilLan.contabilizacao.RateioDimensao.Dimensao" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.ListContabilLan.contabilizacao_Parametros.ListContabilLan.contabilizacao.RateioDimensao" refer="Parametros.ListContabilLan.contabilizacao_Constraint1">
+        <xs:selector xpath=".//Parametros.ListContabilLan.contabilizacao.RateioDimensao" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.ListContabilLan.contabilizacao_Parametros.ListContabilLan.contabilizacao.Dimensao" refer="Parametros.ListContabilLan.contabilizacao_Constraint1">
+        <xs:selector xpath=".//Parametros.ListContabilLan.contabilizacao.Dimensao" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.ListContabilLan.contabilizacao.Rateio_Parametros.ListContabilLan.contabilizacao.Rateio.CentroCustoOrigem" refer="Parametros.ListContabilLan.contabilizacao.Rateio_Constraint1">
+        <xs:selector xpath=".//Parametros.ListContabilLan.contabilizacao.Rateio.CentroCustoOrigem" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.ListContabilLan.contabilizacao_Parametros.ListContabilLan.contabilizacao.Rateio" refer="Parametros.ListContabilLan.contabilizacao_Constraint1">
+        <xs:selector xpath=".//Parametros.ListContabilLan.contabilizacao.Rateio" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.ListContabilLan_Parametros.ListContabilLan.contabilizacao" refer="Parametros.ListContabilLan_Constraint1">
+        <xs:selector xpath=".//Parametros.ListContabilLan.contabilizacao" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros_Parametros.ListContabilLan" refer="Constraint1">
+        <xs:selector xpath=".//Parametros.ListContabilLan" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros_Parametros.PagtoPorLan" refer="Constraint1">
+        <xs:selector xpath=".//Parametros.PagtoPorLan" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.FormasPagamento_Parametros.FormasPagamento.Mutuo" refer="Parametros.FormasPagamento_Constraint1">
+        <xs:selector xpath=".//Parametros.FormasPagamento.Mutuo" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.FormasPagamento_Parametros.FormasPagamento.Contabilizacao" refer="Parametros.FormasPagamento_Constraint1">
+        <xs:selector xpath=".//Parametros.FormasPagamento.Contabilizacao" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.FormasPagamento_Parametros.FormasPagamento.Cartao" refer="Parametros.FormasPagamento_Constraint1">
+        <xs:selector xpath=".//Parametros.FormasPagamento.Cartao" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.FormasPagamento_Parametros.FormasPagamento.Cheque" refer="Parametros.FormasPagamento_Constraint1">
+        <xs:selector xpath=".//Parametros.FormasPagamento.Cheque" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.FormasPagamento_Parametros.FormasPagamento.Img" refer="Parametros.FormasPagamento_Constraint1">
+        <xs:selector xpath=".//Parametros.FormasPagamento.Img" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros_Parametros.FormasPagamento" refer="Constraint1">
+        <xs:selector xpath=".//Parametros.FormasPagamento" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa_Parametros.Lancamentos.ListaDeItemBaixa.ListTributos" refer="Parametros.Lancamentos.ListaDeItemBaixa_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.ListTributos" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa_Parametros.Lancamentos.ListaDeItemBaixa.RateiosDepto" refer="Parametros.Lancamentos.ListaDeItemBaixa_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.RateiosDepto" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa_Parametros.Lancamentos.ListaDeItemBaixa.RateiosCCu" refer="Parametros.Lancamentos.ListaDeItemBaixa_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.RateiosCCu" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa_Parametros.Lancamentos.ListaDeItemBaixa.RateiosCCuLan" refer="Parametros.Lancamentos.ListaDeItemBaixa_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.RateiosCCuLan" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Dimensao_Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Dimensao.Dimensoes" refer="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Dimensao_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Dimensao.Dimensoes" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Dimensao_Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Dimensao.Dimensao" refer="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Dimensao_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Dimensao.Dimensao" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos_Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Dimensao" refer="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Dimensao" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Departamento_Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Departamento.Ccusto" refer="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Departamento_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Departamento.Ccusto" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Departamento_Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Departamento.Departamento" refer="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Departamento_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Departamento.Departamento" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos_Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Departamento" refer="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Departamento" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Rateio_Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Rateio.Rateios" refer="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Rateio_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Rateio.Rateios" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Rateio_Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Rateio.Rateio" refer="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Rateio_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Rateio.Rateio" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos_Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Rateio" refer="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Rateio" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos_Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Lancamento" refer="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos.Lancamento" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc_Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos" refer="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.Lancamentos" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.ItemEvento_Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.ItemEvento.Log" refer="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.ItemEvento_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.ItemEvento.Log" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc_Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.ItemEvento" refer="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc.ItemEvento" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa.contabil_Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc" refer="Parametros.Lancamentos.ListaDeItemBaixa.contabil_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LogEvc" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa.contabil_Parametros.Lancamentos.ListaDeItemBaixa.contabil.OwnerData" refer="Parametros.Lancamentos.ListaDeItemBaixa.contabil_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.OwnerData" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas_Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.OwnerData" refer="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.OwnerData" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.RateioDimensao_Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.RateioDimensao.Dimensao" refer="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.RateioDimensao_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.RateioDimensao.Dimensao" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas_Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.RateioDimensao" refer="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.RateioDimensao" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas_Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.Dimensao" refer="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.Dimensao" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas_Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.RateioCredito" refer="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.RateioCredito" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas_Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.RateioDebito" refer="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas.RateioDebito" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil_Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas" refer="Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil.Partidas" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa.contabil_Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil" refer="Parametros.Lancamentos.ListaDeItemBaixa.contabil_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil.LancamentoContabil" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa_Parametros.Lancamentos.ListaDeItemBaixa.contabil" refer="Parametros.Lancamentos.ListaDeItemBaixa_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.contabil" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa_Parametros.Lancamentos.ListaDeItemBaixa.CamposComplementares" refer="Parametros.Lancamentos.ListaDeItemBaixa_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.CamposComplementares" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa.LancamentoLiquido_Parametros.Lancamentos.ListaDeItemBaixa.LancamentoLiquido.OrigemValoresParaCalculoValorLiquido" refer="Parametros.Lancamentos.ListaDeItemBaixa.LancamentoLiquido_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.LancamentoLiquido.OrigemValoresParaCalculoValorLiquido" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa_Parametros.Lancamentos.ListaDeItemBaixa.LancamentoLiquido" refer="Parametros.Lancamentos.ListaDeItemBaixa_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.LancamentoLiquido" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa_Parametros.Lancamentos.ListaDeItemBaixa.ListaDeExtrato" refer="Parametros.Lancamentos.ListaDeItemBaixa_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.ListaDeExtrato" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa.ListaValoresIntegracaoItemBaixaPar_Parametros.Lancamentos.ListaDeItemBaixa.ListaValoresIntegracaoItemBaixaPar.Definicao" refer="Parametros.Lancamentos.ListaDeItemBaixa.ListaValoresIntegracaoItemBaixaPar_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.ListaValoresIntegracaoItemBaixaPar.Definicao" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa_Parametros.Lancamentos.ListaDeItemBaixa.ListaValoresIntegracaoItemBaixaPar" refer="Parametros.Lancamentos.ListaDeItemBaixa_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.ListaValoresIntegracaoItemBaixaPar" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaDeItemBaixa_Parametros.Lancamentos.ListaDeItemBaixa.OrigemValores" refer="Parametros.Lancamentos.ListaDeItemBaixa_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa.OrigemValores" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos_Parametros.Lancamentos.ListaDeItemBaixa" refer="Parametros.Lancamentos_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaDeItemBaixa" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos_Parametros.Lancamentos.ListTributos" refer="Parametros.Lancamentos_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListTributos" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos_Parametros.Lancamentos.RatDepto" refer="Parametros.Lancamentos_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.RatDepto" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos_Parametros.Lancamentos.RatCCusto" refer="Parametros.Lancamentos_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.RatCCusto" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos_Parametros.Lancamentos.TipoDocumento" refer="Parametros.Lancamentos_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.TipoDocumento" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos_Parametros.Lancamentos.ValorLiquidoCalculado" refer="Parametros.Lancamentos_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ValorLiquidoCalculado" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ValorLiquidoFLogValores.ListaHistoricoValoresIntegracao_Parametros.Lancamentos.ValorLiquidoFLogValores.ListaHistoricoValoresIntegracao.Definicao" refer="Parametros.Lancamentos.ValorLiquidoFLogValores.ListaHistoricoValoresIntegracao_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ValorLiquidoFLogValores.ListaHistoricoValoresIntegracao.Definicao" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ValorLiquidoFLogValores_Parametros.Lancamentos.ValorLiquidoFLogValores.ListaHistoricoValoresIntegracao" refer="Parametros.Lancamentos.ValorLiquidoFLogValores_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ValorLiquidoFLogValores.ListaHistoricoValoresIntegracao" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos_Parametros.Lancamentos.ValorLiquidoFLogValores" refer="Parametros.Lancamentos_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ValorLiquidoFLogValores" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos.ListaVaLorIntegracaoLancamento_Parametros.Lancamentos.ListaVaLorIntegracaoLancamento.Definicao" refer="Parametros.Lancamentos.ListaVaLorIntegracaoLancamento_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaVaLorIntegracaoLancamento.Definicao" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos_Parametros.Lancamentos.ListaVaLorIntegracaoLancamento" refer="Parametros.Lancamentos_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.ListaVaLorIntegracaoLancamento" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos_Parametros.Lancamentos.Valores" refer="Parametros.Lancamentos_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.Valores" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros.Lancamentos_Parametros.Lancamentos.OrigemValoresParaCalculoValorLiquido" refer="Parametros.Lancamentos_Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos.OrigemValoresParaCalculoValorLiquido" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+      <xs:keyref name="Parametros_Parametros.Lancamentos" refer="Constraint1">
+        <xs:selector xpath=".//Parametros.Lancamentos" />
+        <xs:field xpath="PARENTOBJECTID" />
+      </xs:keyref>
+    </xs:element>
+  </xs:schema>
+  <Parametros>
+    <OBJECTID>0</OBJECTID>
+    <DataBaixa>2026-06-10T00:00:00-03:00</DataBaixa>
+    <CodMoeda>R$</CodMoeda>
+    <UsarDataVencimentoBaixa>false</UsarDataVencimentoBaixa>
+    <IdFormaPagto>1</IdFormaPagto>
+    <CodColCxa>1</CodColCxa>
+    <CodCxa>100</CodCxa>
+    <TipoGeracaoExtrato>C</TipoGeracaoExtrato>
+    <TipoBaixa>1</TipoBaixa>
+    <OrigemContabilizacao>0</OrigemContabilizacao>
+    <IsBoleto>true</IsBoleto>
+    <Usuario>gustavo.trindade</Usuario>
+    <NumDocExtrato />
+    <CodColigada>1</CodColigada>
+    <DataSistema>2026-06-10T00:00:00-03:00</DataSistema>
+    <HistoricoBaixa>Depósito na baixa</HistoricoBaixa>
+    <CotacaoBaixa>0</CotacaoBaixa>
+    <ContabilizarPosBaixa>false</ContabilizarPosBaixa>
+  </Parametros>
+  <Parametros.Lancamentos>
+    <OBJECTID>0</OBJECTID>
+    <PARENTOBJECTID>0</PARENTOBJECTID>
+    <CodColigada>1</CodColigada>
+    <IdLan>920713</IdLan>
+    <PagRec>1</PagRec>
+    <StatusAprovacao>0</StatusAprovacao>
+    <StatusLan>0</StatusLan>
+    <ModoCalculoBx>0</ModoCalculoBx>
+    <ClassificacaoFatura>0</ClassificacaoFatura>
+    <Classificacao>0</Classificacao>
+    <StatusRepasse>1</StatusRepasse>
+    <CodSistema>X</CodSistema>
+    <TipoContabil>2</TipoContabil>
+    <TipoJurosDia>1</TipoJurosDia>
+    <MultaDia>0.0000</MultaDia>
+    <NumBloqueios>0</NumBloqueios>
+    <CapMensal>0.0000</CapMensal>
+    <JurosDia>0.0000</JurosDia>
+    <CarenciaJuros>0</CarenciaJuros>
+    <CodColCfo>0</CodColCfo>
+    <CodCfo>36988</CodCfo>
+    <CodColCxa>1</CodColCxa>
+    <CodCxa>66331</CodCxa>
+    <CodTdo>TIN_003</CodTdo>
+    <Nome>JOSE JEAN TELES DA SILVA</Nome>
+    <CGC>724.654.415-15</CGC>
+    <CodFilial>122</CodFilial>
+    <CodDepartamento />
+    <CodCCusto>1.01.03.122.001</CodCCusto>
+    <DataEmissao>2022-11-21T00:00:00-03:00</DataEmissao>
+    <DataVencimento>2023-04-15T00:00:00-03:00</DataVencimento>
+    <DataVencimentoAnterior>2023-04-15T00:00:00-03:00</DataVencimentoAnterior>
+    <DataBaixa>2026-06-10T00:00:00-03:00</DataBaixa>
+    <DataPrevBaixa>2023-04-15T00:00:00-03:00</DataPrevBaixa>
+    <FormulaJuros>0054</FormulaJuros>
+    <FormulaDesconto />
+    <FormulaMulta>01</FormulaMulta>
+    <FormulaCapitalizacao />
+    <FormulaValorOp1 />
+    <FormulaValorOp2 />
+    <FormulaValorOp3>99991</FormulaValorOp3>
+    <FormulaValorOp4 />
+    <FormulaValorOp5 />
+    <FormulaValorOp6 />
+    <FormulaValorOp7 />
+    <FormulaValorOp8 />
+    <NumeroDocumento>19793002005005</NumeroDocumento>
+    <NumeroContabilInclusao />
+    <SegundoNumero />
+    <ValorOriginal>106.6300</ValorOriginal>
+    <ValorDescontoAcordo>0.0000</ValorDescontoAcordo>
+    <ValorJurosAcordo>0.0000</ValorJurosAcordo>
+    <ValorAcrescimoAcordo>0.0000</ValorAcrescimoAcordo>
+    <ValorDesconto>0</ValorDesconto>
+    <ValorDescontoPontual>0</ValorDescontoPontual>
+    <ValorJuros>0.0000</ValorJuros>
+    <ValorMulta>0.0000</ValorMulta>
+    <ValorCap>0</ValorCap>
+    <ValordaBaixadoLancto>125.0100</ValordaBaixadoLancto>
+    <ValorBaixado>0.0000</ValorBaixado>
+    <JurosVendor>0.0000</JurosVendor>
+    <ValorRetencoes>0</ValorRetencoes>
+    <ValorIRRF>0</ValorIRRF>
+    <ValorINSS>0</ValorINSS>
+    <ValorSESTSENAT>0</ValorSESTSENAT>
+    <ValorDevolucao>0</ValorDevolucao>
+    <ValorNotaCredito>0</ValorNotaCredito>
+    <ValorAdiantamento>0</ValorAdiantamento>
+    <ValorVinculado>0</ValorVinculado>
+    <ValorOp1>0.0000</ValorOp1>
+    <ValorOp2>0.0000</ValorOp2>
+    <ValorOp3>106.6300</ValorOp3>
+    <ValorOp4>0.0000</ValorOp4>
+    <ValorOp5>0.0000</ValorOp5>
+    <ValorOp6>0.0000</ValorOp6>
+    <ValorOp7>0.0000</ValorOp7>
+    <ValorOp8>0.0000</ValorOp8>
+    <ValorOpComSinal1>0</ValorOpComSinal1>
+    <ValorOpComSinal2>0</ValorOpComSinal2>
+    <ValorOpComSinal3>106.6300</ValorOpComSinal3>
+    <ValorOpComSinal4>0</ValorOpComSinal4>
+    <ValorOpComSinal5>0.0000</ValorOpComSinal5>
+    <ValorOpComSinal6>0</ValorOpComSinal6>
+    <ValorOpComSinal7>0</ValorOpComSinal7>
+    <ValorOpComSinal8>0</ValorOpComSinal8>
+    <SinalOp1>(+)</SinalOp1>
+    <SinalOp2>(+)</SinalOp2>
+    <SinalOp3 />
+    <SinalOp4>(+)</SinalOp4>
+    <SinalOp5 />
+    <SinalOp6>(- )</SinalOp6>
+    <SinalOp7>(+)</SinalOp7>
+    <SinalOp8>(+)</SinalOp8>
+    <ValorLiquido>125.0100</ValorLiquido>
+    <ValorLiquidoParcial>125.0100</ValorLiquidoParcial>
+    <ValorLimiteRetencoes>0.0000</ValorLimiteRetencoes>
+    <BaseCalculoTributosLancamento>0</BaseCalculoTributosLancamento>
+    <CodTb1Flx />
+    <CodTb2Flx>3.018</CodTb2Flx>
+    <CodTb3Flx>0001</CodTb3Flx>
+    <CodTb4Flx />
+    <CodTb5Flx />
+    <DataOp1>2022-11-22T00:00:00-03:00</DataOp1>
+    <CampoAlfaOp1 />
+    <CampoAlfaOp2 />
+    <CampoAlfaOp3 />
+    <Historico>Recbto Parcela Mensal Bl 13B105 Apto/Casa 000003 Emp. VIDA NOVA SOBRADO </Historico>
+    <Chapa />
+    <CodIndexador>R$</CodIndexador>
+    <CodMoeda>R$</CodMoeda>
+    <CodMoedaCxa>R$</CodMoedaCxa>
+    <CotacaoBaixa>1</CotacaoBaixa>
+    <ClassificacaoTipoDoc>0</ClassificacaoTipoDoc>
+    <Descontado>false</Descontado>
+    <Antecipado>0</Antecipado>
+    <ValorOriginalIndexado>106.6300</ValorOriginalIndexado>
+    <IdBoleto>142905</IdBoleto>
+    <StatusLiqDuvidosa>0</StatusLiqDuvidosa>
+    <DataLiqDuvidosa>0001-01-01T00:00:00-02:00</DataLiqDuvidosa>
+    <AlteracaoBloqueada>0</AlteracaoBloqueada>
+    <StatusExtrato>0</StatusExtrato>
+    <TemChequeParcial>false</TemChequeParcial>
+    <ValorCheque>0.0000</ValorCheque>
+    <StatusCNAB>2</StatusCNAB>
+    <AplicarDescontoTotal>false</AplicarDescontoTotal>
+    <ComBoletoParcial>false</ComBoletoParcial>
+    <CodEventoAux>107</CodEventoAux>
+    <IdBaixa>0</IdBaixa>
+    <ServicoAlteracaoRepasse>false</ServicoAlteracaoRepasse>
+    <Coligada>1</Coligada>
+    <ID>920713</ID>
+    <BaixaInvalida>false</BaixaInvalida>
+  </Parametros.Lancamentos>
+  <Parametros.Lancamentos.OrigemValoresParaCalculoValorLiquido>
+    <OBJECTID>0</OBJECTID>
+    <PARENTOBJECTID>0</PARENTOBJECTID>
+    <OrigemValorDesconto>0</OrigemValorDesconto>
+    <OrigemValorJuros>1</OrigemValorJuros>
+    <OrigemValorMulta>1</OrigemValorMulta>
+    <OrigemValorCap>0</OrigemValorCap>
+    <OrigemValorOp1>0</OrigemValorOp1>
+    <OrigemValorOp2>0</OrigemValorOp2>
+    <OrigemValorOp3>0</OrigemValorOp3>
+    <OrigemValorOp4>0</OrigemValorOp4>
+    <OrigemValorOp5>0</OrigemValorOp5>
+    <OrigemValorOp6>0</OrigemValorOp6>
+    <OrigemValorOp7>0</OrigemValorOp7>
+    <OrigemValorOp8>0</OrigemValorOp8>
+    <OrigemValorIntegracao>0</OrigemValorIntegracao>
+    <OrigemValoresAcordo>0</OrigemValoresAcordo>
+  </Parametros.Lancamentos.OrigemValoresParaCalculoValorLiquido>
+  <Parametros.Lancamentos.Valores>
+    <OBJECTID>0</OBJECTID>
+    <PARENTOBJECTID>0</PARENTOBJECTID>
+    <ValorOriginal>106.6300</ValorOriginal>
+    <ValorDescontoAcordo>0.0000</ValorDescontoAcordo>
+    <ValorJurosAcordo>0.0000</ValorJurosAcordo>
+    <ValorAcrescimoAcordo>0.0000</ValorAcrescimoAcordo>
+    <ValorDesconto>0</ValorDesconto>
+    <ValorDescontoPontual>0</ValorDescontoPontual>
+    <ValorJuros>0.0000</ValorJuros>
+    <ValorMulta>0.0000</ValorMulta>
+    <ValorCap>0</ValorCap>
+    <ValorOp1>0.0000</ValorOp1>
+    <ValorOp2>0.0000</ValorOp2>
+    <ValorOp3>106.6300</ValorOp3>
+    <ValorOp4>0.0000</ValorOp4>
+    <ValorOp5>0.0000</ValorOp5>
+    <ValorOp6>0.0000</ValorOp6>
+    <ValorOp7>0.0000</ValorOp7>
+    <ValorOp8>0.0000</ValorOp8>
+    <ValorINSS>0</ValorINSS>
+    <ValorIRRF>0</ValorIRRF>
+    <ValorSESTSENAT>0</ValorSESTSENAT>
+    <ValorDevolucao>0</ValorDevolucao>
+    <ValorNotaCredito>0</ValorNotaCredito>
+    <ValorAdiantamento>0</ValorAdiantamento>
+    <ValorJurosVendor>0</ValorJurosVendor>
+    <ValorRetencoes>0</ValorRetencoes>
+    <ValorPerdaFinanceira>0</ValorPerdaFinanceira>
+    <ValorLiquido>125.0100</ValorLiquido>
+    <ValordaBaixadoLancto>125.0100</ValordaBaixadoLancto>
+    <CodColigada>1</CodColigada>
+    <IdLan>920713</IdLan>
+    <IdBaixa>0</IdBaixa>
+    <ServicoAlteracaoRepasse>false</ServicoAlteracaoRepasse>
+    <Coligada>1</Coligada>
+    <ID>920713</ID>
+  </Parametros.Lancamentos.Valores>
+  <Parametros.Lancamentos.ListaVaLorIntegracaoLancamento>
+    <OBJECTID>0</OBJECTID>
+    <PARENTOBJECTID>0</PARENTOBJECTID>
+    <CodColigada>1</CodColigada>
+    <IdCampo>3</IdCampo>
+    <IdLan>920713</IdLan>
+    <Valor>106.6300</Valor>
+    <ValorBx>0</ValorBx>
+    <ValorComSinal>106.6300</ValorComSinal>
+    <ValorReaj>0</ValorReaj>
+    <ValorReajComSinal>0</ValorReajComSinal>
+    <RecModifiedBy>patricia.coelho</RecModifiedBy>
+    <OrigemCalculo>1</OrigemCalculo>
+  </Parametros.Lancamentos.ListaVaLorIntegracaoLancamento>
+  <Parametros.Lancamentos.ListaVaLorIntegracaoLancamento>
+    <OBJECTID>1</OBJECTID>
+    <PARENTOBJECTID>0</PARENTOBJECTID>
+    <CodColigada>1</CodColigada>
+    <IdCampo>4</IdCampo>
+    <IdLan>920713</IdLan>
+    <Valor>9.2600</Valor>
+    <ValorBx>0</ValorBx>
+    <ValorComSinal>9.2600</ValorComSinal>
+    <ValorReaj>0</ValorReaj>
+    <ValorReajComSinal>0</ValorReajComSinal>
+    <RecModifiedBy>patricia.coelho</RecModifiedBy>
+    <OrigemCalculo>1</OrigemCalculo>
+  </Parametros.Lancamentos.ListaVaLorIntegracaoLancamento>
+  <Parametros.Lancamentos.ListaVaLorIntegracaoLancamento>
+    <OBJECTID>2</OBJECTID>
+    <PARENTOBJECTID>0</PARENTOBJECTID>
+    <CodColigada>1</CodColigada>
+    <IdCampo>5</IdCampo>
+    <IdLan>920713</IdLan>
+    <Valor>9.1200</Valor>
+    <ValorBx>0</ValorBx>
+    <ValorComSinal>9.1200</ValorComSinal>
+    <ValorReaj>0</ValorReaj>
+    <ValorReajComSinal>0</ValorReajComSinal>
+    <RecModifiedBy>patricia.coelho</RecModifiedBy>
+    <OrigemCalculo>1</OrigemCalculo>
+  </Parametros.Lancamentos.ListaVaLorIntegracaoLancamento>
+  <Parametros.Lancamentos.ListaVaLorIntegracaoLancamento.Definicao>
+    <OBJECTID>0</OBJECTID>
+    <PARENTOBJECTID>0</PARENTOBJECTID>
+    <CodColigada>1</CodColigada>
+    <IdCampo>3</IdCampo>
+    <CodAplicacao>X</CodAplicacao>
+    <Descricao>Mensal</Descricao>
+    <Acao>0</Acao>
+    <Ordem>0</Ordem>
+    <Formula />
+    <DiasAtraso>0</DiasAtraso>
+    <AteVencimento>false</AteVencimento>
+    <CompoeValorExtratoCliFor>false</CompoeValorExtratoCliFor>
+    <CompoeValorAVP>false</CompoeValorAVP>
+  </Parametros.Lancamentos.ListaVaLorIntegracaoLancamento.Definicao>
+  <Parametros.Lancamentos.ListaVaLorIntegracaoLancamento.Definicao>
+    <OBJECTID>1</OBJECTID>
+    <PARENTOBJECTID>1</PARENTOBJECTID>
+    <CodColigada>1</CodColigada>
+    <IdCampo>4</IdCampo>
+    <CodAplicacao>X</CodAplicacao>
+    <Descricao>Taxa Juros Apos Entrega</Descricao>
+    <Acao>1</Acao>
+    <Ordem>0</Ordem>
+    <Formula />
+    <DiasAtraso>0</DiasAtraso>
+    <AteVencimento>false</AteVencimento>
+    <CompoeValorExtratoCliFor>false</CompoeValorExtratoCliFor>
+    <CompoeValorAVP>false</CompoeValorAVP>
+  </Parametros.Lancamentos.ListaVaLorIntegracaoLancamento.Definicao>
+  <Parametros.Lancamentos.ListaVaLorIntegracaoLancamento.Definicao>
+    <OBJECTID>2</OBJECTID>
+    <PARENTOBJECTID>2</PARENTOBJECTID>
+    <CodColigada>1</CodColigada>
+    <IdCampo>5</IdCampo>
+    <CodAplicacao>X</CodAplicacao>
+    <Descricao>CM Apos Entrega</Descricao>
+    <Acao>1</Acao>
+    <Ordem>0</Ordem>
+    <Formula />
+    <DiasAtraso>0</DiasAtraso>
+    <AteVencimento>false</AteVencimento>
+    <CompoeValorExtratoCliFor>false</CompoeValorExtratoCliFor>
+    <CompoeValorAVP>false</CompoeValorAVP>
+  </Parametros.Lancamentos.ListaVaLorIntegracaoLancamento.Definicao>
+  <Parametros.Lancamentos.ValorLiquidoFLogValores>
+    <OBJECTID>0</OBJECTID>
+    <PARENTOBJECTID>0</PARENTOBJECTID>
+    <CodColigada>0</CodColigada>
+    <IdLan>0</IdLan>
+    <IdLog>0</IdLog>
+    <Data>0001-01-01T00:00:00-02:00</Data>
+    <ValorOriginal>0</ValorOriginal>
+    <ValorDesconto>0</ValorDesconto>
+    <ValorDescontoPontual>0</ValorDescontoPontual>
+    <ValorJuros>0</ValorJuros>
+    <ValorMulta>0</ValorMulta>
+    <ValorCap>0</ValorCap>
+    <ValorOp1>0</ValorOp1>
+    <ValorOp2>0</ValorOp2>
+    <ValorOp3>0</ValorOp3>
+    <ValorOp4>0</ValorOp4>
+    <ValorOp5>0</ValorOp5>
+    <ValorOp6>0</ValorOp6>
+    <ValorOp7>0</ValorOp7>
+    <ValorOp8>0</ValorOp8>
+    <ValorINSS>0</ValorINSS>
+    <ValorIRRF>0</ValorIRRF>
+    <ValorSESTSENAT>0</ValorSESTSENAT>
+    <ValorDevolucao>0</ValorDevolucao>
+    <ValorNotaCredito>0</ValorNotaCredito>
+    <ValorAdiantamento>0</ValorAdiantamento>
+    <ValorJurosVendor>0</ValorJurosVendor>
+    <ValorRetencoes>0</ValorRetencoes>
+    <ValorPerdaFinanceira>0</ValorPerdaFinanceira>
+    <ValorDescontoAcordo>0</ValorDescontoAcordo>
+    <ValorJurosAcordo>0</ValorJurosAcordo>
+    <ValorAcrescimoAcordo>0</ValorAcrescimoAcordo>
+    <ValorLiquido>0</ValorLiquido>
+    <Operacao>0</Operacao>
+    <ValorDescontoCalc>0</ValorDescontoCalc>
+    <ValorMultaCalc>0</ValorMultaCalc>
+    <ValorCapCalc>0</ValorCapCalc>
+    <ValorOp1Calc>0</ValorOp1Calc>
+    <ValorOp2Calc>0</ValorOp2Calc>
+    <ValorOp3Calc>0</ValorOp3Calc>
+    <ValorOp4Calc>0</ValorOp4Calc>
+    <ValorOp5Calc>0</ValorOp5Calc>
+    <ValorOp6Calc>0</ValorOp6Calc>
+    <ValorOp7Calc>0</ValorOp7Calc>
+    <ValorOp8Calc>0</ValorOp8Calc>
+    <ServicoAlteracaoRepasse>false</ServicoAlteracaoRepasse>
+  </Parametros.Lancamentos.ValorLiquidoFLogValores>
+  <Parametros.Lancamentos.ValorLiquidoCalculado>
+    <OBJECTID>0</OBJECTID>
+    <PARENTOBJECTID>0</PARENTOBJECTID>
+    <CodColigada>1</CodColigada>
+    <IdLan>920713</IdLan>
+    <Operacao>0</Operacao>
+    <ValorDescontoCalc>2</ValorDescontoCalc>
+    <ValorDescontoPontualidadeCalc>0</ValorDescontoPontualidadeCalc>
+    <ValorJurosCalc>4</ValorJurosCalc>
+    <ValorMultaCalc>4</ValorMultaCalc>
+    <ValorCapCalc>2</ValorCapCalc>
+    <ValorOp1Calc>0</ValorOp1Calc>
+    <ValorOp2Calc>0</ValorOp2Calc>
+    <ValorOp3Calc>3</ValorOp3Calc>
+    <ValorOp4Calc>0</ValorOp4Calc>
+    <ValorOp5Calc>0</ValorOp5Calc>
+    <ValorOp6Calc>0</ValorOp6Calc>
+    <ValorOp7Calc>0</ValorOp7Calc>
+    <ValorOp8Calc>0</ValorOp8Calc>
+    <IdLog>0</IdLog>
+    <Data>0001-01-01T00:00:00-02:00</Data>
+    <ValorOriginal>106.6300</ValorOriginal>
+    <ValorDesconto>0</ValorDesconto>
+    <ValorJuros>0.0000</ValorJuros>
+    <ValorMulta>0.0000</ValorMulta>
+    <ValorCap>0</ValorCap>
+    <ValorOp1>0.0000</ValorOp1>
+    <ValorOp2>0.0000</ValorOp2>
+    <ValorOp3>106.6300</ValorOp3>
+    <ValorOp4>0.0000</ValorOp4>
+    <ValorOp5>0.0000</ValorOp5>
+    <ValorOp6>0.0000</ValorOp6>
+    <ValorOp7>0.0000</ValorOp7>
+    <ValorOp8>0.0000</ValorOp8>
+    <ValorINSS>0</ValorINSS>
+    <ValorIRRF>0</ValorIRRF>
+    <ValorSESTSENAT>0</ValorSESTSENAT>
+    <ValorDevolucao>0</ValorDevolucao>
+    <ValorNotaCredito>0</ValorNotaCredito>
+    <ValorAdiantamento>0</ValorAdiantamento>
+    <ValorJurosVendor>0</ValorJurosVendor>
+    <ValorRetencoes>0</ValorRetencoes>
+    <ValorPerdaFinanceira>0</ValorPerdaFinanceira>
+    <ValorDescontoAcordo>0.0000</ValorDescontoAcordo>
+    <ValorJurosAcordo>0.0000</ValorJurosAcordo>
+    <ValorAcrescimoAcordo>0.0000</ValorAcrescimoAcordo>
+    <ValorLiquido>125.0100</ValorLiquido>
+    <IdBaixa>0</IdBaixa>
+    <ServicoAlteracaoRepasse>false</ServicoAlteracaoRepasse>
+    <Coligada>1</Coligada>
+    <ID>920713</ID>
+  </Parametros.Lancamentos.ValorLiquidoCalculado>
+  <Parametros.Lancamentos.TipoDocumento>
+    <OBJECTID>0</OBJECTID>
+    <PARENTOBJECTID>0</PARENTOBJECTID>
+    <CodColigada>1</CodColigada>
+    <CodTdo>TIN_003</CodTdo>
+    <Classificacao>0</Classificacao>
+    <GeraNumDoc>0</GeraNumDoc>
+    <PagRec>1</PagRec>
+    <CodCfo />
+    <UsarParametrosGerais>true</UsarParametrosGerais>
+    <GerarExtCompNaBaixa>true</GerarExtCompNaBaixa>
+    <NaoContabilizaBx0>false</NaoContabilizaBx0>
+  </Parametros.Lancamentos.TipoDocumento>
+  <Parametros.Lancamentos.RatCCusto>
+    <OBJECTID>0</OBJECTID>
+    <PARENTOBJECTID>0</PARENTOBJECTID>
+    <CodColigada>1</CodColigada>
+    <IdLan>920713</IdLan>
+    <CodCCusto>1.01.03.122.001</CodCCusto>
+    <Valor>106.6300</Valor>
+    <Historico />
+    <CodColNatFinanceira>1</CodColNatFinanceira>
+    <CodNatFinanceira>1.01.001.003</CodNatFinanceira>
+    <Percentual>100.0000</Percentual>
+    <CodTbGrupoOrc />
+    <IdRatCCu>5926858</IdRatCCu>
+  </Parametros.Lancamentos.RatCCusto>
+  <Parametros.FormasPagamento>
+    <OBJECTID>0</OBJECTID>
+    <PARENTOBJECTID>0</PARENTOBJECTID>
+    <IdLan>0</IdLan>
+    <CodColigada>1</CodColigada>
+    <IdPagto>1</IdPagto>
+    <CodFilial>122</CodFilial>
+    <DescFormaPagto>Dinheiro</DescFormaPagto>
+    <IdFormaPagto>1</IdFormaPagto>
+    <TipoFormaPagto>0</TipoFormaPagto>
+    <TipoTransacao>WCF</TipoTransacao>
+    <OpcaoParcelamento>1</OpcaoParcelamento>
+    <IdParcelamento>0</IdParcelamento>
+    <SequencialPagto>0</SequencialPagto>
+    <Valor>125.0100</Valor>
+    <CodColCxa>1</CodColCxa>
+    <CodCxa>100</CodCxa>
+    <CodColProp>1</CodColProp>
+    <CompensarExtratoBaixa>Parametrizacao</CompensarExtratoBaixa>
+    <CodImg>0</CodImg>
+    <ImprimeCheque>false</ImprimeCheque>
+  </Parametros.FormasPagamento>
+  <Parametros.PagtoPorLan>
+    <OBJECTID>0</OBJECTID>
+    <PARENTOBJECTID>0</PARENTOBJECTID>
+    <IdPagto>1</IdPagto>
+    <IdLan>920713</IdLan>
+    <IdFormaPagto>1</IdFormaPagto>
+    <Valor>125.0100</Valor>
+    <IdParcela>1</IdParcela>
+  </Parametros.PagtoPorLan>
+  <Parametros.ListaIdBoletoBaixa>
+    <OBJECTID>0</OBJECTID>
+    <PARENTOBJECTID>0</PARENTOBJECTID>
+    <CodColigada>1</CodColigada>
+    <IdBoleto>142905</IdBoleto>
+  </Parametros.ListaIdBoletoBaixa>
+</Parametros>
+

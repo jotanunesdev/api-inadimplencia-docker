@@ -98,7 +98,8 @@ public sealed class GetMetricQueryHandler(ILegacySqlExecutor executor)
             ["dataFim"] = dataFim,
             ["faixa"] = faixa,
             ["score"] = score,
-            ["qtd"] = NormalizeQtd(query.Qtd)
+            ["qtd"] = NormalizeQtd(query.Qtd),
+            ["nomeUsuario"] = NormalizeUsername(query.NomeUsuario)
         };
 
         var result = await _executor.QueryAsync(
@@ -155,5 +156,15 @@ public sealed class GetMetricQueryHandler(ILegacySqlExecutor executor)
         }
 
         return value;
+    }
+
+    private static string? NormalizeUsername(string? username)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            return null;
+        }
+
+        return username.Trim().ToLowerInvariant();
     }
 }

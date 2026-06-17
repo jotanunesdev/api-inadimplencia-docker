@@ -381,7 +381,9 @@ public sealed class LegacySqlExecutor(
                     SELECT
                         o.NUM_VENDA_FK,
                         o.PROXIMA_ACAO,
+                        o.NOME_USUARIO_FK,
                         o.DT_OCORRENCIA,
+                        o.HORA_OCORRENCIA,
                         ROW_NUMBER() OVER (
                             PARTITION BY o.NUM_VENDA_FK
                             ORDER BY o.DT_OCORRENCIA DESC, o.HORA_OCORRENCIA DESC, o.PROXIMA_ACAO DESC
@@ -390,17 +392,17 @@ public sealed class LegacySqlExecutor(
                     WHERE o.PROXIMA_ACAO IS NOT NULL
                 )
                 SELECT
-                    CONVERT(r.DT_OCORRENCIA, date) AS DIA,
-                    r.PROXIMA_ACAO,
-                    COUNT(DISTINCT r.NUM_VENDA_FK) AS QTD_VENDAS
+                    TRY_CONVERT(date, r.PROXIMA_ACAO) AS DATA,
+                    COUNT(DISTINCT r.NUM_VENDA_FK) AS TOTAL
                 FROM Ranked r
                 INNER JOIN DW.fat_analise_inadimplencia_v4 f ON f.NUM_VENDA = r.NUM_VENDA_FK
                 WHERE r.RN = 1
                   AND UPPER(LTRIM(RTRIM(COALESCE(f.INADIMPLENTE, '')))) = 'SIM'
                   AND (@dataInicio IS NULL OR r.DT_OCORRENCIA >= @dataInicio)
                   AND (@dataFim IS NULL OR r.DT_OCORRENCIA <= @dataFim)
-                GROUP BY CONVERT(r.DT_OCORRENCIA, date), r.PROXIMA_ACAO
-                ORDER BY DIA DESC, r.PROXIMA_ACAO
+                  AND (@nomeUsuario IS NULL OR LOWER(LTRIM(RTRIM(COALESCE(r.NOME_USUARIO_FK, '')))) = @nomeUsuario)
+                GROUP BY TRY_CONVERT(date, r.PROXIMA_ACAO)
+                ORDER BY DATA
                 """),
 
             ["Dashboard.AcoesDefinidas"] = new("""
@@ -1041,7 +1043,8 @@ public sealed class LegacySqlExecutor(
                 COUNT(*) AS TOTAL
             FROM DW.fat_analise_inadimplencia_v4 f
             OUTER APPLY (
-                SELECT TOP 1 o.PROXIMA_ACAO
+                SELECT TOP 1 o.PROXIMA_ACAO,
+                       o.NOME_USUARIO_FK
                 FROM dbo.OCORRENCIAS o
                 WHERE o.NUM_VENDA_FK = f.NUM_VENDA
                   AND o.PROXIMA_ACAO IS NOT NULL
@@ -1050,6 +1053,7 @@ public sealed class LegacySqlExecutor(
             ) AS ultima_acao
             WHERE ultima_acao.PROXIMA_ACAO IS NOT NULL
               AND UPPER(LTRIM(RTRIM(COALESCE(f.INADIMPLENTE, '')))) = 'SIM'
+              AND (@nomeUsuario IS NULL OR LOWER(LTRIM(RTRIM(COALESCE(ultima_acao.NOME_USUARIO_FK, '')))) = @nomeUsuario)
             GROUP BY TRY_CONVERT(date, ultima_acao.PROXIMA_ACAO)
             ORDER BY DATA
             """);
@@ -1195,6 +1199,10 @@ public sealed class LegacySqlExecutor(
                 WHEN NOT MATCHED THEN
                     INSERT (NUM_VENDA_FK, NOME_USUARIO_FK)
                     VALUES (source.NUM_VENDA_FK, source.NOME_USUARIO_FK);
+
+                UPDATE dbo.KANBAN_STATUS
+                SET NOME_USUARIO_FK = @nomeUsuario
+                WHERE NUM_VENDA_FK = @numVenda;
 
                 IF @responsavelAnterior IS NOT NULL
                    AND LOWER(LTRIM(RTRIM(@responsavelAnterior))) <> LOWER(LTRIM(RTRIM(@nomeUsuario)))
@@ -1358,7 +1366,7 @@ public sealed class LegacySqlExecutor(
                 FROM dbo.ATENDIMENTOS a
                 WHERE a.NUM_VENDA_FK = @numVenda
                   AND ISNULL(a.STATUS_PROTOCOLO, 0) = 1
-                  AND DATEDIFF(SECOND, a.CRIADO_EM, GETDATE()) >= 300
+                  AND DATEDIFF(SECOND, a.CRIADO_EM, GETDATE()) >= 720
                   AND NOT EXISTS (
                       SELECT 1
                       FROM dbo.OCORRENCIAS oc
@@ -1370,7 +1378,7 @@ public sealed class LegacySqlExecutor(
                     FROM dbo.ATENDIMENTOS a WITH (UPDLOCK, HOLDLOCK)
                     WHERE a.NUM_VENDA_FK = @numVenda
                       AND ISNULL(a.STATUS_PROTOCOLO, 0) = 1
-                      AND DATEDIFF(SECOND, a.CRIADO_EM, GETDATE()) < 300
+                      AND DATEDIFF(SECOND, a.CRIADO_EM, GETDATE()) < 720
                       AND NOT EXISTS (
                           SELECT 1
                           FROM dbo.OCORRENCIAS oc
@@ -1383,7 +1391,7 @@ public sealed class LegacySqlExecutor(
                     FROM dbo.ATENDIMENTOS a
                     WHERE a.NUM_VENDA_FK = @numVenda
                       AND ISNULL(a.STATUS_PROTOCOLO, 0) = 1
-                      AND DATEDIFF(SECOND, a.CRIADO_EM, GETDATE()) < 300
+                      AND DATEDIFF(SECOND, a.CRIADO_EM, GETDATE()) < 720
                       AND NOT EXISTS (
                           SELECT 1
                           FROM dbo.OCORRENCIAS oc
