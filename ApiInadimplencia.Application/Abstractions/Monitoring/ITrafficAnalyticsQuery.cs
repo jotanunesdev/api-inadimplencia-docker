@@ -19,5 +19,6 @@ public interface ITrafficAnalyticsQuery
         int periodDays,
         string? apiName,
         string? environment,
+        bool excludeLoadTestTraffic,
         CancellationToken cancellationToken = default);
 }

@@ -42,6 +42,7 @@ public sealed class SqlServerTrafficAnalyticsQuery(
                       AND peak.REQUESTED_AT_UTC < @ToUtc
                       AND (@ApiName IS NULL OR peak.API_NAME = @ApiName)
                       AND (@Environment IS NULL OR peak.ENVIRONMENT = @Environment)
+                      AND (@ExcludeLoadTestTraffic = 0 OR peak.SOURCE_SYSTEM IS NULL OR peak.SOURCE_SYSTEM <> @LoadTestSourceSystem)
                     GROUP BY DATEADD(MINUTE, DATEDIFF(MINUTE, 0, peak.REQUESTED_AT_UTC), 0)
                 ) peak_values
             ), 0) AS PeakRequestsPerMinute,
@@ -51,7 +52,8 @@ public sealed class SqlServerTrafficAnalyticsQuery(
         WHERE REQUESTED_AT_UTC >= @FromUtc
           AND REQUESTED_AT_UTC < @ToUtc
           AND (@ApiName IS NULL OR API_NAME = @ApiName)
-          AND (@Environment IS NULL OR ENVIRONMENT = @Environment);
+          AND (@Environment IS NULL OR ENVIRONMENT = @Environment)
+          AND (@ExcludeLoadTestTraffic = 0 OR SOURCE_SYSTEM IS NULL OR SOURCE_SYSTEM <> @LoadTestSourceSystem);
 
         SELECT STATUS_CODE AS StatusCode, COUNT_BIG(1) AS Total
         FROM dbo.API_TRAFFIC_AUDIT
@@ -59,6 +61,7 @@ public sealed class SqlServerTrafficAnalyticsQuery(
           AND REQUESTED_AT_UTC < @ToUtc
           AND (@ApiName IS NULL OR API_NAME = @ApiName)
           AND (@Environment IS NULL OR ENVIRONMENT = @Environment)
+          AND (@ExcludeLoadTestTraffic = 0 OR SOURCE_SYSTEM IS NULL OR SOURCE_SYSTEM <> @LoadTestSourceSystem)
         GROUP BY STATUS_CODE
         ORDER BY STATUS_CODE;
 
@@ -72,6 +75,7 @@ public sealed class SqlServerTrafficAnalyticsQuery(
           AND REQUESTED_AT_UTC < @ToUtc
           AND (@ApiName IS NULL OR API_NAME = @ApiName)
           AND (@Environment IS NULL OR ENVIRONMENT = @Environment)
+          AND (@ExcludeLoadTestTraffic = 0 OR SOURCE_SYSTEM IS NULL OR SOURCE_SYSTEM <> @LoadTestSourceSystem)
         GROUP BY DATEADD(HOUR, DATEDIFF(HOUR, 0, REQUESTED_AT_UTC), 0)
         ORDER BY TimestampUtc;
 
@@ -83,6 +87,7 @@ public sealed class SqlServerTrafficAnalyticsQuery(
           AND REQUESTED_AT_UTC < @ToUtc
           AND (@ApiName IS NULL OR API_NAME = @ApiName)
           AND (@Environment IS NULL OR ENVIRONMENT = @Environment)
+          AND (@ExcludeLoadTestTraffic = 0 OR SOURCE_SYSTEM IS NULL OR SOURCE_SYSTEM <> @LoadTestSourceSystem)
         GROUP BY DATEADD(MINUTE, DATEDIFF(MINUTE, 0, REQUESTED_AT_UTC), 0)
         ORDER BY TimestampUtc;
 
@@ -95,6 +100,7 @@ public sealed class SqlServerTrafficAnalyticsQuery(
           AND STATUS_CODE = 500
           AND (@ApiName IS NULL OR API_NAME = @ApiName)
           AND (@Environment IS NULL OR ENVIRONMENT = @Environment)
+          AND (@ExcludeLoadTestTraffic = 0 OR SOURCE_SYSTEM IS NULL OR SOURCE_SYSTEM <> @LoadTestSourceSystem)
         GROUP BY DATEADD(HOUR, DATEDIFF(HOUR, 0, REQUESTED_AT_UTC), 0)
         ORDER BY TimestampUtc;
 
@@ -110,6 +116,7 @@ public sealed class SqlServerTrafficAnalyticsQuery(
           AND REQUESTED_AT_UTC < @ToUtc
           AND (@ApiName IS NULL OR API_NAME = @ApiName)
           AND (@Environment IS NULL OR ENVIRONMENT = @Environment)
+          AND (@ExcludeLoadTestTraffic = 0 OR SOURCE_SYSTEM IS NULL OR SOURCE_SYSTEM <> @LoadTestSourceSystem)
         GROUP BY HTTP_METHOD, ENDPOINT
         ORDER BY Total DESC, AverageDurationMs DESC;
 
@@ -125,6 +132,7 @@ public sealed class SqlServerTrafficAnalyticsQuery(
           AND REQUESTED_AT_UTC < @ToUtc
           AND (@ApiName IS NULL OR API_NAME = @ApiName)
           AND (@Environment IS NULL OR ENVIRONMENT = @Environment)
+          AND (@ExcludeLoadTestTraffic = 0 OR SOURCE_SYSTEM IS NULL OR SOURCE_SYSTEM <> @LoadTestSourceSystem)
         GROUP BY HTTP_METHOD, ENDPOINT
         HAVING COUNT_BIG(1) >= 2
         ORDER BY AverageDurationMs DESC, MaximumDurationMs DESC;
@@ -142,6 +150,7 @@ public sealed class SqlServerTrafficAnalyticsQuery(
           AND STATUS_CODE >= 400
           AND (@ApiName IS NULL OR API_NAME = @ApiName)
           AND (@Environment IS NULL OR ENVIRONMENT = @Environment)
+          AND (@ExcludeLoadTestTraffic = 0 OR SOURCE_SYSTEM IS NULL OR SOURCE_SYSTEM <> @LoadTestSourceSystem)
         GROUP BY HTTP_METHOD, ENDPOINT
         ORDER BY Errors DESC, Total DESC;
 
@@ -158,6 +167,7 @@ public sealed class SqlServerTrafficAnalyticsQuery(
           AND USER_NAME <> 'anonymous'
           AND (@ApiName IS NULL OR API_NAME = @ApiName)
           AND (@Environment IS NULL OR ENVIRONMENT = @Environment)
+          AND (@ExcludeLoadTestTraffic = 0 OR SOURCE_SYSTEM IS NULL OR SOURCE_SYSTEM <> @LoadTestSourceSystem)
         GROUP BY USER_NAME, HTTP_METHOD, ENDPOINT
         ORDER BY AverageDurationMs DESC, MaximumDurationMs DESC;
 
@@ -175,6 +185,7 @@ public sealed class SqlServerTrafficAnalyticsQuery(
               AND USER_NAME <> 'anonymous'
               AND (@ApiName IS NULL OR API_NAME = @ApiName)
               AND (@Environment IS NULL OR ENVIRONMENT = @Environment)
+              AND (@ExcludeLoadTestTraffic = 0 OR SOURCE_SYSTEM IS NULL OR SOURCE_SYSTEM <> @LoadTestSourceSystem)
             GROUP BY USER_NAME
             UNION ALL
             SELECT
@@ -189,6 +200,7 @@ public sealed class SqlServerTrafficAnalyticsQuery(
               AND SOURCE_SYSTEM IS NOT NULL
               AND (@ApiName IS NULL OR API_NAME = @ApiName)
               AND (@Environment IS NULL OR ENVIRONMENT = @Environment)
+              AND (@ExcludeLoadTestTraffic = 0 OR SOURCE_SYSTEM <> @LoadTestSourceSystem)
             GROUP BY SOURCE_SYSTEM
         ) consumers
         ORDER BY Total DESC, Errors DESC;
@@ -204,6 +216,7 @@ public sealed class SqlServerTrafficAnalyticsQuery(
           AND USER_NAME <> 'anonymous'
           AND (@ApiName IS NULL OR API_NAME = @ApiName)
           AND (@Environment IS NULL OR ENVIRONMENT = @Environment)
+          AND (@ExcludeLoadTestTraffic = 0 OR SOURCE_SYSTEM IS NULL OR SOURCE_SYSTEM <> @LoadTestSourceSystem)
         GROUP BY USER_NAME
         ORDER BY Total DESC, Errors DESC;
 
@@ -213,6 +226,7 @@ public sealed class SqlServerTrafficAnalyticsQuery(
           AND REQUESTED_AT_UTC < @ToUtc
           AND (@ApiName IS NULL OR API_NAME = @ApiName)
           AND (@Environment IS NULL OR ENVIRONMENT = @Environment)
+          AND (@ExcludeLoadTestTraffic = 0 OR SOURCE_SYSTEM IS NULL OR SOURCE_SYSTEM <> @LoadTestSourceSystem)
         GROUP BY API_NAME
         ORDER BY Total DESC;
 
@@ -222,6 +236,7 @@ public sealed class SqlServerTrafficAnalyticsQuery(
           AND REQUESTED_AT_UTC < @ToUtc
           AND (@ApiName IS NULL OR API_NAME = @ApiName)
           AND (@Environment IS NULL OR ENVIRONMENT = @Environment)
+          AND (@ExcludeLoadTestTraffic = 0 OR SOURCE_SYSTEM IS NULL OR SOURCE_SYSTEM <> @LoadTestSourceSystem)
         GROUP BY ENVIRONMENT
         ORDER BY Total DESC;
 
@@ -240,6 +255,7 @@ public sealed class SqlServerTrafficAnalyticsQuery(
           AND STATUS_CODE >= 400
           AND (@ApiName IS NULL OR API_NAME = @ApiName)
           AND (@Environment IS NULL OR ENVIRONMENT = @Environment)
+          AND (@ExcludeLoadTestTraffic = 0 OR SOURCE_SYSTEM IS NULL OR SOURCE_SYSTEM <> @LoadTestSourceSystem)
         ORDER BY REQUESTED_AT_UTC DESC;
 
         SELECT DISTINCT API_NAME
@@ -263,6 +279,7 @@ public sealed class SqlServerTrafficAnalyticsQuery(
         int periodDays,
         string? apiName,
         string? environment,
+        bool excludeLoadTestTraffic,
         CancellationToken cancellationToken = default)
     {
         if (!_connectionFactory.IsConfigured)
@@ -280,6 +297,8 @@ public sealed class SqlServerTrafficAnalyticsQuery(
             ToUtc = toUtc,
             ApiName = NormalizeFilter(apiName),
             Environment = NormalizeFilter(environment),
+            ExcludeLoadTestTraffic = excludeLoadTestTraffic,
+            LoadTestSourceSystem = "managed-k6-load-test",
         };
 
         await using var connection = await _connectionFactory

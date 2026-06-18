@@ -23,6 +23,7 @@ public static class TrafficMonitoringEndpoints
             int? periodDays,
             string? apiName,
             string? environment,
+            bool? excludeLoadTestTraffic,
             ITrafficAnalyticsQuery query,
             HttpContext context,
             CancellationToken cancellationToken) =>
@@ -35,6 +36,7 @@ public static class TrafficMonitoringEndpoints
                     periodDays ?? 7,
                     apiName,
                     environment,
+                    excludeLoadTestTraffic ?? false,
                     cancellationToken).ConfigureAwait(false);
                 return Results.Ok(dashboard);
             }
