@@ -36,6 +36,13 @@ public sealed record LoadTestEndpointMetricDto(
     double P95DurationMs,
     double P99DurationMs);
 
+public sealed record LoadTestCapacityResultDto(
+    int MaximumTargetUsers,
+    int PeakObservedUsers,
+    int EstimatedLimitUsers,
+    int? FailureStartedAtUsers,
+    string StopReason);
+
 public sealed record LoadTestRunListItemDto(
     Guid RunId,
     string ProfileKey,
@@ -78,6 +85,7 @@ public sealed record LoadTestRunDetailDto(
     double MaxRequestsPerSecond,
     bool? ThresholdsPassed,
     string? SummaryJson,
+    LoadTestCapacityResultDto? CapacityResult,
     IReadOnlyList<LoadTestThresholdResultDto> ThresholdResults,
     IReadOnlyList<LoadTestTimelinePointDto> Timeline,
     IReadOnlyList<LoadTestEndpointMetricDto> EndpointMetrics);

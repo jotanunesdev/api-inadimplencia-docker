@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using ApiInadimplencia.Application.Abstractions.Monitoring;
 using ApiInadimplencia.Application.Features.TrafficMonitoring;
 using api_inadimplencia.Api.Tests.Infrastructure;
@@ -10,6 +11,24 @@ namespace api_inadimplencia.Api.Tests.Features.TrafficMonitoring;
 
 public sealed class TrafficMonitoringEndpointsTests
 {
+    [Fact]
+    public async Task LoadTestProfiles_IncludesLimitIdentificationProfile()
+    {
+        await using var factory = new ApiTestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/traffic-monitoring/load-tests/profiles");
+        var json = await response.Content.ReadAsStringAsync();
+        using var document = JsonDocument.Parse(json);
+        var profiles = document.RootElement.GetProperty("profiles").EnumerateArray();
+        var limitProfile = profiles.Single(profile =>
+            profile.GetProperty("key").GetString() == "identificar-limite");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(5000, limitProfile.GetProperty("maxVirtualUsers").GetInt32());
+        Assert.Equal(540, limitProfile.GetProperty("expectedDurationSeconds").GetInt32());
+    }
+
     [Fact]
     public async Task Dashboard_WithExcludeLoadTestTraffic_ForwardsFilterToQuery()
     {

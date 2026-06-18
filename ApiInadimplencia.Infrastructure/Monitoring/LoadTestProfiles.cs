@@ -39,6 +39,13 @@ internal static class LoadTestProfiles
             "managed.js",
             240,
             180),
+        new(
+            LoadTestCapacityCalculator.ProfileKey,
+            "Identificar Limite",
+            "Aumenta progressivamente ate 5.000 usuarios e para quando a API fica indisponivel.",
+            "managed.js",
+            540,
+            LoadTestCapacityCalculator.MaximumTargetUsers),
     ];
 
     public static LoadTestProfileDefinition Get(string key)

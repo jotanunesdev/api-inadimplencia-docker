@@ -5,7 +5,8 @@ import { config, url } from '../lib/config.js';
 
 const testData = JSON.parse(open('../data/test-data.json'));
 const endpointErrors = new Rate('endpoint_errors');
-const batchSize = Number(__ENV.K6_ENDPOINT_BATCH_SIZE || 8);
+const apiUnavailable = new Rate('api_unavailable');
+const defaultBatchSize = Number(__ENV.K6_ENDPOINT_BATCH_SIZE || 8);
 const supportedMethods = ['get', 'post', 'put', 'patch', 'delete'];
 
 export function discoverApiOperations() {
@@ -48,9 +49,10 @@ export function discoverApiOperations() {
   return operations;
 }
 
-export function executeApiBatch(operations) {
+export function executeApiBatch(operations, requestedBatchSize = defaultBatchSize) {
   if (!operations || operations.length === 0) return;
 
+  const batchSize = Math.max(1, Number(requestedBatchSize) || defaultBatchSize);
   const startIndex = ((__ITER * batchSize) + ((__VU - 1) * batchSize)) % operations.length;
   for (let offset = 0; offset < Math.min(batchSize, operations.length); offset += 1) {
     executeOperation(operations[(startIndex + offset) % operations.length]);
@@ -83,7 +85,9 @@ function executeOperation(operation) {
     response.status >= 500 ||
     response.status === 401 ||
     response.status === 403;
+  const unavailable = response.status === 0 || response.status >= 500;
   endpointErrors.add(failed, tags);
+  apiUnavailable.add(unavailable, tags);
 
   check(response, {
     [`${name}: route reached`]: (result) =>

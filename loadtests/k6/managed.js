@@ -17,7 +17,7 @@ export function setup() {
 }
 
 export default function (data) {
-  group('full-api', () => executeApiBatch(data.operations));
+  group('full-api', () => executeApiBatch(data.operations, profile.batchSize));
   if (profile.sleepMs > 0) {
     sleep(profile.sleepMs / 1000);
   }

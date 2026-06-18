@@ -72,6 +72,7 @@ public sealed class K6LoadTestOrchestrator(
             0,
             null,
             null,
+            null,
             [],
             [],
             []);
@@ -141,10 +142,19 @@ public sealed class K6LoadTestOrchestrator(
     {
         if (_activeRuns.TryGetValue(runId, out var activeRun))
         {
-            return LoadTestLiveSnapshotParser.MergeLiveMetrics(
+            var liveRun = LoadTestLiveSnapshotParser.MergeLiveMetrics(
                 activeRun.Run,
                 activeRun.SampleFilePath,
                 DateTime.UtcNow);
+            return liveRun with
+            {
+                CapacityResult = LoadTestCapacityCalculator.Calculate(
+                    liveRun.ProfileKey,
+                    liveRun.PeakVirtualUsers,
+                    liveRun.Timeline,
+                    isFinished: false,
+                    processSucceeded: false),
+            };
         }
 
         return await _repository.GetRunAsync(runId, cancellationToken).ConfigureAwait(false);
@@ -270,7 +280,6 @@ public sealed class K6LoadTestOrchestrator(
         await activeRun.Process.WaitForExitAsync().ConfigureAwait(false);
         await Task.WhenAll(stdoutTask, stderrTask).ConfigureAwait(false);
 
-        var finalStatus = activeRun.Process.ExitCode == 0 ? "completed" : "failed";
         var finishedAtUtc = DateTime.UtcNow;
 
         try
@@ -283,14 +292,28 @@ public sealed class K6LoadTestOrchestrator(
             var summaryJson = File.Exists(activeRun.SummaryFilePath)
                 ? await File.ReadAllTextAsync(activeRun.SummaryFilePath).ConfigureAwait(false)
                 : BuildFallbackSummaryJson(activeRun.Process.ExitCode, stdout.ToString(), stderr.ToString());
+            var processSucceeded = activeRun.Process.ExitCode == 0;
+            var capacityResult = LoadTestCapacityCalculator.Calculate(
+                liveSnapshot.ProfileKey,
+                liveSnapshot.PeakVirtualUsers,
+                liveSnapshot.Timeline,
+                isFinished: true,
+                processSucceeded);
+            var isCapacityOutcome =
+                string.Equals(
+                    capacityResult?.StopReason,
+                    "api-unavailable",
+                    StringComparison.Ordinal);
+            var finalStatus = processSucceeded || isCapacityOutcome ? "completed" : "failed";
 
             var completedRun = liveSnapshot with
             {
                 Status = finalStatus,
                 FinishedAtUtc = finishedAtUtc,
                 ProgressPercent = 100,
-                ThresholdsPassed = activeRun.Process.ExitCode == 0,
+                ThresholdsPassed = capacityResult is null ? processSucceeded : null,
                 SummaryJson = summaryJson,
+                CapacityResult = capacityResult,
                 ThresholdResults = ParseThresholdResults(summaryJson),
             };
 

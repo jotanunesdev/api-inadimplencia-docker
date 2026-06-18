@@ -47,6 +47,15 @@ export const thresholds = {
     'endpoint_errors': ['rate<0.10'],
     'http_req_duration': ['p(95)<3000'],
   },
+  capacity: {
+    'api_unavailable': [
+      {
+        threshold: 'rate<0.05',
+        abortOnFail: true,
+        delayAbortEval: '15s',
+      },
+    ],
+  },
 };
 
 // Tags HTTP padrão p/ facilitar filtros no Grafana.
@@ -58,6 +67,7 @@ const managedProfiles = {
   baseline: {
     key: 'baseline',
     thresholdKey: 'smoke',
+    batchSize: 8,
     sleepMs: 900,
     scenario: {
       executor: 'ramping-vus',
@@ -73,6 +83,7 @@ const managedProfiles = {
   intenso: {
     key: 'intenso',
     thresholdKey: 'load',
+    batchSize: 8,
     sleepMs: 500,
     scenario: {
       executor: 'ramping-vus',
@@ -89,6 +100,7 @@ const managedProfiles = {
   'estresse-maximo': {
     key: 'estresse-maximo',
     thresholdKey: 'spike',
+    batchSize: 8,
     sleepMs: 0,
     scenario: {
       executor: 'ramping-vus',
@@ -101,6 +113,31 @@ const managedProfiles = {
         { duration: '30s', target: 0 },
       ],
       gracefulRampDown: '20s',
+    },
+  },
+  'identificar-limite': {
+    key: 'identificar-limite',
+    thresholdKey: 'capacity',
+    batchSize: 1,
+    sleepMs: 500,
+    scenario: {
+      executor: 'ramping-vus',
+      startVUs: 0,
+      stages: [
+        { duration: '30s', target: 50 },
+        { duration: '30s', target: 100 },
+        { duration: '45s', target: 250 },
+        { duration: '45s', target: 500 },
+        { duration: '1m', target: 1000 },
+        { duration: '1m', target: 2000 },
+        { duration: '1m', target: 3000 },
+        { duration: '1m', target: 4000 },
+        { duration: '1m', target: 5000 },
+        { duration: '1m', target: 5000 },
+        { duration: '30s', target: 0 },
+      ],
+      gracefulRampDown: '10s',
+      gracefulStop: '10s',
     },
   },
 };

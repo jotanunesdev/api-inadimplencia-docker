@@ -513,7 +513,17 @@ public sealed class SqlServerLoadTestRunRepository(AuditSqlConnectionFactory con
             IReadOnlyList<LoadTestTimelinePointDto> timeline,
             IReadOnlyList<LoadTestThresholdResultDto> thresholds,
             IReadOnlyList<LoadTestEndpointMetricDto> endpointMetrics)
-            => new(
+        {
+            var capacityResult = LoadTestCapacityCalculator.Calculate(
+                ProfileKey,
+                PeakVirtualUsers,
+                timeline,
+                isFinished: FinishedAtUtc is not null,
+                processSucceeded:
+                    string.Equals(Status, "completed", StringComparison.OrdinalIgnoreCase)
+                    && FailedRequests == 0);
+
+            return new(
                 RunId,
                 ProfileKey,
                 ProfileName,
@@ -535,8 +545,10 @@ public sealed class SqlServerLoadTestRunRepository(AuditSqlConnectionFactory con
                 MaxRequestsPerSecond,
                 ThresholdsPassed,
                 SummaryJson,
+                capacityResult,
                 thresholds,
                 timeline,
                 endpointMetrics);
+        }
     }
 }
