@@ -102,6 +102,8 @@ function shouldDryRun(method, path) {
     normalized.includes('/notifications/stream') ||
     normalized.includes('/session/') ||
     normalized.endsWith('/session') ||
+    normalized.startsWith('/traffic-monitoring/') ||
+    normalized.includes('/relatorios/ficha-financeira') ||
     normalized.includes('/serasa-pefin/test/')
   );
 }
@@ -110,15 +112,17 @@ function buildRequestPath(path, parameters) {
   let resolvedPath = path.replace(/\{([^}]+)\}/g, (_, parameterName) =>
     encodeURIComponent(valueFor(parameterName)),
   );
-  const query = new URLSearchParams();
+  const query = [];
 
   for (const parameter of parameters) {
     if (parameter.in !== 'query') continue;
     if (!parameter.required && !isUsefulOptionalQuery(parameter.name)) continue;
-    query.set(parameter.name, valueFor(parameter.name));
+    query.push(
+      `${encodeURIComponent(parameter.name)}=${encodeURIComponent(valueFor(parameter.name))}`,
+    );
   }
 
-  const queryString = query.toString();
+  const queryString = query.join('&');
   if (queryString) resolvedPath += `?${queryString}`;
   return resolvedPath;
 }

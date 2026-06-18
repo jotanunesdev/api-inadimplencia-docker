@@ -476,7 +476,8 @@ public sealed class SqlServerLoadTestRunRepository(AuditSqlConnectionFactory con
     {
         if (value.ValueKind is JsonValueKind.True or JsonValueKind.False)
         {
-            return value.GetBoolean();
+            // k6 summary-export uses true to indicate that the threshold was crossed.
+            return !value.GetBoolean();
         }
 
         return value.ValueKind == JsonValueKind.Object

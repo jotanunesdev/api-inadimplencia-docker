@@ -344,7 +344,8 @@ public sealed class K6LoadTestOrchestrator(
     {
         if (value.ValueKind is System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False)
         {
-            return value.GetBoolean();
+            // k6 summary-export uses true to indicate that the threshold was crossed.
+            return !value.GetBoolean();
         }
 
         return value.ValueKind == System.Text.Json.JsonValueKind.Object
