@@ -1,8 +1,6 @@
 import { group, sleep } from 'k6';
-import { thresholds, config, resolveManagedProfile } from './lib/config.js';
-import { publicEndpoints } from './scenarios/public-endpoints.js';
-import { inadimplenciaRead } from './scenarios/inadimplencia-read.js';
-import { proximasAcoes } from './scenarios/proximas-acoes.js';
+import { thresholds, resolveManagedProfile } from './lib/config.js';
+import { discoverApiOperations, executeApiBatch } from './scenarios/full-api.js';
 
 const profile = resolveManagedProfile(__ENV.K6_PROFILE_KEY || 'baseline');
 
@@ -14,14 +12,12 @@ export const options = {
   summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)'],
 };
 
-export default function () {
-  group('public', () => publicEndpoints());
+export function setup() {
+  return { operations: discoverApiOperations() };
+}
 
-  if (config.hasAuth || __ENV.K6_FORCE_AUTHED === 'true') {
-    group('inadimplencia-read', () => inadimplenciaRead());
-    group('proximas-acoes', () => proximasAcoes());
-  }
-
+export default function (data) {
+  group('full-api', () => executeApiBatch(data.operations));
   if (profile.sleepMs > 0) {
     sleep(profile.sleepMs / 1000);
   }

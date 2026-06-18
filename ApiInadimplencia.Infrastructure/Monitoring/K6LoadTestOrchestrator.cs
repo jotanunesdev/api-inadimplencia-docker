@@ -11,7 +11,7 @@ namespace ApiInadimplencia.Infrastructure.Monitoring;
 public sealed class K6LoadTestOrchestrator(
     ILoadTestRunRepository repository,
     IHostEnvironment hostEnvironment,
-    ILogger<K6LoadTestOrchestrator> logger) : ILoadTestOrchestrator
+    ILogger<K6LoadTestOrchestrator> logger) : ILoadTestOrchestrator, ILoadTestRequestAuthorizer
 {
     private readonly ILoadTestRunRepository _repository =
         repository ?? throw new ArgumentNullException(nameof(repository));
@@ -20,6 +20,12 @@ public sealed class K6LoadTestOrchestrator(
     private readonly ILogger<K6LoadTestOrchestrator> _logger =
         logger ?? throw new ArgumentNullException(nameof(logger));
     private readonly ConcurrentDictionary<Guid, ActiveLoadTestRun> _activeRuns = new();
+    private readonly ConcurrentDictionary<string, Guid> _activeCredentials =
+        new(StringComparer.Ordinal);
+
+    public bool IsAuthorized(string? credential)
+        => !string.IsNullOrWhiteSpace(credential)
+            && _activeCredentials.ContainsKey(credential);
 
     public IReadOnlyList<LoadTestProfileDto> GetProfiles()
         => LoadTestProfiles.All.Select(profile => profile.ToDto()).ToList();
@@ -67,6 +73,7 @@ public sealed class K6LoadTestOrchestrator(
             null,
             null,
             [],
+            [],
             []);
 
         await _repository.InsertStartedRunAsync(ToListItem(initialRun), cancellationToken).ConfigureAwait(false);
@@ -76,19 +83,24 @@ public sealed class K6LoadTestOrchestrator(
 
         var sampleFilePath = Path.Combine(resultRoot, "samples.ndjson");
         var summaryFilePath = Path.Combine(resultRoot, "summary.json");
+        var loadTestCredential = Convert.ToHexString(
+            System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
         Process process;
 
         try
         {
+            _activeCredentials[loadTestCredential] = runId;
             process = StartK6Process(
                 profile,
                 runtime,
                 sampleFilePath,
                 summaryFilePath,
-                targetBaseUrl);
+                targetBaseUrl,
+                loadTestCredential);
         }
         catch (Exception ex)
         {
+            _activeCredentials.TryRemove(loadTestCredential, out _);
             var failedRun = initialRun with
             {
                 Status = "failed",
@@ -105,7 +117,13 @@ public sealed class K6LoadTestOrchestrator(
                 ex);
         }
 
-        var activeRun = new ActiveLoadTestRun(initialRun, process, sampleFilePath, summaryFilePath, resultRoot);
+        var activeRun = new ActiveLoadTestRun(
+            initialRun,
+            process,
+            sampleFilePath,
+            summaryFilePath,
+            resultRoot,
+            loadTestCredential);
         _activeRuns[runId] = activeRun;
 
         _ = MonitorCompletionAsync(activeRun);
@@ -137,7 +155,8 @@ public sealed class K6LoadTestOrchestrator(
         LoadTestRuntime runtime,
         string sampleFilePath,
         string summaryFilePath,
-        string targetBaseUrl)
+        string targetBaseUrl,
+        string loadTestCredential)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -158,6 +177,8 @@ public sealed class K6LoadTestOrchestrator(
         startInfo.ArgumentList.Add($"K6_PROFILE_KEY={profile.Key}");
         startInfo.ArgumentList.Add("-e");
         startInfo.ArgumentList.Add($"K6_BASE_URL={targetBaseUrl}");
+        startInfo.ArgumentList.Add("-e");
+        startInfo.ArgumentList.Add($"K6_LOAD_TEST_KEY={loadTestCredential}");
         startInfo.ArgumentList.Add(runtime.ScriptPath);
 
         var process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
@@ -282,6 +303,7 @@ public sealed class K6LoadTestOrchestrator(
         finally
         {
             _activeRuns.TryRemove(activeRun.Run.RunId, out _);
+            _activeCredentials.TryRemove(activeRun.LoadTestCredential, out _);
         }
     }
 
@@ -391,7 +413,8 @@ public sealed class K6LoadTestOrchestrator(
         Process Process,
         string SampleFilePath,
         string SummaryFilePath,
-        string ResultRootPath);
+        string ResultRootPath,
+        string LoadTestCredential);
 
     private sealed record LoadTestRuntime(
         string ExecutablePath,

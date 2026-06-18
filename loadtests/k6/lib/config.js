@@ -3,6 +3,7 @@
 
 const BASE_URL = (__ENV.K6_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
 const BEARER_TOKEN = __ENV.K6_BEARER_TOKEN || '';
+const LOAD_TEST_KEY = __ENV.K6_LOAD_TEST_KEY || '';
 
 export const config = {
   baseUrl: BASE_URL,
@@ -11,6 +12,8 @@ export const config = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
     ...(BEARER_TOKEN ? { 'Authorization': `Bearer ${BEARER_TOKEN}` } : {}),
+    ...(LOAD_TEST_KEY ? { 'X-Load-Test-Key': LOAD_TEST_KEY } : {}),
+    'X-Source-System': 'managed-k6-load-test',
   },
 };
 
@@ -23,21 +26,25 @@ export function url(path) {
 export const thresholds = {
   smoke: {
     'http_req_failed': ['rate<0.01'],
+    'endpoint_errors': ['rate<0.01'],
     'http_req_duration': ['p(95)<500', 'p(99)<1000'],
     'checks': ['rate>0.99'],
   },
   load: {
     'http_req_failed': ['rate<0.01'],
+    'endpoint_errors': ['rate<0.01'],
     'http_req_duration': ['p(95)<800', 'p(99)<1500'],
     'checks': ['rate>0.98'],
   },
   stress: {
     'http_req_failed': ['rate<0.05'],
+    'endpoint_errors': ['rate<0.05'],
     'http_req_duration': ['p(95)<2000', 'p(99)<4000'],
     'checks': ['rate>0.95'],
   },
   spike: {
     'http_req_failed': ['rate<0.10'],
+    'endpoint_errors': ['rate<0.10'],
     'http_req_duration': ['p(95)<3000'],
   },
 };

@@ -19,6 +19,7 @@ internal static class LoadTestLiveSnapshotParser
         }
 
         var requestBuckets = new Dictionary<int, MutableTimelinePoint>();
+        var endpointBuckets = new Dictionary<string, MutableEndpointMetric>(StringComparer.Ordinal);
         var allDurations = new List<double>();
         long totalRequests = 0;
         long failedRequests = 0;
@@ -59,6 +60,10 @@ internal static class LoadTestLiveSnapshotParser
                 var data = root.GetProperty("data");
                 var value = data.GetProperty("value").GetDouble();
                 var timestampUtc = data.GetProperty("time").GetDateTime().ToUniversalTime();
+                var tags = data.TryGetProperty("tags", out var tagsElement)
+                    ? tagsElement
+                    : default;
+                var endpointName = ReadTag(tags, "name");
                 var elapsedSeconds = (int)Math.Max(0, Math.Floor((timestampUtc - run.StartedAtUtc).TotalSeconds));
 
                 if (!requestBuckets.TryGetValue(elapsedSeconds, out var bucket))
@@ -73,11 +78,13 @@ internal static class LoadTestLiveSnapshotParser
                         var requestIncrement = Convert.ToInt64(Math.Round(value, MidpointRounding.AwayFromZero));
                         bucket.Requests += requestIncrement;
                         totalRequests += requestIncrement;
+                        GetEndpointMetric(endpointBuckets, endpointName, tags).Requests += requestIncrement;
                         break;
-                    case "http_req_failed":
+                    case "endpoint_errors":
                         var failureIncrement = Convert.ToInt64(Math.Round(value, MidpointRounding.AwayFromZero));
                         bucket.Failures += failureIncrement;
                         failedRequests += failureIncrement;
+                        GetEndpointMetric(endpointBuckets, endpointName, tags).Failures += failureIncrement;
                         break;
                     case "http_req_duration":
                         bucket.DurationSum += value;
@@ -86,6 +93,7 @@ internal static class LoadTestLiveSnapshotParser
                         durationSum += value;
                         durationCount++;
                         allDurations.Add(value);
+                        GetEndpointMetric(endpointBuckets, endpointName, tags).Durations.Add(value);
                         break;
                     case "vus":
                         var vus = (int)Math.Round(value, MidpointRounding.AwayFromZero);
@@ -107,6 +115,11 @@ internal static class LoadTestLiveSnapshotParser
         var p95 = CalculatePercentile(allDurations, 95);
         var p99 = CalculatePercentile(allDurations, 99);
         var maxRps = timeline.Count == 0 ? 0 : timeline.Max(point => (double)point.Requests);
+        var endpointMetrics = endpointBuckets.Values
+            .Where(metric => metric.Requests > 0 || metric.Durations.Count > 0)
+            .OrderBy(metric => metric.Name, StringComparer.Ordinal)
+            .Select(metric => metric.ToDto())
+            .ToList();
 
         return run with
         {
@@ -121,7 +134,40 @@ internal static class LoadTestLiveSnapshotParser
             CurrentVirtualUsers = currentVirtualUsers,
             MaxRequestsPerSecond = maxRps,
             Timeline = timeline,
+            EndpointMetrics = endpointMetrics,
         };
+    }
+
+    private static MutableEndpointMetric GetEndpointMetric(
+        IDictionary<string, MutableEndpointMetric> metrics,
+        string? endpointName,
+        JsonElement tags)
+    {
+        var name = string.IsNullOrWhiteSpace(endpointName) ? "unknown" : endpointName;
+        if (metrics.TryGetValue(name, out var metric))
+        {
+            return metric;
+        }
+
+        metric = new MutableEndpointMetric(
+            name,
+            ReadTag(tags, "method") ?? "UNKNOWN",
+            ReadTag(tags, "endpoint") ?? name,
+            ReadTag(tags, "execution_mode") ?? "real");
+        metrics[name] = metric;
+        return metric;
+    }
+
+    private static string? ReadTag(JsonElement tags, string name)
+    {
+        if (tags.ValueKind != JsonValueKind.Object ||
+            !tags.TryGetProperty(name, out var value) ||
+            value.ValueKind != JsonValueKind.String)
+        {
+            return null;
+        }
+
+        return value.GetString();
     }
 
     private static double CalculateProgress(
@@ -171,5 +217,40 @@ internal static class LoadTestLiveSnapshotParser
                 DurationCount == 0 ? 0 : DurationSum / DurationCount,
                 CalculatePercentile(Durations, 95),
                 ActiveVirtualUsers);
+    }
+
+    private sealed class MutableEndpointMetric(
+        string name,
+        string httpMethod,
+        string endpoint,
+        string executionMode)
+    {
+        public string Name { get; } = name;
+        public string HttpMethod { get; } = httpMethod;
+        public string Endpoint { get; } = endpoint;
+        public string ExecutionMode { get; } = executionMode;
+        public long Requests { get; set; }
+        public long Failures { get; set; }
+        public List<double> Durations { get; } = [];
+
+        public LoadTestEndpointMetricDto ToDto()
+        {
+            var durationAverage = Durations.Count == 0 ? 0 : Durations.Average();
+            var failureRate = Requests == 0 ? 0 : Failures * 100d / Requests;
+
+            return new LoadTestEndpointMetricDto(
+                Name,
+                HttpMethod,
+                Endpoint,
+                ExecutionMode,
+                Requests,
+                Failures,
+                failureRate,
+                durationAverage,
+                Durations.Count == 0 ? 0 : Durations.Min(),
+                Durations.Count == 0 ? 0 : Durations.Max(),
+                CalculatePercentile(Durations, 95),
+                CalculatePercentile(Durations, 99));
+        }
     }
 }

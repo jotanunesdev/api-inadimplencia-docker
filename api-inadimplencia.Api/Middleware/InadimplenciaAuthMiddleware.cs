@@ -1,3 +1,4 @@
+using ApiInadimplencia.Application.Abstractions.Monitoring;
 using ApiInadimplencia.Api.Endpoints;
 using ApiInadimplencia.Infrastructure.Auth;
 using ApiInadimplencia.Infrastructure.Configuration;
@@ -24,8 +25,15 @@ public sealed class InadimplenciaAuthMiddleware(RequestDelegate next)
         HttpContext context,
         AuthOptions options,
         IAuthServerClient authClient,
-        IInadimplenciaSessionStore sessionStore)
+        IInadimplenciaSessionStore sessionStore,
+        ILoadTestRequestAuthorizer loadTestAuthorizer)
     {
+        if (TryAuthorizeLoadTest(context, loadTestAuthorizer))
+        {
+            await _next(context).ConfigureAwait(false);
+            return;
+        }
+
         if (!ShouldAuthenticate(context, options))
         {
             await _next(context).ConfigureAwait(false);
@@ -64,6 +72,29 @@ public sealed class InadimplenciaAuthMiddleware(RequestDelegate next)
         context.User = identity.ToClaimsPrincipal();
         context.Items["InadimplenciaAuth"] = identity;
         await _next(context).ConfigureAwait(false);
+    }
+
+    private static bool TryAuthorizeLoadTest(
+        HttpContext context,
+        ILoadTestRequestAuthorizer authorizer)
+    {
+        var credential = context.Request.Headers["X-Load-Test-Key"].ToString();
+        if (!authorizer.IsAuthorized(credential))
+        {
+            return false;
+        }
+
+        var identity = new AuthIdentity(
+            "managed-load-test",
+            null,
+            ["inadimplencia:read", "inadimplencia:write", "inadimplencia:admin"],
+            "managed-load-test",
+            DateTimeOffset.UtcNow.AddMinutes(10));
+
+        context.User = identity.ToClaimsPrincipal();
+        context.Items["InadimplenciaAuth"] = identity;
+        context.Items["ManagedLoadTest"] = true;
+        return true;
     }
 
     private static bool ShouldAuthenticate(HttpContext context, AuthOptions options)

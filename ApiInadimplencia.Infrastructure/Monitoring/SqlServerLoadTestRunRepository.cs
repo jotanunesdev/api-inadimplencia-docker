@@ -57,6 +57,29 @@ public sealed class SqlServerLoadTestRunRepository(AuditSqlConnectionFactory con
                     FOREIGN KEY (RUN_ID) REFERENCES dbo.API_LOAD_TEST_RUN (RUN_ID) ON DELETE CASCADE
             );
         END;
+
+        IF OBJECT_ID(N'dbo.API_LOAD_TEST_ENDPOINT', N'U') IS NULL
+        BEGIN
+            CREATE TABLE dbo.API_LOAD_TEST_ENDPOINT
+            (
+                RUN_ID uniqueidentifier NOT NULL,
+                NAME nvarchar(600) NOT NULL,
+                HTTP_METHOD varchar(10) NOT NULL,
+                ENDPOINT nvarchar(500) NOT NULL,
+                EXECUTION_MODE varchar(20) NOT NULL,
+                REQUESTS bigint NOT NULL,
+                FAILURES bigint NOT NULL,
+                ERROR_RATE float NOT NULL,
+                AVERAGE_DURATION_MS float NOT NULL,
+                MINIMUM_DURATION_MS float NOT NULL,
+                MAXIMUM_DURATION_MS float NOT NULL,
+                P95_DURATION_MS float NOT NULL,
+                P99_DURATION_MS float NOT NULL,
+                CONSTRAINT PK_API_LOAD_TEST_ENDPOINT PRIMARY KEY (RUN_ID, NAME),
+                CONSTRAINT FK_API_LOAD_TEST_ENDPOINT_RUN
+                    FOREIGN KEY (RUN_ID) REFERENCES dbo.API_LOAD_TEST_RUN (RUN_ID) ON DELETE CASCADE
+            );
+        END;
         """;
 
     private readonly AuditSqlConnectionFactory _connectionFactory =
@@ -216,6 +239,73 @@ public sealed class SqlServerLoadTestRunRepository(AuditSqlConnectionFactory con
             await bulkCopy.WriteToServerAsync(timelineTable, cancellationToken).ConfigureAwait(false);
         }
 
+        await connection.ExecuteAsync(new CommandDefinition(
+            "DELETE FROM dbo.API_LOAD_TEST_ENDPOINT WHERE RUN_ID = @RunId;",
+            new { run.RunId },
+            transaction,
+            _connectionFactory.CommandTimeoutSeconds,
+            cancellationToken: cancellationToken)).ConfigureAwait(false);
+
+        const string insertEndpointSql = """
+            INSERT INTO dbo.API_LOAD_TEST_ENDPOINT
+            (
+                RUN_ID,
+                NAME,
+                HTTP_METHOD,
+                ENDPOINT,
+                EXECUTION_MODE,
+                REQUESTS,
+                FAILURES,
+                ERROR_RATE,
+                AVERAGE_DURATION_MS,
+                MINIMUM_DURATION_MS,
+                MAXIMUM_DURATION_MS,
+                P95_DURATION_MS,
+                P99_DURATION_MS
+            )
+            VALUES
+            (
+                @RunId,
+                @Name,
+                @HttpMethod,
+                @Endpoint,
+                @ExecutionMode,
+                @Requests,
+                @Failures,
+                @ErrorRate,
+                @AverageDurationMs,
+                @MinimumDurationMs,
+                @MaximumDurationMs,
+                @P95DurationMs,
+                @P99DurationMs
+            );
+            """;
+
+        foreach (var endpoint in run.EndpointMetrics)
+        {
+            await connection.ExecuteAsync(new CommandDefinition(
+                insertEndpointSql,
+                new
+                {
+                    run.RunId,
+                    endpoint.Name,
+                    endpoint.HttpMethod,
+                    endpoint.Endpoint,
+                    endpoint.ExecutionMode,
+                    endpoint.Requests,
+                    endpoint.Failures,
+                    endpoint.ErrorRate,
+                    endpoint.AverageDurationMs,
+                    endpoint.MinimumDurationMs,
+                    endpoint.MaximumDurationMs,
+                    endpoint.P95DurationMs,
+                    endpoint.P99DurationMs,
+                },
+                transaction,
+                _connectionFactory.CommandTimeoutSeconds,
+                cancellationToken: cancellationToken)).ConfigureAwait(false);
+        }
+
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
 
@@ -309,6 +399,23 @@ public sealed class SqlServerLoadTestRunRepository(AuditSqlConnectionFactory con
             FROM dbo.API_LOAD_TEST_TIMELINE
             WHERE RUN_ID = @RunId
             ORDER BY ELAPSED_SECONDS;
+
+            SELECT
+                NAME AS Name,
+                HTTP_METHOD AS HttpMethod,
+                ENDPOINT AS Endpoint,
+                EXECUTION_MODE AS ExecutionMode,
+                REQUESTS AS Requests,
+                FAILURES AS Failures,
+                ERROR_RATE AS ErrorRate,
+                AVERAGE_DURATION_MS AS AverageDurationMs,
+                MINIMUM_DURATION_MS AS MinimumDurationMs,
+                MAXIMUM_DURATION_MS AS MaximumDurationMs,
+                P95_DURATION_MS AS P95DurationMs,
+                P99_DURATION_MS AS P99DurationMs
+            FROM dbo.API_LOAD_TEST_ENDPOINT
+            WHERE RUN_ID = @RunId
+            ORDER BY NAME;
             """;
 
         using var multi = await connection.QueryMultipleAsync(new CommandDefinition(
@@ -324,9 +431,10 @@ public sealed class SqlServerLoadTestRunRepository(AuditSqlConnectionFactory con
         }
 
         var timeline = (await multi.ReadAsync<LoadTestTimelinePointDto>().ConfigureAwait(false)).AsList();
+        var endpoints = (await multi.ReadAsync<LoadTestEndpointMetricDto>().ConfigureAwait(false)).AsList();
         var thresholds = ParseThresholds(row.SummaryJson);
 
-        return row.ToDto(timeline, thresholds);
+        return row.ToDto(timeline, thresholds, endpoints);
     }
 
     private static IReadOnlyList<LoadTestThresholdResultDto> ParseThresholds(string? summaryJson)
@@ -402,7 +510,8 @@ public sealed class SqlServerLoadTestRunRepository(AuditSqlConnectionFactory con
     {
         public LoadTestRunDetailDto ToDto(
             IReadOnlyList<LoadTestTimelinePointDto> timeline,
-            IReadOnlyList<LoadTestThresholdResultDto> thresholds)
+            IReadOnlyList<LoadTestThresholdResultDto> thresholds,
+            IReadOnlyList<LoadTestEndpointMetricDto> endpointMetrics)
             => new(
                 RunId,
                 ProfileKey,
@@ -426,6 +535,7 @@ public sealed class SqlServerLoadTestRunRepository(AuditSqlConnectionFactory con
                 ThresholdsPassed,
                 SummaryJson,
                 thresholds,
-                timeline);
+                timeline,
+                endpointMetrics);
     }
 }

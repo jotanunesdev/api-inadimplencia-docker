@@ -17,5 +17,11 @@
   "clientes": [
     "CLIENTE TESTE",
     "EMPRESA EXEMPLO"
+  ],
+  "idLans": [
+    12345
+  ],
+  "protocolos": [
+    "0000000000000"
   ]
 }

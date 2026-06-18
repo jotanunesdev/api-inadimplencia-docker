@@ -145,7 +145,11 @@ public static class DependencyInjection
         services.AddSingleton<ITrafficRequestStore, SqlServerTrafficRequestStore>();
         services.AddSingleton<ITrafficAnalyticsQuery, SqlServerTrafficAnalyticsQuery>();
         services.AddSingleton<ILoadTestRunRepository, SqlServerLoadTestRunRepository>();
-        services.AddSingleton<ILoadTestOrchestrator, K6LoadTestOrchestrator>();
+        services.AddSingleton<K6LoadTestOrchestrator>();
+        services.AddSingleton<ILoadTestOrchestrator>(provider =>
+            provider.GetRequiredService<K6LoadTestOrchestrator>());
+        services.AddSingleton<ILoadTestRequestAuthorizer>(provider =>
+            provider.GetRequiredService<K6LoadTestOrchestrator>());
         services.AddSingleton<TrafficRecordChannel>();
         services.AddSingleton<ITrafficRequestSink>(provider =>
             provider.GetRequiredService<TrafficRecordChannel>());

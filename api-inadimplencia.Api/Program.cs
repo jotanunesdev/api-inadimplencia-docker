@@ -200,6 +200,7 @@ app.UseExceptionHandler();
 app.UseCors(CorsPolicyOptions.PolicyName);
 app.UseMiddleware<RequestMonitoringMiddleware>();
 app.UseMiddleware<InadimplenciaAuthMiddleware>();
+app.UseMiddleware<LoadTestDryRunMiddleware>();
 app.UseSwagger();
 app.UseSwaggerUI();
 
