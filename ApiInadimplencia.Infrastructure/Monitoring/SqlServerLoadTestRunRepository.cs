@@ -226,6 +226,16 @@ public sealed class SqlServerLoadTestRunRepository(AuditSqlConnectionFactory con
         await EnsureSchemaAsync(cancellationToken).ConfigureAwait(false);
         await using var connection = await _connectionFactory.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
         const string sql = """
+            UPDATE dbo.API_LOAD_TEST_RUN
+            SET STATUS = 'failed',
+                FINISHED_AT_UTC = SYSUTCDATETIME(),
+                THRESHOLDS_PASSED = 0,
+                SUMMARY_JSON = COALESCE(
+                    SUMMARY_JSON,
+                    N'{"startupFailure":true,"error":"Execucao abandonada apos reinicio ou falha do processo k6."}')
+            WHERE STATUS = 'running'
+              AND DATEADD(SECOND, EXPECTED_DURATION_SECONDS + 300, STARTED_AT_UTC) < SYSUTCDATETIME();
+
             SELECT TOP (@Limit)
                 RUN_ID AS RunId,
                 PROFILE_KEY AS ProfileKey,
@@ -343,7 +353,7 @@ public sealed class SqlServerLoadTestRunRepository(AuditSqlConnectionFactory con
 
             foreach (var threshold in thresholdsElement.EnumerateObject())
             {
-                var passed = threshold.Value.TryGetProperty("ok", out var okElement) && okElement.GetBoolean();
+                var passed = ReadThresholdResult(threshold.Value);
                 results.Add(new LoadTestThresholdResultDto(
                     metric.Name,
                     passed,
@@ -352,6 +362,19 @@ public sealed class SqlServerLoadTestRunRepository(AuditSqlConnectionFactory con
         }
 
         return results;
+    }
+
+    private static bool ReadThresholdResult(JsonElement value)
+    {
+        if (value.ValueKind is JsonValueKind.True or JsonValueKind.False)
+        {
+            return value.GetBoolean();
+        }
+
+        return value.ValueKind == JsonValueKind.Object
+            && value.TryGetProperty("ok", out var ok)
+            && ok.ValueKind is JsonValueKind.True or JsonValueKind.False
+            && ok.GetBoolean();
     }
 
     private sealed record StoredRunRow(

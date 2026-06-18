@@ -34,53 +34,66 @@ internal static class LoadTestLiveSnapshotParser
                 continue;
             }
 
-            using var document = JsonDocument.Parse(line);
-            var root = document.RootElement;
-
-            if (!root.TryGetProperty("type", out var typeProperty) ||
-                !string.Equals(typeProperty.GetString(), "Point", StringComparison.Ordinal))
+            JsonDocument document;
+            try
             {
+                document = JsonDocument.Parse(line);
+            }
+            catch (JsonException)
+            {
+                // k6 may still be writing the final NDJSON line during a live read.
                 continue;
             }
 
-            var metric = root.GetProperty("metric").GetString();
-            var data = root.GetProperty("data");
-            var value = data.GetProperty("value").GetDouble();
-            var timestampUtc = data.GetProperty("time").GetDateTime().ToUniversalTime();
-            var elapsedSeconds = (int)Math.Max(0, Math.Floor((timestampUtc - run.StartedAtUtc).TotalSeconds));
-
-            if (!requestBuckets.TryGetValue(elapsedSeconds, out var bucket))
+            using (document)
             {
-                bucket = new MutableTimelinePoint(timestampUtc, elapsedSeconds);
-                requestBuckets[elapsedSeconds] = bucket;
-            }
+                var root = document.RootElement;
 
-            switch (metric)
-            {
-                case "http_reqs":
-                    var requestIncrement = Convert.ToInt64(Math.Round(value, MidpointRounding.AwayFromZero));
-                    bucket.Requests += requestIncrement;
-                    totalRequests += requestIncrement;
-                    break;
-                case "http_req_failed":
-                    var failureIncrement = Convert.ToInt64(Math.Round(value, MidpointRounding.AwayFromZero));
-                    bucket.Failures += failureIncrement;
-                    failedRequests += failureIncrement;
-                    break;
-                case "http_req_duration":
-                    bucket.DurationSum += value;
-                    bucket.DurationCount++;
-                    bucket.Durations.Add(value);
-                    durationSum += value;
-                    durationCount++;
-                    allDurations.Add(value);
-                    break;
-                case "vus":
-                    var vus = (int)Math.Round(value, MidpointRounding.AwayFromZero);
-                    bucket.ActiveVirtualUsers = Math.Max(bucket.ActiveVirtualUsers, vus);
-                    peakVirtualUsers = Math.Max(peakVirtualUsers, vus);
-                    currentVirtualUsers = value;
-                    break;
+                if (!root.TryGetProperty("type", out var typeProperty) ||
+                    !string.Equals(typeProperty.GetString(), "Point", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var metric = root.GetProperty("metric").GetString();
+                var data = root.GetProperty("data");
+                var value = data.GetProperty("value").GetDouble();
+                var timestampUtc = data.GetProperty("time").GetDateTime().ToUniversalTime();
+                var elapsedSeconds = (int)Math.Max(0, Math.Floor((timestampUtc - run.StartedAtUtc).TotalSeconds));
+
+                if (!requestBuckets.TryGetValue(elapsedSeconds, out var bucket))
+                {
+                    bucket = new MutableTimelinePoint(timestampUtc, elapsedSeconds);
+                    requestBuckets[elapsedSeconds] = bucket;
+                }
+
+                switch (metric)
+                {
+                    case "http_reqs":
+                        var requestIncrement = Convert.ToInt64(Math.Round(value, MidpointRounding.AwayFromZero));
+                        bucket.Requests += requestIncrement;
+                        totalRequests += requestIncrement;
+                        break;
+                    case "http_req_failed":
+                        var failureIncrement = Convert.ToInt64(Math.Round(value, MidpointRounding.AwayFromZero));
+                        bucket.Failures += failureIncrement;
+                        failedRequests += failureIncrement;
+                        break;
+                    case "http_req_duration":
+                        bucket.DurationSum += value;
+                        bucket.DurationCount++;
+                        bucket.Durations.Add(value);
+                        durationSum += value;
+                        durationCount++;
+                        allDurations.Add(value);
+                        break;
+                    case "vus":
+                        var vus = (int)Math.Round(value, MidpointRounding.AwayFromZero);
+                        bucket.ActiveVirtualUsers = Math.Max(bucket.ActiveVirtualUsers, vus);
+                        peakVirtualUsers = Math.Max(peakVirtualUsers, vus);
+                        currentVirtualUsers = value;
+                        break;
+                }
             }
         }
 

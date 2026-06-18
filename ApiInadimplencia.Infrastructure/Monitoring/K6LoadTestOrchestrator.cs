@@ -40,6 +40,7 @@ public sealed class K6LoadTestOrchestrator(
         var targetBaseUrl = string.IsNullOrWhiteSpace(request.TargetBaseUrl)
             ? "http://localhost:8080"
             : request.TargetBaseUrl.Trim().TrimEnd('/');
+        var runtime = ResolveRuntime(profile);
 
         await _repository.EnsureSchemaAsync(cancellationToken).ConfigureAwait(false);
 
@@ -70,13 +71,40 @@ public sealed class K6LoadTestOrchestrator(
 
         await _repository.InsertStartedRunAsync(ToListItem(initialRun), cancellationToken).ConfigureAwait(false);
 
-        var scriptsRoot = Path.GetFullPath(Path.Combine(_hostEnvironment.ContentRootPath, "..", "loadtests", "k6"));
-        var resultRoot = Path.Combine(scriptsRoot, "results", "managed", runId.ToString("N"));
+        var resultRoot = Path.Combine(Path.GetTempPath(), "api-load-tests", runId.ToString("N"));
         Directory.CreateDirectory(resultRoot);
 
         var sampleFilePath = Path.Combine(resultRoot, "samples.ndjson");
         var summaryFilePath = Path.Combine(resultRoot, "summary.json");
-        var process = StartK6Process(profile, scriptsRoot, sampleFilePath, summaryFilePath, targetBaseUrl);
+        Process process;
+
+        try
+        {
+            process = StartK6Process(
+                profile,
+                runtime,
+                sampleFilePath,
+                summaryFilePath,
+                targetBaseUrl);
+        }
+        catch (Exception ex)
+        {
+            var failedRun = initialRun with
+            {
+                Status = "failed",
+                FinishedAtUtc = DateTime.UtcNow,
+                ProgressPercent = 100,
+                ThresholdsPassed = false,
+                SummaryJson = BuildStartupFailureSummaryJson(ex),
+            };
+
+            await _repository.CompleteRunAsync(failedRun, cancellationToken).ConfigureAwait(false);
+            _logger.LogError(ex, "Failed to start k6 load test run {RunId}.", runId);
+            throw new InvalidOperationException(
+                "Nao foi possivel iniciar o k6 no servidor. Consulte os logs da API.",
+                ex);
+        }
+
         var activeRun = new ActiveLoadTestRun(initialRun, process, sampleFilePath, summaryFilePath, resultRoot);
         _activeRuns[runId] = activeRun;
 
@@ -106,21 +134,15 @@ public sealed class K6LoadTestOrchestrator(
 
     private Process StartK6Process(
         LoadTestProfileDefinition profile,
-        string scriptsRoot,
+        LoadTestRuntime runtime,
         string sampleFilePath,
         string summaryFilePath,
         string targetBaseUrl)
     {
-        var scriptPath = Path.Combine(scriptsRoot, profile.ScriptName);
-        if (!File.Exists(scriptPath))
-        {
-            throw new FileNotFoundException("Managed k6 script not found.", scriptPath);
-        }
-
         var startInfo = new ProcessStartInfo
         {
-            FileName = ResolveK6Executable(),
-            WorkingDirectory = Path.GetFullPath(Path.Combine(_hostEnvironment.ContentRootPath, "..")),
+            FileName = runtime.ExecutablePath,
+            WorkingDirectory = runtime.WorkingDirectory,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
@@ -136,14 +158,51 @@ public sealed class K6LoadTestOrchestrator(
         startInfo.ArgumentList.Add($"K6_PROFILE_KEY={profile.Key}");
         startInfo.ArgumentList.Add("-e");
         startInfo.ArgumentList.Add($"K6_BASE_URL={targetBaseUrl}");
-        startInfo.ArgumentList.Add(scriptPath);
+        startInfo.ArgumentList.Add(runtime.ScriptPath);
 
         var process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
         process.Start();
         return process;
     }
 
-    private string ResolveK6Executable()
+    private LoadTestRuntime ResolveRuntime(LoadTestProfileDefinition profile)
+    {
+        var scriptsRoot = ResolveScriptsRoot();
+        var scriptPath = Path.Combine(scriptsRoot, profile.ScriptName);
+        if (!File.Exists(scriptPath))
+        {
+            throw new InvalidOperationException(
+                $"Script k6 nao encontrado no servidor: {scriptPath}");
+        }
+
+        return new LoadTestRuntime(
+            ResolveK6Executable(),
+            scriptPath,
+            scriptsRoot);
+    }
+
+    private string ResolveScriptsRoot()
+    {
+        var candidates = new[]
+        {
+            Path.Combine(_hostEnvironment.ContentRootPath, "loadtests", "k6"),
+            Path.Combine(_hostEnvironment.ContentRootPath, "..", "loadtests", "k6"),
+            Path.Combine(AppContext.BaseDirectory, "loadtests", "k6"),
+        };
+
+        foreach (var candidate in candidates.Select(Path.GetFullPath))
+        {
+            if (Directory.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        throw new InvalidOperationException(
+            $"Diretorio de scripts k6 nao encontrado. ContentRoot={_hostEnvironment.ContentRootPath}");
+    }
+
+    private static string ResolveK6Executable()
     {
         var candidates = OperatingSystem.IsWindows()
             ? new[] { "k6.exe", "k6" }
@@ -180,6 +239,8 @@ public sealed class K6LoadTestOrchestrator(
 
     private async Task MonitorCompletionAsync(ActiveLoadTestRun activeRun)
     {
+        await Task.Yield();
+
         var stdout = new StringBuilder();
         var stderr = new StringBuilder();
 
@@ -244,7 +305,7 @@ public sealed class K6LoadTestOrchestrator(
 
                 foreach (var threshold in thresholds.EnumerateObject())
                 {
-                    var passed = threshold.Value.TryGetProperty("ok", out var ok) && ok.GetBoolean();
+                    var passed = ReadThresholdResult(threshold.Value);
                     results.Add(new LoadTestThresholdResultDto(metric.Name, passed, [threshold.Name]));
                 }
             }
@@ -255,6 +316,19 @@ public sealed class K6LoadTestOrchestrator(
         {
             return [];
         }
+    }
+
+    private static bool ReadThresholdResult(System.Text.Json.JsonElement value)
+    {
+        if (value.ValueKind is System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False)
+        {
+            return value.GetBoolean();
+        }
+
+        return value.ValueKind == System.Text.Json.JsonValueKind.Object
+            && value.TryGetProperty("ok", out var ok)
+            && ok.ValueKind is System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False
+            && ok.GetBoolean();
     }
 
     private static async Task ReadStreamAsync(StreamReader reader, StringBuilder buffer)
@@ -283,6 +357,14 @@ public sealed class K6LoadTestOrchestrator(
         }
         """;
 
+    private static string BuildStartupFailureSummaryJson(Exception exception)
+        => System.Text.Json.JsonSerializer.Serialize(new
+        {
+            startupFailure = true,
+            error = exception.Message,
+            exceptionType = exception.GetType().Name,
+        });
+
     private static LoadTestRunListItemDto ToListItem(LoadTestRunDetailDto run)
         => new(
             run.RunId,
@@ -310,4 +392,9 @@ public sealed class K6LoadTestOrchestrator(
         string SampleFilePath,
         string SummaryFilePath,
         string ResultRootPath);
+
+    private sealed record LoadTestRuntime(
+        string ExecutablePath,
+        string ScriptPath,
+        string WorkingDirectory);
 }

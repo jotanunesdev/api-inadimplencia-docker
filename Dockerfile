@@ -1,5 +1,7 @@
 # syntax=docker/dockerfile:1
 
+FROM grafana/k6:latest AS k6
+
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
@@ -68,6 +70,8 @@ RUN if ls /usr/local/share/ca-certificates-extra/*.crt >/dev/null 2>&1; then \
     fi
 
 COPY --from=build /app/publish .
+COPY --from=k6 /usr/bin/k6 /usr/local/bin/k6
+COPY --from=build --chown=appuser:appgroup /src/loadtests/k6 /app/loadtests/k6
 
 ENV ASPNETCORE_HTTP_PORTS=8080
 # App target net8.0 but transitive deps (OpenTelemetry.Exporter.Prometheus.AspNetCore 1.10.0-beta.1)
