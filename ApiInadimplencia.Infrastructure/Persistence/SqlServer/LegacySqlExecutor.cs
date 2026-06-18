@@ -138,17 +138,25 @@ public sealed class LegacySqlExecutor(
         var queries = new Dictionary<string, SqlDefinition>(StringComparer.OrdinalIgnoreCase)
         {
             ["Inadimplencia.List"] = new($"""
-                SELECT {selectInadimplencia}
+                SELECT {selectInadimplencia},
+                       COUNT_BIG(1) OVER() AS TOTAL_COUNT
                 FROM DW.fat_analise_inadimplencia_v4 f
                 {latestAcaoApply}
                 WHERE UPPER(LTRIM(RTRIM(COALESCE(f.INADIMPLENTE, '')))) = 'SIM'
+                ORDER BY TRY_CAST(f.VALOR_TOTAL_EM_ABERTO AS float) DESC, f.NUM_VENDA DESC
+                OFFSET @offset ROWS
+                FETCH NEXT @pageSize ROWS ONLY
                 """),
 
             ["Inadimplencia.ByCpf"] = new($"""
-                SELECT {selectInadimplencia}
+                SELECT {selectInadimplencia},
+                       COUNT_BIG(1) OVER() AS TOTAL_COUNT
                 FROM DW.fat_analise_inadimplencia_v4 f
                 {latestAcaoApply}
                 WHERE REPLACE(REPLACE(REPLACE(f.CPF_CNPJ, '.', ''), '-', ''), '/', '') = @cpf
+                ORDER BY TRY_CAST(f.VALOR_TOTAL_EM_ABERTO AS float) DESC, f.NUM_VENDA DESC
+                OFFSET @offset ROWS
+                FETCH NEXT @pageSize ROWS ONLY
                 """),
 
             ["Inadimplencia.ByNumVenda"] = new($"""
@@ -161,19 +169,27 @@ public sealed class LegacySqlExecutor(
             ["Inadimplencia.ByResponsavel"] = new($"""
                 SELECT {selectInadimplencia},
                        vr.NOME_USUARIO_FK AS RESPONSAVEL,
-                       u.COR_HEX AS RESPONSAVEL_COR_HEX
+                       u.COR_HEX AS RESPONSAVEL_COR_HEX,
+                       COUNT_BIG(1) OVER() AS TOTAL_COUNT
                 FROM DW.fat_analise_inadimplencia_v4 f
                 INNER JOIN dbo.VENDA_RESPONSAVEL vr ON vr.NUM_VENDA_FK = f.NUM_VENDA
                 LEFT JOIN dbo.USUARIO u ON u.NOME = vr.NOME_USUARIO_FK
                 {latestAcaoApply}
                 WHERE vr.NOME_USUARIO_FK = @nome
+                ORDER BY TRY_CAST(f.VALOR_TOTAL_EM_ABERTO AS float) DESC, f.NUM_VENDA DESC
+                OFFSET @offset ROWS
+                FETCH NEXT @pageSize ROWS ONLY
                 """),
 
             ["Inadimplencia.ByCliente"] = new($"""
-                SELECT {selectInadimplencia}
+                SELECT {selectInadimplencia},
+                       COUNT_BIG(1) OVER() AS TOTAL_COUNT
                 FROM DW.fat_analise_inadimplencia_v4 f
                 {latestAcaoApply}
                 WHERE f.CLIENTE LIKE '%' + @nomeCliente + '%'
+                ORDER BY TRY_CAST(f.VALOR_TOTAL_EM_ABERTO AS float) DESC, f.NUM_VENDA DESC
+                OFFSET @offset ROWS
+                FETCH NEXT @pageSize ROWS ONLY
                 """),
 
             // Calendar view rule: per cliente, exibir apenas a PROXIMA_ACAO mais distante
@@ -192,12 +208,16 @@ public sealed class LegacySqlExecutor(
                     FROM dbo.OCORRENCIAS o
                     WHERE o.PROXIMA_ACAO IS NOT NULL
                 )
-                SELECT ranked.NUM_VENDA_FK AS NUM_VENDA, ranked.PROXIMA_ACAO
+                SELECT ranked.NUM_VENDA_FK AS NUM_VENDA,
+                       ranked.PROXIMA_ACAO,
+                       COUNT_BIG(1) OVER() AS TOTAL_COUNT
                 FROM Ranked ranked
                 INNER JOIN DW.fat_analise_inadimplencia_v4 f ON f.NUM_VENDA = ranked.NUM_VENDA_FK
                 WHERE ranked.RN = 1
                   AND UPPER(LTRIM(RTRIM(COALESCE(f.INADIMPLENTE, '')))) = 'SIM'
                 ORDER BY ranked.PROXIMA_ACAO ASC
+                OFFSET @offset ROWS
+                FETCH NEXT @pageSize ROWS ONLY
                 """),
 
             // Mesma regra de selecao da Lista: prioriza a PROXIMA_ACAO mais distante.

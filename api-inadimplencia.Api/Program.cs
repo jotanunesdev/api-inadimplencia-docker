@@ -158,6 +158,10 @@ builder.Services.AddOpenTelemetry()
                     activity.SetTag("user.id", request.HttpContext.User?.Identity?.Name);
                 };
             })
+            .AddHttpClientInstrumentation(options =>
+            {
+                options.RecordException = true;
+            })
             .AddSource("MassTransit")
             .AddSource("ApiInadimplencia")
             .AddOtlpExporter(); // Export to OTLP endpoint (Jaeger/Zipkin/Tempo)
@@ -166,6 +170,7 @@ builder.Services.AddOpenTelemetry()
     {
         metrics
             .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
             .AddMeter("MassTransit")
             .AddMeter("ApiInadimplencia")
             .AddPrometheusExporter(); // Export to Prometheus

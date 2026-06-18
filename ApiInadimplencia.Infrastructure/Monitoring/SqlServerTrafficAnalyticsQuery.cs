@@ -27,9 +27,11 @@ public sealed class SqlServerTrafficAnalyticsQuery(
             COUNT_BIG(1) AS TotalRequests,
             COALESCE(AVG(CAST(DURATION_MS AS float)), 0) AS AverageDurationMs,
             COALESCE(SUM(CASE WHEN STATUS_CODE >= 400 THEN CAST(1 AS bigint) ELSE CAST(0 AS bigint) END), 0) AS ErrorRequests,
-            CASE WHEN COUNT_BIG(1) = 0 THEN 0
-                 ELSE 100.0 * SUM(CASE WHEN STATUS_CODE >= 400 THEN 1.0 ELSE 0.0 END) / COUNT_BIG(1)
-            END AS ErrorRate,
+            CAST(
+                CASE WHEN COUNT_BIG(1) = 0 THEN 0
+                     ELSE 100.0 * SUM(CASE WHEN STATUS_CODE >= 400 THEN 1.0 ELSE 0.0 END) / COUNT_BIG(1)
+                END
+            AS float) AS ErrorRate,
             COUNT_BIG(1) / @PeriodMinutes AS RequestsPerMinute,
             COALESCE((
                 SELECT MAX(MinuteTotal)

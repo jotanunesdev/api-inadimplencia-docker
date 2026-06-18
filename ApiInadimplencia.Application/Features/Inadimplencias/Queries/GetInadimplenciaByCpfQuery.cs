@@ -7,4 +7,7 @@ namespace ApiInadimplencia.Application.Features.Inadimplencias.Queries;
 /// Query to get defaulted sales by CPF/CNPJ (digits only).
 /// </summary>
 /// <param name="Cpf">CPF/CNPJ with non-digits removed.</param>
-public sealed record GetInadimplenciaByCpfQuery(string Cpf) : IQuery<IReadOnlyList<InadimplenciaDto>>;
+public sealed record GetInadimplenciaByCpfQuery(
+    string Cpf,
+    int Page = 1,
+    int PageSize = 50) : IQuery<PagedInadimplenciaResult>;

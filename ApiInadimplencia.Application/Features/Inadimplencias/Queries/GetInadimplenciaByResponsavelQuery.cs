@@ -7,4 +7,7 @@ namespace ApiInadimplencia.Application.Features.Inadimplencias.Queries;
 /// Query to get defaulted sales by responsible user name (includes user color).
 /// </summary>
 /// <param name="Nome">Responsible user name.</param>
-public sealed record GetInadimplenciaByResponsavelQuery(string Nome) : IQuery<IReadOnlyList<InadimplenciaDto>>;
+public sealed record GetInadimplenciaByResponsavelQuery(
+    string Nome,
+    int Page = 1,
+    int PageSize = 50) : IQuery<PagedInadimplenciaResult>;

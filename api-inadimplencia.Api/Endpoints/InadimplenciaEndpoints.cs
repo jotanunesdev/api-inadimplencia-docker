@@ -79,35 +79,66 @@ public static class InadimplenciaEndpoints
 
         inadimplencia.MapInadimplenciaSessionEndpoints();
 
-        inadimplencia.MapGet("/", async ([FromServices] IQueryHandler<ListInadimplenciasQuery, IReadOnlyList<InadimplenciaDto>> handler, CancellationToken ct) =>
+        inadimplencia.MapGet("/", async (
+            int? page,
+            int? pageSize,
+            [FromServices] IQueryHandler<ListInadimplenciasQuery, PagedInadimplenciaResult> handler,
+            CancellationToken ct) =>
         {
-            var result = await handler.HandleAsync(new ListInadimplenciasQuery(), ct);
-            return Results.Ok(new { data = result });
+            var result = await handler.HandleAsync(
+                new ListInadimplenciasQuery(NormalizePage(page), NormalizePageSize(pageSize)),
+                ct);
+            return Results.Ok(PagedResponse(result));
         });
-        inadimplencia.MapGet("/cpf/{cpf}", async (string cpf, [FromServices] IQueryHandler<GetInadimplenciaByCpfQuery, IReadOnlyList<InadimplenciaDto>> handler, CancellationToken ct) =>
+        inadimplencia.MapGet("/cpf/{cpf}", async (
+            string cpf,
+            int? page,
+            int? pageSize,
+            [FromServices] IQueryHandler<GetInadimplenciaByCpfQuery, PagedInadimplenciaResult> handler,
+            CancellationToken ct) =>
         {
             var normalizedCpf = DigitsOnly(cpf);
-            var result = await handler.HandleAsync(new GetInadimplenciaByCpfQuery(normalizedCpf), ct);
-            return Results.Ok(new { data = result });
+            var result = await handler.HandleAsync(
+                new GetInadimplenciaByCpfQuery(normalizedCpf, NormalizePage(page), NormalizePageSize(pageSize)),
+                ct);
+            return Results.Ok(PagedResponse(result));
         });
         inadimplencia.MapGet("/num-venda/{numVenda:int}", async (int numVenda, [FromServices] IQueryHandler<GetInadimplenciaByNumVendaQuery, InadimplenciaDto?> handler, CancellationToken ct) =>
         {
             var result = await handler.HandleAsync(new GetInadimplenciaByNumVendaQuery(numVenda), ct);
             if (result is null)
             {
-                return Results.NotFound();
+                return Results.NotFound(new
+                {
+                    error = "NAO_ENCONTRADA",
+                    numVenda,
+                });
             }
             return Results.Ok(new { data = result });
         });
-        inadimplencia.MapGet("/responsavel/{nome}", async (string nome, [FromServices] IQueryHandler<GetInadimplenciaByResponsavelQuery, IReadOnlyList<InadimplenciaDto>> handler, CancellationToken ct) =>
+        inadimplencia.MapGet("/responsavel/{nome}", async (
+            string nome,
+            int? page,
+            int? pageSize,
+            [FromServices] IQueryHandler<GetInadimplenciaByResponsavelQuery, PagedInadimplenciaResult> handler,
+            CancellationToken ct) =>
         {
-            var result = await handler.HandleAsync(new GetInadimplenciaByResponsavelQuery(nome), ct);
-            return Results.Ok(new { data = result });
+            var result = await handler.HandleAsync(
+                new GetInadimplenciaByResponsavelQuery(nome, NormalizePage(page), NormalizePageSize(pageSize)),
+                ct);
+            return Results.Ok(PagedResponse(result));
         });
-        inadimplencia.MapGet("/cliente/{nomeCliente}", async (string nomeCliente, [FromServices] IQueryHandler<GetInadimplenciaByClienteQuery, IReadOnlyList<InadimplenciaDto>> handler, CancellationToken ct) =>
+        inadimplencia.MapGet("/cliente/{nomeCliente}", async (
+            string nomeCliente,
+            int? page,
+            int? pageSize,
+            [FromServices] IQueryHandler<GetInadimplenciaByClienteQuery, PagedInadimplenciaResult> handler,
+            CancellationToken ct) =>
         {
-            var result = await handler.HandleAsync(new GetInadimplenciaByClienteQuery(nomeCliente), ct);
-            return Results.Ok(new { data = result });
+            var result = await handler.HandleAsync(
+                new GetInadimplenciaByClienteQuery(nomeCliente, NormalizePage(page), NormalizePageSize(pageSize)),
+                ct);
+            return Results.Ok(PagedResponse(result));
         });
 
         MapProximasAcoes(inadimplencia);
@@ -127,7 +158,33 @@ public static class InadimplenciaEndpoints
     private static void MapProximasAcoes(IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/proximas-acoes").WithTags("Proximas Acoes");
-        group.MapGet("/", Query("ProximasAcoes.List"));
+        group.MapGet("/", async (
+            int? page,
+            int? pageSize,
+            [FromServices] IQueryHandler<LegacySqlQuery, LegacySqlResult> handler,
+            CancellationToken cancellationToken) =>
+        {
+            var normalizedPage = NormalizePage(page);
+            var normalizedPageSize = NormalizePageSize(pageSize);
+            var parameters = PagedParameters(normalizedPage, normalizedPageSize);
+            var result = await handler.HandleAsync(new LegacySqlQuery("ProximasAcoes.List", parameters), cancellationToken);
+
+            if (!result.IsConfigured)
+            {
+                return SqlNotConfigured();
+            }
+
+            var rows = ResultRows(result);
+            var total = rows.Count > 0 ? Convert.ToInt32(rows[0].GetValueOrDefault("TOTAL_COUNT") ?? 0) : 0;
+            return Results.Ok(new
+            {
+                data = rows,
+                page = normalizedPage,
+                pageSize = normalizedPageSize,
+                total,
+                totalPages = TotalPages(total, normalizedPageSize),
+            });
+        });
         group.MapGet("/{numVenda:int}", Query("ProximasAcoes.ByNumVenda", single: true));
         group.MapPost("/", () => BlockedProximaAcao());
         group.MapPut("/{numVenda:int}", () => BlockedProximaAcao());
@@ -1016,6 +1073,15 @@ public static class InadimplenciaEndpoints
                     statusCode: StatusCodes.Status503ServiceUnavailable);
             }
 
+            if (single && result.Data is null)
+            {
+                return Results.NotFound(new
+                {
+                    error = "NAO_ENCONTRADO",
+                    query = queryKey,
+                });
+            }
+
             return Results.Ok(new { data = result.Data });
         }
         catch (NotImplementedException ex)
@@ -1037,6 +1103,32 @@ public static class InadimplenciaEndpoints
             ["offset"] = (page - 1) * pageSize,
             ["lida"] = lida,
         };
+
+    private static IReadOnlyDictionary<string, object?> PagedParameters(int page, int pageSize)
+        => new Dictionary<string, object?>
+        {
+            ["pageSize"] = pageSize,
+            ["offset"] = (page - 1) * pageSize,
+        };
+
+    private static object PagedResponse(PagedInadimplenciaResult result)
+        => new
+        {
+            data = result.Items,
+            page = result.Page,
+            pageSize = result.PageSize,
+            total = result.Total,
+            totalPages = result.TotalPages,
+        };
+
+    private static int NormalizePage(int? page)
+        => Math.Max(page ?? 1, 1);
+
+    private static int NormalizePageSize(int? pageSize)
+        => Math.Clamp(pageSize ?? 50, 1, 200);
+
+    private static int TotalPages(int total, int pageSize)
+        => pageSize <= 0 ? 0 : (int)Math.Ceiling((double)total / pageSize);
 
     /// <summary>
     /// Normalizes the username to match how <c>InadNotificacao.Criar</c> persists it

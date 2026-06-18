@@ -7,4 +7,7 @@ namespace ApiInadimplencia.Application.Features.Inadimplencias.Queries;
 /// Query to get defaulted sales by customer name (LIKE search).
 /// </summary>
 /// <param name="NomeCliente">Customer name to search.</param>
-public sealed record GetInadimplenciaByClienteQuery(string NomeCliente) : IQuery<IReadOnlyList<InadimplenciaDto>>;
+public sealed record GetInadimplenciaByClienteQuery(
+    string NomeCliente,
+    int Page = 1,
+    int PageSize = 50) : IQuery<PagedInadimplenciaResult>;

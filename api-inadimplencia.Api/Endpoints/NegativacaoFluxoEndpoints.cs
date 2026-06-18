@@ -125,13 +125,15 @@ public static class NegativacaoFluxoEndpoints
             [FromServices] IQueryHandler<ListSolicitacoesPendentesQuery, IReadOnlyList<SolicitacaoPendenteDto>> handler,
             CancellationToken cancellationToken) =>
         {
+            var normalizedTake = Math.Clamp(take ?? 50, 1, 200);
+            var normalizedSkip = Math.Max(skip ?? 0, 0);
             var query = new ListSolicitacoesPendentesQuery(
                 status ?? "AGUARDANDO_APROVACAO",
                 numVenda,
                 solicitacaoId,
                 solicitanteUsername,
-                take ?? 50,
-                skip ?? 0);
+                normalizedTake,
+                normalizedSkip);
             var result = await handler.HandleAsync(query, cancellationToken);
             return Results.Ok(new { data = result });
         })
@@ -259,14 +261,16 @@ public static class NegativacaoFluxoEndpoints
             [FromServices] IQueryHandler<ListBaixasQuery, IReadOnlyList<BaixaResumoDto>> handler,
             CancellationToken cancellationToken) =>
         {
+            var normalizedTake = Math.Clamp(take ?? 50, 1, 200);
+            var normalizedSkip = Math.Max(skip ?? 0, 0);
             try
             {
                 var query = new ListBaixasQuery(
                     status,
                     numVenda,
                     solicitanteUsername,
-                    take ?? 50,
-                    skip ?? 0);
+                    normalizedTake,
+                    normalizedSkip);
                 var result = await handler.HandleAsync(query, cancellationToken);
                 return Results.Ok(new { data = result });
             }

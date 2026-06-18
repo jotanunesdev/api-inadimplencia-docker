@@ -8,33 +8,41 @@ namespace ApiInadimplencia.Application.Features.Inadimplencias.Queries;
 /// Handles the query to get defaulted sales by responsible user name.
 /// </summary>
 public sealed class GetInadimplenciaByResponsavelQueryHandler(ILegacySqlExecutor executor)
-    : IQueryHandler<GetInadimplenciaByResponsavelQuery, IReadOnlyList<InadimplenciaDto>>
+    : IQueryHandler<GetInadimplenciaByResponsavelQuery, PagedInadimplenciaResult>
 {
+    private const int DefaultPageSize = 50;
+    private const int MaxPageSize = 200;
     private readonly ILegacySqlExecutor _executor = executor ?? throw new ArgumentNullException(nameof(executor));
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<InadimplenciaDto>> HandleAsync(
+    public async Task<PagedInadimplenciaResult> HandleAsync(
         GetInadimplenciaByResponsavelQuery query,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(query);
+        var page = Math.Max(query.Page, 1);
+        var pageSize = Math.Clamp(query.PageSize <= 0 ? DefaultPageSize : query.PageSize, 1, MaxPageSize);
+        var offset = (page - 1) * pageSize;
 
         var result = await _executor.QueryAsync(
             "Inadimplencia.ByResponsavel",
             new Dictionary<string, object?>
             {
-                ["nome"] = query.Nome
+                ["nome"] = query.Nome,
+                ["offset"] = offset,
+                ["pageSize"] = pageSize,
             },
             single: false,
             cancellationToken);
 
         if (!result.IsConfigured || result.Data is null)
         {
-            return [];
+            return new PagedInadimplenciaResult([], 0, page, pageSize);
         }
 
         var rows = (IReadOnlyList<Dictionary<string, object?>>)result.Data;
-        return rows.Select(MapToDto).ToList();
+        var total = rows.Count > 0 ? RowValueConverter.GetValue<int>(rows[0], "TOTAL_COUNT") : 0;
+        return new PagedInadimplenciaResult(rows.Select(MapToDto).ToList(), total, page, pageSize);
     }
 
     private static InadimplenciaDto MapToDto(Dictionary<string, object?> row)

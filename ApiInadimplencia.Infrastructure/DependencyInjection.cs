@@ -216,11 +216,11 @@ public static class DependencyInjection
         services.AddScoped<ICommandHandler<LegacySqlCommand, LegacySqlResult>, LegacySqlCommandHandler>();
 
         // Inadimplencia query handlers
-        services.AddScoped<IQueryHandler<ListInadimplenciasQuery, IReadOnlyList<InadimplenciaDto>>, ListInadimplenciasQueryHandler>();
-        services.AddScoped<IQueryHandler<GetInadimplenciaByCpfQuery, IReadOnlyList<InadimplenciaDto>>, GetInadimplenciaByCpfQueryHandler>();
+        services.AddScoped<IQueryHandler<ListInadimplenciasQuery, PagedInadimplenciaResult>, ListInadimplenciasQueryHandler>();
+        services.AddScoped<IQueryHandler<GetInadimplenciaByCpfQuery, PagedInadimplenciaResult>, GetInadimplenciaByCpfQueryHandler>();
         services.AddScoped<IQueryHandler<GetInadimplenciaByNumVendaQuery, InadimplenciaDto?>, GetInadimplenciaByNumVendaQueryHandler>();
-        services.AddScoped<IQueryHandler<GetInadimplenciaByResponsavelQuery, IReadOnlyList<InadimplenciaDto>>, GetInadimplenciaByResponsavelQueryHandler>();
-        services.AddScoped<IQueryHandler<GetInadimplenciaByClienteQuery, IReadOnlyList<InadimplenciaDto>>, GetInadimplenciaByClienteQueryHandler>();
+        services.AddScoped<IQueryHandler<GetInadimplenciaByResponsavelQuery, PagedInadimplenciaResult>, GetInadimplenciaByResponsavelQueryHandler>();
+        services.AddScoped<IQueryHandler<GetInadimplenciaByClienteQuery, PagedInadimplenciaResult>, GetInadimplenciaByClienteQueryHandler>();
 
         // Fiadores query handlers
         services.AddScoped<IQueryHandler<GetFiadoresByNumVendaQuery, IReadOnlyList<FiadorDto>>, GetFiadoresByNumVendaQueryHandler>();
