@@ -50,6 +50,23 @@ public sealed class InadimplenciaEndpointsIntegrationTests : IClassFixture<ApiTe
     }
 
     [Fact]
+    public async Task List_WithoutPagingParameters_PreservesLegacyFullListWindow()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.GetAsync("/inadimplencia");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var content = await response.Content.ReadAsStringAsync();
+        using var json = JsonDocument.Parse(content);
+
+        Assert.Equal(1, json.RootElement.GetProperty("page").GetInt32());
+        Assert.Equal(5000, json.RootElement.GetProperty("pageSize").GetInt32());
+        Assert.Equal(JsonValueKind.Array, json.RootElement.GetProperty("data").ValueKind);
+    }
+
+    [Fact]
     public async Task GetByCpf_WhenPagingParametersAreProvided_ReturnsPagedEnvelope()
     {
         var client = _factory.CreateClient();

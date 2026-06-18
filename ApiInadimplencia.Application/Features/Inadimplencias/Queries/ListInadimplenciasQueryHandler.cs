@@ -11,8 +11,8 @@ namespace ApiInadimplencia.Application.Features.Inadimplencias.Queries;
 public sealed class ListInadimplenciasQueryHandler(ILegacySqlExecutor executor)
     : IQueryHandler<ListInadimplenciasQuery, PagedInadimplenciaResult>
 {
-    private const int DefaultPageSize = 50;
-    private const int MaxPageSize = 200;
+    private const int DefaultPageSize = 5000;
+    private const int MaxPageSize = 5000;
     private readonly ILegacySqlExecutor _executor = executor ?? throw new ArgumentNullException(nameof(executor));
 
     /// <inheritdoc />

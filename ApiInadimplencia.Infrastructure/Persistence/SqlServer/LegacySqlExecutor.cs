@@ -1204,6 +1204,18 @@ public sealed class LegacySqlExecutor(
             ["Usuarios.Delete"] = new("DELETE FROM dbo.USUARIO WHERE NOME = @nome"),
 
             ["Responsaveis.Upsert"] = new("""
+                SET ANSI_NULLS ON;
+                SET QUOTED_IDENTIFIER ON;
+                SET ANSI_PADDING ON;
+                SET ANSI_WARNINGS ON;
+                SET CONCAT_NULL_YIELDS_NULL ON;
+                SET ARITHABORT ON;
+                SET NUMERIC_ROUNDABORT OFF;
+                SET XACT_ABORT ON;
+
+                BEGIN TRY
+                    BEGIN TRANSACTION;
+
                 DECLARE @responsavelAnterior varchar(255);
 
                 SELECT TOP 1 @responsavelAnterior = NOME_USUARIO_FK
@@ -1281,6 +1293,17 @@ public sealed class LegacySqlExecutor(
                 LEFT JOIN DW.fat_analise_inadimplencia_v4 f ON f.NUM_VENDA = vr.NUM_VENDA_FK
                 LEFT JOIN dbo.USUARIO u ON u.NOME = vr.NOME_USUARIO_FK
                 WHERE vr.NUM_VENDA_FK = @numVenda;
+
+                    COMMIT TRANSACTION;
+                END TRY
+                BEGIN CATCH
+                    IF XACT_STATE() <> 0
+                    BEGIN
+                        ROLLBACK TRANSACTION;
+                    END;
+
+                    THROW;
+                END CATCH;
                 """, ReturnsRows: true),
 
             ["Responsaveis.Delete"] = new("DELETE FROM dbo.VENDA_RESPONSAVEL WHERE NUM_VENDA_FK = @numVenda"),

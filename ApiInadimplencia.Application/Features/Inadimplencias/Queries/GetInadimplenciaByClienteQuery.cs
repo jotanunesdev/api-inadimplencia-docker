@@ -10,4 +10,4 @@ namespace ApiInadimplencia.Application.Features.Inadimplencias.Queries;
 public sealed record GetInadimplenciaByClienteQuery(
     string NomeCliente,
     int Page = 1,
-    int PageSize = 50) : IQuery<PagedInadimplenciaResult>;
+    int PageSize = 5000) : IQuery<PagedInadimplenciaResult>;

@@ -8,4 +8,4 @@ namespace ApiInadimplencia.Application.Features.Inadimplencias.Queries;
 /// </summary>
 public sealed record ListInadimplenciasQuery(
     int Page = 1,
-    int PageSize = 50) : IQuery<PagedInadimplenciaResult>;
+    int PageSize = 5000) : IQuery<PagedInadimplenciaResult>;

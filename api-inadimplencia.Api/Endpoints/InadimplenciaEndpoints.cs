@@ -48,6 +48,9 @@ namespace ApiInadimplencia.Api.Endpoints;
 /// </summary>
 public static class InadimplenciaEndpoints
 {
+    private const int LegacyDefaultPageSize = 5000;
+    private const int MaxRequestedPageSize = 200;
+
     /// <summary>
     /// Adds inadimplencia endpoints to the application.
     /// </summary>
@@ -1125,7 +1128,9 @@ public static class InadimplenciaEndpoints
         => Math.Max(page ?? 1, 1);
 
     private static int NormalizePageSize(int? pageSize)
-        => Math.Clamp(pageSize ?? 50, 1, 200);
+        => pageSize.HasValue
+            ? Math.Clamp(pageSize.Value, 1, MaxRequestedPageSize)
+            : LegacyDefaultPageSize;
 
     private static int TotalPages(int total, int pageSize)
         => pageSize <= 0 ? 0 : (int)Math.Ceiling((double)total / pageSize);
