@@ -46,3 +46,63 @@ export const thresholds = {
 export function tagged(name, extra = {}) {
   return { tags: { name, ...extra } };
 }
+
+const managedProfiles = {
+  baseline: {
+    key: 'baseline',
+    thresholdKey: 'smoke',
+    sleepMs: 900,
+    scenario: {
+      executor: 'ramping-vus',
+      startVUs: 0,
+      stages: [
+        { duration: '15s', target: 4 },
+        { duration: '45s', target: 8 },
+        { duration: '30s', target: 0 },
+      ],
+      gracefulRampDown: '15s',
+    },
+  },
+  intenso: {
+    key: 'intenso',
+    thresholdKey: 'load',
+    sleepMs: 500,
+    scenario: {
+      executor: 'ramping-vus',
+      startVUs: 0,
+      stages: [
+        { duration: '30s', target: 12 },
+        { duration: '2m', target: 24 },
+        { duration: '2m', target: 32 },
+        { duration: '30s', target: 0 },
+      ],
+      gracefulRampDown: '20s',
+    },
+  },
+  'estresse-maximo': {
+    key: 'estresse-maximo',
+    thresholdKey: 'spike',
+    sleepMs: 0,
+    scenario: {
+      executor: 'ramping-vus',
+      startVUs: 0,
+      stages: [
+        { duration: '20s', target: 20 },
+        { duration: '40s', target: 120 },
+        { duration: '90s', target: 180 },
+        { duration: '60s', target: 180 },
+        { duration: '30s', target: 0 },
+      ],
+      gracefulRampDown: '20s',
+    },
+  },
+};
+
+export function resolveManagedProfile(key) {
+  const profile = managedProfiles[key];
+  if (!profile) {
+    throw new Error(`Unknown K6_PROFILE_KEY: ${key}`);
+  }
+
+  return profile;
+}

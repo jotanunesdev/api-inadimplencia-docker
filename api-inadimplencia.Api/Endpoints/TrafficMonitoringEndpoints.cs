@@ -1,4 +1,5 @@
 using ApiInadimplencia.Application.Abstractions.Monitoring;
+using ApiInadimplencia.Application.Features.LoadTesting;
 
 namespace ApiInadimplencia.Api.Endpoints;
 
@@ -48,6 +49,63 @@ public static class TrafficMonitoringEndpoints
         .WithName("GetTrafficMonitoringDashboard")
         .Produces(StatusCodes.Status200OK)
         .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+
+        group.MapGet("/load-tests/profiles", (ILoadTestOrchestrator orchestrator) =>
+            Results.Ok(new { profiles = orchestrator.GetProfiles() }))
+        .WithName("ListLoadTestProfiles")
+        .Produces(StatusCodes.Status200OK);
+
+        group.MapGet("/load-tests/runs", async (
+            int? limit,
+            ILoadTestOrchestrator orchestrator,
+            CancellationToken cancellationToken) =>
+        {
+            var runs = await orchestrator.ListRunsAsync(limit ?? 25, cancellationToken).ConfigureAwait(false);
+            return Results.Ok(new { runs });
+        })
+        .WithName("ListLoadTestRuns")
+        .Produces(StatusCodes.Status200OK);
+
+        group.MapGet("/load-tests/runs/{runId:guid}", async (
+            Guid runId,
+            ILoadTestOrchestrator orchestrator,
+            CancellationToken cancellationToken) =>
+        {
+            var run = await orchestrator.GetRunAsync(runId, cancellationToken).ConfigureAwait(false);
+            return run is null
+                ? Results.NotFound(new { error = "LOAD_TEST_NOT_FOUND" })
+                : Results.Ok(run);
+        })
+        .WithName("GetLoadTestRun")
+        .Produces(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status404NotFound);
+
+        group.MapPost("/load-tests/runs", async (
+            StartLoadTestRequestDto request,
+            ILoadTestOrchestrator orchestrator,
+            HttpContext context,
+            CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                var triggeredBy = context.User?.Identity?.Name
+                    ?? context.Request.Headers["X-User-Name"].FirstOrDefault()
+                    ?? context.Request.Headers["X-Username"].FirstOrDefault()
+                    ?? "operador";
+                var run = await orchestrator.StartAsync(request, triggeredBy, cancellationToken).ConfigureAwait(false);
+                return Results.Ok(run);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.Problem(
+                    ex.Message,
+                    statusCode: StatusCodes.Status409Conflict,
+                    title: "Unable to start load test");
+            }
+        })
+        .WithName("StartLoadTestRun")
+        .Produces(StatusCodes.Status200OK)
+        .ProducesProblem(StatusCodes.Status409Conflict);
 
         return app;
     }
