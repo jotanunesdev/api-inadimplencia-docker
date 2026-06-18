@@ -1,5 +1,20 @@
 # Scripts SQL - api-inadimplencia
 
+## Banco exclusivo de auditoria
+
+O script `014_api_traffic_audit.sql` deve ser executado no banco configurado em
+`AuditDb`, atualmente alimentado pelas variaveis `AUDIT_DB_*`. Ele cria apenas
+a estrutura de monitoramento no banco `GERENCIAMENTO`; nao deve ser executado no
+banco operacional de inadimplencia.
+
+```powershell
+sqlcmd -S "$env:AUDIT_DB_SERVER,$env:AUDIT_DB_PORT" `
+  -d "$env:AUDIT_DB_DATABASE" `
+  -U "$env:AUDIT_DB_USER" `
+  -P "$env:AUDIT_DB_PASSWORD" `
+  -C -i db\014_api_traffic_audit.sql
+```
+
 Scripts para provisionar o schema do módulo **inadimplência** no SQL Server
 apontado pelo `.env` (banco `dwjnc` em `192.168.79.240\bi,10433`).
 

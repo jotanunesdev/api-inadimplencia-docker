@@ -47,6 +47,9 @@ public sealed class CorsPolicyOptions
         "X-User-Code",
         "X-User-Name",
         "X-Username",
+        "X-Source-System",
+        "X-System-Name",
+        "X-Client-Id",
     ];
 
     /// <summary>Response headers exposed to browser JavaScript.</summary>
@@ -74,7 +77,7 @@ public sealed class CorsPolicyOptions
                 ["GET", "POST", "PUT", "DELETE", "OPTIONS"]),
             AllowedHeaders = CsvValues(
                 Value(configuration, "Cors:AllowedHeaders", "INAD_CORS_ALLOWED_HEADERS"),
-                ["Accept", "Authorization", "Cache-Control", "Content-Type", "Origin", "Pragma", "X-Requested-With", "X-User-Code", "X-User-Name", "X-Username"]),
+                ["Accept", "Authorization", "Cache-Control", "Content-Type", "Origin", "Pragma", "X-Requested-With", "X-User-Code", "X-User-Name", "X-Username", "X-Source-System", "X-System-Name", "X-Client-Id"]),
             ExposedHeaders = CsvValues(
                 Value(configuration, "Cors:ExposedHeaders", "INAD_CORS_EXPOSED_HEADERS"),
                 ["Content-Disposition", "X-Correlation-Id", "X-Request-Id"]),

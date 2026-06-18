@@ -96,6 +96,14 @@ if (!string.IsNullOrEmpty(sqlServerConnectionString))
         .AddSqlServer(connectionString: sqlServerConnectionString, name: "sqlserver");
 }
 
+// Dedicated audit database health check
+var auditDbConnectionString = builder.Configuration["AuditDb:ConnectionString"];
+if (!string.IsNullOrEmpty(auditDbConnectionString))
+{
+    builder.Services.AddHealthChecks()
+        .AddSqlServer(connectionString: auditDbConnectionString, name: "audit-sqlserver");
+}
+
 // RabbitMQ Health Check (configured via connection string)
 var rabbitMQConnectionString = builder.Configuration["RabbitMQ:ConnectionString"];
 if (!string.IsNullOrEmpty(rabbitMQConnectionString))
@@ -185,6 +193,7 @@ app.UseMiddleware<SensitiveDataMaskingMiddleware>();
 
 app.UseExceptionHandler();
 app.UseCors(CorsPolicyOptions.PolicyName);
+app.UseMiddleware<RequestMonitoringMiddleware>();
 app.UseMiddleware<InadimplenciaAuthMiddleware>();
 app.UseSwagger();
 app.UseSwaggerUI();
@@ -217,6 +226,7 @@ app.MapInadimplenciaEndpoints();
 app.MapConfiguracoesEndpoints();
 app.MapNotificationsSseEndpoints();
 app.MapNegativacaoFluxoEndpoints();
+app.MapTrafficMonitoringEndpoints();
 
 try
 {

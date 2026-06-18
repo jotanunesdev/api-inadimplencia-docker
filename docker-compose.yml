@@ -30,9 +30,11 @@ services:
     image: api-inadimplencia:local
     container_name: api-inadimplencia
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_ENVIRONMENT: ${INAD_ENVIRONMENT:-Development}
       SqlServer__ConnectionString: Server=${INAD_DB_SERVER},${INAD_DB_PORT};Database=${INAD_DB_DATABASE};User Id=${INAD_DB_USER};Password=${INAD_DB_PASSWORD};Encrypt=${INAD_DB_ENCRYPT};TrustServerCertificate=${INAD_DB_TRUST_CERT}
       SqlServer__CommandTimeoutSeconds: 30
+      AuditDb__ConnectionString: Server=${AUDIT_DB_SERVER},${AUDIT_DB_PORT};Database=${AUDIT_DB_DATABASE};User Id=${AUDIT_DB_USER};Password=${AUDIT_DB_PASSWORD};Encrypt=${AUDIT_DB_ENCRYPT};TrustServerCertificate=${AUDIT_DB_TRUST_CERT}
+      AuditDb__CommandTimeoutSeconds: 60
       RabbitMQ__Host: rabbitmq
       RabbitMQ__Port: 5672
       RabbitMQ__Username: guest
@@ -62,7 +64,7 @@ services:
       Auth__InternalOrigin: ${INAD_AUTH_INTERNAL_ORIGIN:-https://fluig.jotanunes.com}
       Cors__AllowedOrigins: ${INAD_CORS_ALLOWED_ORIGINS}
       Cors__AllowedMethods: ${INAD_CORS_ALLOWED_METHODS:-GET,POST,PUT,DELETE,OPTIONS}
-      Cors__AllowedHeaders: ${INAD_CORS_ALLOWED_HEADERS:-Accept,Authorization,Cache-Control,Content-Type,Origin,Pragma,X-Requested-With,X-User-Code,X-User-Name,X-Username}
+      Cors__AllowedHeaders: ${INAD_CORS_ALLOWED_HEADERS:-Accept,Authorization,Cache-Control,Content-Type,Origin,Pragma,X-Requested-With,X-User-Code,X-User-Name,X-Username,X-Source-System,X-System-Name,X-Client-Id}
       Cors__ExposedHeaders: ${INAD_CORS_EXPOSED_HEADERS:-Content-Disposition,X-Correlation-Id,X-Request-Id}
       Cors__AllowCredentials: ${INAD_CORS_ALLOW_CREDENTIALS:-true}
       Cors__PreflightMaxAgeSeconds: ${INAD_CORS_PREFLIGHT_MAX_AGE_SECONDS:-3600}
@@ -75,6 +77,13 @@ services:
       Auth__EntraId__ClientSecret: ${INAD_ENTRA_CLIENT_SECRET}
       Auth__EntraId__Scope: ${INAD_ENTRA_SCOPE}
       Auth__EntraId__RedirectUris: ${INAD_ENTRA_REDIRECT_URIS}
+      TrafficMonitoring__Enabled: ${INAD_TRAFFIC_MONITORING_ENABLED:-true}
+      TrafficMonitoring__ApplicationName: ${INAD_TRAFFIC_APPLICATION_NAME:-api-inadimplencia}
+      TrafficMonitoring__SourceSystemHeader: ${INAD_TRAFFIC_SOURCE_SYSTEM_HEADER:-X-Source-System}
+      TrafficMonitoring__ChannelCapacity: ${INAD_TRAFFIC_CHANNEL_CAPACITY:-10000}
+      TrafficMonitoring__BatchSize: ${INAD_TRAFFIC_BATCH_SIZE:-250}
+      TrafficMonitoring__FlushIntervalSeconds: ${INAD_TRAFFIC_FLUSH_INTERVAL_SECONDS:-5}
+      TrafficMonitoring__MaxAnalyticsPeriodDays: ${INAD_TRAFFIC_MAX_PERIOD_DAYS:-90}
     ports:
       - "${INAD_PORT:-8080}:8080"
     depends_on:

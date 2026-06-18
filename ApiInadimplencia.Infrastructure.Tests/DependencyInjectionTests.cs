@@ -1,8 +1,12 @@
 using ApiInadimplencia.Application.Abstractions.Auth;
+using ApiInadimplencia.Application.Abstractions.Monitoring;
 using ApiInadimplencia.Infrastructure;
+using ApiInadimplencia.Infrastructure.Configuration;
+using ApiInadimplencia.Infrastructure.Monitoring;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using MassTransit;
 using Xunit;
 
@@ -151,5 +155,41 @@ public class DependencyInjectionTests
 
         currentUserService.Should().NotBeNull();
         aprovadoresPolicy.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void AddInfrastructure_Should_RegisterDedicatedAuditDatabaseServices()
+    {
+        // Arrange
+        const string auditConnection =
+            "Server=audit-server;Database=GERENCIAMENTO;User Id=audit-user;Password=test;";
+        var services = new ServiceCollection();
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["AuditDb:ConnectionString"] = auditConnection,
+                ["AuditDb:CommandTimeoutSeconds"] = "45",
+                ["RabbitMQ:Host"] = "localhost",
+                ["RabbitMQ:Port"] = "5672",
+                ["RabbitMQ:Username"] = "guest",
+                ["RabbitMQ:Password"] = "guest",
+                ["RabbitMQ:VirtualHost"] = "/",
+            })
+            .Build();
+
+        // Act
+        services.AddInfrastructure(configuration, "Testing");
+        using var serviceProvider = services.BuildServiceProvider();
+
+        // Assert
+        var auditOptions = serviceProvider.GetRequiredService<IOptions<AuditDbOptions>>().Value;
+        var auditFactory = serviceProvider.GetRequiredService<AuditSqlConnectionFactory>();
+
+        auditOptions.ConnectionString.Should().Be(auditConnection);
+        auditOptions.CommandTimeoutSeconds.Should().Be(45);
+        auditFactory.IsConfigured.Should().BeTrue();
+        auditFactory.CommandTimeoutSeconds.Should().Be(45);
+        serviceProvider.GetService<ITrafficRequestStore>().Should().BeOfType<SqlServerTrafficRequestStore>();
+        serviceProvider.GetService<ITrafficAnalyticsQuery>().Should().BeOfType<SqlServerTrafficAnalyticsQuery>();
     }
 }

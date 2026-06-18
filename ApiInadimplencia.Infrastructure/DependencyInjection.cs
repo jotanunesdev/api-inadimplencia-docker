@@ -3,6 +3,7 @@ using ApiInadimplencia.Application.Abstractions.Auth;
 using ApiInadimplencia.Application.Abstractions.Cqrs;
 using ApiInadimplencia.Application.Abstractions.Integrations;
 using ApiInadimplencia.Application.Abstractions.Persistence;
+using ApiInadimplencia.Application.Abstractions.Monitoring;
 using ApiInadimplencia.Application.Features.Atendimentos.Commands;
 using ApiInadimplencia.Application.Features.Atendimentos.Dtos;
 using ApiInadimplencia.Application.Features.Fiadores.Dtos;
@@ -36,6 +37,7 @@ using ApiInadimplencia.Infrastructure.Configuration;
 // using ApiInadimplencia.Infrastructure.Integrations.Rm;
 using ApiInadimplencia.Infrastructure.Integrations.SerasaPefin;
 using ApiInadimplencia.Infrastructure.Notifications;
+using ApiInadimplencia.Infrastructure.Monitoring;
 using ApiInadimplencia.Infrastructure.Persistence.SqlServer;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
@@ -69,6 +71,16 @@ public static class DependencyInjection
         services
             .AddOptions<SqlServerOptions>()
             .Bind(configuration.GetSection(SqlServerOptions.SectionName))
+            .ValidateDataAnnotations();
+
+        services
+            .AddOptions<AuditDbOptions>()
+            .Bind(configuration.GetSection(AuditDbOptions.SectionName))
+            .ValidateDataAnnotations();
+
+        services
+            .AddOptions<TrafficMonitoringOptions>()
+            .Bind(configuration.GetSection(TrafficMonitoringOptions.SectionName))
             .ValidateDataAnnotations();
 
         // RabbitMQ configuration
@@ -129,6 +141,14 @@ public static class DependencyInjection
 
         // SQL Server connection factory
         services.AddSingleton<SqlServerConnectionFactory>();
+        services.AddSingleton<AuditSqlConnectionFactory>();
+        services.AddSingleton<ITrafficRequestStore, SqlServerTrafficRequestStore>();
+        services.AddSingleton<ITrafficAnalyticsQuery, SqlServerTrafficAnalyticsQuery>();
+        services.AddSingleton<TrafficRecordChannel>();
+        services.AddSingleton<ITrafficRequestSink>(provider =>
+            provider.GetRequiredService<TrafficRecordChannel>());
+        services.AddHostedService(provider =>
+            provider.GetRequiredService<TrafficRecordChannel>());
 
         // EF Core DbContext
         services.AddDbContext<InadimplenciaDbContext>((serviceProvider, options) =>
