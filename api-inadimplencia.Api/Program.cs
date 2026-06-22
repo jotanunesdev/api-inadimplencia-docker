@@ -229,6 +229,7 @@ app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks
 app.MapPrometheusScrapingEndpoint("/metrics");
 
 app.MapInadimplenciaEndpoints();
+app.MapJotamanSessionEndpoints();
 app.MapConfiguracoesEndpoints();
 app.MapNotificationsSseEndpoints();
 app.MapNegativacaoFluxoEndpoints();
