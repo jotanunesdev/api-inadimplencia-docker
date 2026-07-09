@@ -215,6 +215,37 @@ public sealed class DecideNegativacaoCommandHandlerTests
     }
 
     [Fact]
+    public async Task HandleAsync_AprovadorIgualSolicitanteComSeparadoresDiferentes_DeveLancarInvalidOperationException()
+    {
+        // Arrange
+        _currentUserServiceMock.Setup(s => s.Username).Returns("adriano oliveira");
+        _currentUserServiceMock.Setup(s => s.IsAuthenticated).Returns(true);
+
+        _aprovadoresPolicyMock.Setup(p => p.IsAprovador("adriano oliveira")).Returns(true);
+        _senhaValidatorMock.Setup(v => v.ValidateAsync("adriano oliveira", "senha", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(SenhaTransacaoValidationResult.Valid);
+
+        var solicitacaoId = Guid.NewGuid();
+        var solicitacao = CriarSolicitacao(
+            solicitacaoId,
+            SerasaPefinStatus.AguardandoAprovacao,
+            solicitanteUsername: "adriano.oliveira");
+
+        _serasaRepositoryMock.Setup(r => r.GetByIdAsync(solicitacaoId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(solicitacao);
+
+        var command = new DecideNegativacaoCommand(
+            SolicitacaoId: solicitacaoId,
+            Decisao: DecisaoNegativacao.APROVAR,
+            SenhaTransacao: "senha");
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _handler.HandleAsync(command, CancellationToken.None));
+        Assert.Contains("SOLICITANTE_NAO_PODE_APROVAR", exception.Message);
+    }
+
+    [Fact]
     public async Task HandleAsync_SenhaInvalida_DeveLancarUnauthorizedAccessException()
     {
         // Arrange

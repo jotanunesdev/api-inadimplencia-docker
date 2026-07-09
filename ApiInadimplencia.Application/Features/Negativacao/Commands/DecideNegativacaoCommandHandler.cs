@@ -110,7 +110,7 @@ public class DecideNegativacaoCommandHandler : ICommandHandler<DecideNegativacao
         }
 
         // 5. Validate requester cannot approve their own request (bypass para super-decisores)
-        if (solicitacao.SolicitanteUsername?.Equals(username, StringComparison.OrdinalIgnoreCase) == true)
+        if (UsernameMatcher.Matches(solicitacao.SolicitanteUsername, username))
         {
             if (_aprovadoresPolicy.IsSuperDecisor(username))
             {

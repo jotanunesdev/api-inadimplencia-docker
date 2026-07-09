@@ -33,7 +33,7 @@ public class FluxoNegativacaoE2ETests : IClassFixture<FluxoNegativacaoFixture>
         // Arrange
         var client = _fixture.CreateClient();
         const string solicitante = "op1";
-        const string aprovador = "aracy.mendoca";
+        const string aprovador = "aracy.mendonca";
         const int numVenda = 295;
         const string senhaSolicitante = "123abc";
         const string senhaAprovador = "xyz789";
@@ -113,7 +113,7 @@ public class FluxoNegativacaoE2ETests : IClassFixture<FluxoNegativacaoFixture>
         // Arrange
         var client = _fixture.CreateClient();
         const string solicitante = "op1";
-        const string aprovador = "aracy.mendoca";
+        const string aprovador = "aracy.mendonca";
         const int numVenda = 295;
         const string senhaSolicitante = "123abc";
         const string senhaAprovador = "xyz789";
@@ -180,7 +180,7 @@ public class FluxoNegativacaoE2ETests : IClassFixture<FluxoNegativacaoFixture>
     {
         // Arrange
         var client = _fixture.CreateClient();
-        const string solicitante = "aracy.mendoca"; // This user is also an approver
+        const string solicitante = "aracy.mendonca"; // This user is also an approver
         const int numVenda = 295;
         const string senha = "123abc";
 
@@ -408,7 +408,7 @@ public class FluxoNegativacaoE2ETests : IClassFixture<FluxoNegativacaoFixture>
         // Arrange
         var client = _fixture.CreateClient();
         const string solicitante = "op1";
-        const string aprovador = "aracy.mendoca";
+        const string aprovador = "aracy.mendonca";
         const int numVenda = 295;
         const string senhaSolicitante = "123abc";
         const string senhaAprovador = "xyz789";

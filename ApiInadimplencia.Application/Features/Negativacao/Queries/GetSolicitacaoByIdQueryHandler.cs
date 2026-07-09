@@ -107,7 +107,7 @@ public sealed class GetSolicitacaoByIdQueryHandler : IQueryHandler<GetSolicitaca
 
         // SOLICITANTE_NAO_PODE_APROVAR: requester cannot approve their own request,
         // exceto para super-decisores configurados explicitamente.
-        if (solicitacao.SolicitanteUsername?.Equals(currentUser, StringComparison.OrdinalIgnoreCase) == true
+        if (UsernameMatcher.Matches(solicitacao.SolicitanteUsername, currentUser)
             && !_aprovadoresPolicy.IsSuperDecisor(currentUser))
         {
             return false;

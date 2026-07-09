@@ -14,16 +14,32 @@ public class OptionsAprovadoresPolicyTests
         // Arrange
         var options = Options.Create(new NegativacaoOptions
         {
-            UsuariosAprovadores = new[] { "aracy.mendoca", "adriano.oliveira" }
+            UsuariosAprovadores = new[] { "aracy.mendonca", "adriano.oliveira" }
         });
         var policy = new OptionsAprovadoresPolicy(options);
 
         // Act & Assert
-        Assert.True(policy.IsAprovador("aracy.mendoca"));
-        Assert.True(policy.IsAprovador("ARACY.MENDOCA"));
-        Assert.True(policy.IsAprovador("Aracy.Mendoca"));
+        Assert.True(policy.IsAprovador("aracy.mendonca"));
+        Assert.True(policy.IsAprovador("ARACY.MENDONCA"));
+        Assert.True(policy.IsAprovador("Aracy.Mendonca"));
         Assert.True(policy.IsAprovador("adriano.oliveira"));
         Assert.True(policy.IsAprovador("ADRIANO.OLIVEIRA"));
+    }
+
+    [Fact]
+    public void IsAprovador_DisplayNameEmailETextoComAcento_ReturnsTrue()
+    {
+        // Arrange
+        var options = Options.Create(new NegativacaoOptions
+        {
+            UsuariosAprovadores = new[] { "aracy.mendonca", "adriano.oliveira" }
+        });
+        var policy = new OptionsAprovadoresPolicy(options);
+
+        // Act & Assert
+        Assert.True(policy.IsAprovador("Aracy Mendonça"));
+        Assert.True(policy.IsAprovador("aracy.mendonca@jotanunes.com.br"));
+        Assert.True(policy.IsAprovador("Adriano Oliveira"));
     }
 
     [Fact]

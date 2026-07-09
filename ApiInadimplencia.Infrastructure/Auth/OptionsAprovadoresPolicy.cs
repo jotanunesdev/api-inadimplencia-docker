@@ -84,13 +84,10 @@ public sealed class OptionsAprovadoresPolicy : IAprovadoresPolicy
             return true;
         }
 
-        // Forma canonica: ignora separadores comuns (espaco, ponto, hifen, underscore).
-        // Cobre cenarios onde o provedor retorna display name "Gustavo Trindade"
-        // mas a config lista "gustavo.trindade".
-        return string.Equals(
-            CanonicalizeUsername(allowedLocal),
-            CanonicalizeUsername(receivedLocal),
-            StringComparison.OrdinalIgnoreCase);
+        // Forma canonica: ignora separadores comuns (espaco, ponto, hifen, underscore)
+        // e acentos. Cobre cenarios onde o provedor retorna display name
+        // "Aracy Mendonca" ou e-mail, mas a config lista "aracy.mendonca".
+        return UsernameMatcher.Matches(allowedLocal, receivedLocal);
     }
 
     private static string? NormalizeUsername(string? username)
@@ -109,24 +106,4 @@ public sealed class OptionsAprovadoresPolicy : IAprovadoresPolicy
         return atIndex > 0 ? username[..atIndex] : username;
     }
 
-    private static string CanonicalizeUsername(string username)
-    {
-        if (string.IsNullOrEmpty(username))
-        {
-            return string.Empty;
-        }
-
-        Span<char> buffer = stackalloc char[username.Length];
-        var length = 0;
-        foreach (var ch in username)
-        {
-            if (ch is ' ' or '.' or '-' or '_')
-            {
-                continue;
-            }
-            buffer[length++] = ch;
-        }
-
-        return new string(buffer[..length]);
-    }
 }

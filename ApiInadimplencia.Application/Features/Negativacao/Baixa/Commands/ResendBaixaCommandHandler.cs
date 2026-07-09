@@ -58,7 +58,7 @@ public sealed class ResendBaixaCommandHandler : ICommandHandler<ResendBaixaComma
             ?? throw new KeyNotFoundException($"NAO_ENCONTRADA: Baixa {command.SolicitacaoId} não encontrada.");
 
         // Só o solicitante original (ou super-decisor) pode reenviar.
-        var isSolicitante = string.Equals(baixa.SolicitanteUsername, username, StringComparison.OrdinalIgnoreCase);
+        var isSolicitante = UsernameMatcher.Matches(baixa.SolicitanteUsername, username);
         if (!isSolicitante && !_aprovadoresPolicy.IsSuperDecisor(username))
         {
             _logger.LogWarning(

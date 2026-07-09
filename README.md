@@ -114,7 +114,7 @@ Configure em `appsettings.json`:
 ```json
 {
   "Negativacao": {
-    "UsuariosAprovadores": ["aracy.mendoca", "adriano.oliveira"],
+    "UsuariosAprovadores": ["aracy.mendonca", "adriano.oliveira"],
     "QuorumAprovacao": 1,
     "DiasAtrasoMinimo": 60,
     "MaxTentativasSenha": 3,

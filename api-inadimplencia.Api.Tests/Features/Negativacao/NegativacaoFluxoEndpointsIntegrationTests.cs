@@ -290,6 +290,41 @@ public class NegativacaoFluxoEndpointsIntegrationTests : IClassFixture<ApiTestWe
         }
     }
 
+    [Fact]
+    public async Task GetSolicitacaoById_ComSolicitanteAdrianoEAprovadoraAracyMendonca_DeveAutorizarSomenteAracy()
+    {
+        await _factory.ResetStateAsync();
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var repository = scope.ServiceProvider.GetRequiredService<InMemorySerasaPefinRepository>();
+            var solicitacao = SerasaPefinSolicitacaoCompleta.CriarParaAprovacao(
+                numVendaFk: 295,
+                tipoRegistro: SerasaPefinRecordType.Principal,
+                documentoDevedor: "12345678900",
+                documentoCredor: "62173620000180",
+                contractNumber: "295/00",
+                areaInformante: "0001",
+                valor: 1000m,
+                dataVencimento: new DateOnly(2024, 1, 1),
+                solicitanteUsername: "adriano.oliveira");
+
+            await repository.AddAsync(solicitacao, CancellationToken.None);
+
+            var client = _factory.CreateClient();
+
+            var aracyResponse = await client.GetAsync($"/negativacao/solicitacoes/{solicitacao.Id}?username=Aracy%20Mendon%C3%A7a");
+            Assert.Equal(HttpStatusCode.OK, aracyResponse.StatusCode);
+            var aracyJson = JsonDocument.Parse(await aracyResponse.Content.ReadAsStringAsync());
+            Assert.True(aracyJson.RootElement.GetProperty("podeDecidir").GetBoolean());
+
+            var adrianoResponse = await client.GetAsync($"/negativacao/solicitacoes/{solicitacao.Id}?username=adriano%20oliveira");
+            Assert.Equal(HttpStatusCode.OK, adrianoResponse.StatusCode);
+            var adrianoJson = JsonDocument.Parse(await adrianoResponse.Content.ReadAsStringAsync());
+            Assert.False(adrianoJson.RootElement.GetProperty("podeDecidir").GetBoolean());
+        }
+    }
+
     #endregion
 
     #region ListSolicitacoes Endpoint Tests

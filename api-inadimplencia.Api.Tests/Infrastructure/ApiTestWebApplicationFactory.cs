@@ -42,7 +42,7 @@ public class ApiTestWebApplicationFactory : WebApplicationFactory<Program>
         {
             configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Negativacao:UsuariosAprovadores:0"] = "aracy.mendoca",
+                ["Negativacao:UsuariosAprovadores:0"] = "aracy.mendonca",
                 ["Negativacao:UsuariosAprovadores:1"] = "adriano.oliveira",
                 ["Negativacao:UsuariosAprovadores:2"] = "gustavo.trindade",
                 ["Negativacao:QuorumAprovacao"] = "1",

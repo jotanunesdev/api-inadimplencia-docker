@@ -93,7 +93,7 @@ public sealed class DecideBaixaCommandHandler : ICommandHandler<DecideBaixaComma
         }
 
         // 5. Solicitante não pode aprovar a própria solicitação (exceto super-decisor)
-        if (string.Equals(baixa.SolicitanteUsername, username, StringComparison.OrdinalIgnoreCase)
+        if (UsernameMatcher.Matches(baixa.SolicitanteUsername, username)
             && !_aprovadoresPolicy.IsSuperDecisor(username))
         {
             throw new InvalidOperationException(
