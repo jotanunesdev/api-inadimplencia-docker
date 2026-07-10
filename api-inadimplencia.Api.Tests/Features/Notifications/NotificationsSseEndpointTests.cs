@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc.Testing;
 using System.Net;
 using Xunit;
+using api_inadimplencia.Api.Endpoints;
 using api_inadimplencia.Api.Tests.Infrastructure;
 
 namespace api_inadimplencia.Api.Tests.Features.Notifications;
@@ -65,5 +66,23 @@ public class NotificationsSseEndpointTests : IClassFixture<ApiTestWebApplication
         {
             Assert.Contains("keep-alive", response.Headers.Connection?.ToString() ?? string.Empty);
         }
+    }
+
+    [Theory]
+    [InlineData("Aracy Mendonça", "aracy.mendonca", "aracy.mendonca")]
+    [InlineData("aracy.mendonca@jotanunes.com.br", "aracy.mendonca", "aracy.mendonca")]
+    [InlineData("adriano.oliveira", "aracy.mendonca", "adriano.oliveira")]
+    [InlineData(null, "aracy.mendonca", "aracy.mendonca")]
+    [InlineData("aracy.mendonca", null, "aracy.mendonca")]
+    public void ResolveNotificationUsername_DeveUsarUserCodeSomenteParaMesmaIdentidade(
+        string? authenticatedUsername,
+        string? requestedUsername,
+        string expectedUsername)
+    {
+        var username = NotificationsSseEndpoints.ResolveNotificationUsername(
+            authenticatedUsername,
+            requestedUsername);
+
+        Assert.Equal(expectedUsername, username);
     }
 }

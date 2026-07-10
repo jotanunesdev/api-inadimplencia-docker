@@ -221,11 +221,13 @@ public sealed class RequestNegativacaoFluxoCommandHandlerTests
         _ocorrenciaRepositoryMock.Verify(r => r.AddAsync(It.IsAny<Ocorrencia>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    [Fact]
-    public async Task HandleAsync_Sucesso_DeveCriarSolicitacaoOcorrenciaENotificar()
+    [Theory]
+    [InlineData("aracy.mendonca")]
+    [InlineData("adriano.oliveira")]
+    public async Task HandleAsync_Sucesso_DeveNotificarSomenteOutrosAprovadores(string solicitanteUsername)
     {
         // Arrange
-        _currentUserServiceMock.Setup(s => s.Username).Returns("operador");
+        _currentUserServiceMock.Setup(s => s.Username).Returns(solicitanteUsername);
         _currentUserServiceMock.Setup(s => s.IsAuthenticated).Returns(true);
         
         var command = new RequestNegativacaoFluxoCommand(
@@ -234,7 +236,7 @@ public sealed class RequestNegativacaoFluxoCommandHandlerTests
             IncluirFiadores: false,
             SenhaTransacao: "senha_correta");
 
-        _senhaValidatorMock.Setup(v => v.ValidateAsync("operador", "senha_correta", It.IsAny<CancellationToken>()))
+        _senhaValidatorMock.Setup(v => v.ValidateAsync(solicitanteUsername, "senha_correta", It.IsAny<CancellationToken>()))
             .ReturnsAsync(SenhaTransacaoValidationResult.Valid);
 
         var dividasResult = new DividasElegiveisQueryResult(
@@ -288,7 +290,15 @@ public sealed class RequestNegativacaoFluxoCommandHandlerTests
         _protocoloGeneratorMock.Setup(p => p.GerarProtocoloAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync("2026051400001");
 
-        var aprovadores = new List<string> { "aracy.mendoca", "adriano.oliveira" };
+        var aprovadores = new List<string>
+        {
+            "gustavo.trindade",
+            "aracy.mendonca",
+            "adriano.oliveira"
+        };
+        var destinatariosEsperados = aprovadores
+            .Where(aprovador => !UsernameMatcher.Matches(aprovador, solicitanteUsername))
+            .ToList();
         _aprovadoresPolicyMock.Setup(p => p.ListAprovadores()).Returns(aprovadores.AsReadOnly());
 
         _notificationDispatcherMock.Setup(n => n.DispatchManyAsync(
@@ -301,8 +311,8 @@ public sealed class RequestNegativacaoFluxoCommandHandlerTests
             It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, Guid?>
             {
-                { "aracy.mendoca", Guid.NewGuid() },
-                { "adriano.oliveira", Guid.NewGuid() }
+                { destinatariosEsperados[0], Guid.NewGuid() },
+                { destinatariosEsperados[1], Guid.NewGuid() }
             });
 
         // Act
@@ -313,20 +323,23 @@ public sealed class RequestNegativacaoFluxoCommandHandlerTests
         _serasaRepositoryMock.Verify(r => r.AddManyAsync(
             It.Is<IReadOnlyCollection<SerasaPefinSolicitacaoCompleta>>(items =>
                 items.Count == 2 &&
-                items.Count(s => s.IdSolicitacaoPai == null && s.NumeroParcela == null && s.NumVendaFk == 12345 && s.Status == SerasaPefinStatus.AguardandoAprovacao && s.SolicitanteUsername == "operador") == 1 &&
+                items.Count(s => s.IdSolicitacaoPai == null && s.NumeroParcela == null && s.NumVendaFk == 12345 && s.Status == SerasaPefinStatus.AguardandoAprovacao && s.SolicitanteUsername == solicitanteUsername) == 1 &&
                 items.Count(s => s.IdSolicitacaoPai == result && s.NumeroParcela == 1 && s.ParcelaIdOrigem == "1" && s.Valor == 1000m && s.DataVencimento == new DateOnly(2023, 1, 1) && s.Status == SerasaPefinStatus.AguardandoAprovacao) == 1),
             It.IsAny<CancellationToken>()), Times.Once);
 
         _ocorrenciaRepositoryMock.Verify(r => r.AddAsync(
             It.Is<Ocorrencia>(o =>
                 o.NumVendaFk == 12345 &&
-                o.NomeUsuarioFk == "operador" &&
+                o.NomeUsuarioFk == solicitanteUsername &&
                 o.StatusOcorrencia == "Solicitação de negativação"),
             It.IsAny<CancellationToken>()), Times.Once);
 
         _notificationDispatcherMock.Verify(n => n.DispatchManyAsync(
             It.IsAny<NotificationType>(),
-            aprovadores,
+            It.Is<IReadOnlyList<string>>(destinatarios =>
+                destinatarios.Count == 2 &&
+                destinatariosEsperados.All(destinatarios.Contains) &&
+                destinatarios.All(destinatario => !UsernameMatcher.Matches(destinatario, solicitanteUsername))),
             12345,
             It.IsAny<string>(),
             It.IsAny<DateOnly?>(),

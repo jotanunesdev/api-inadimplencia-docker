@@ -32,4 +32,8 @@
     <ProjectReference Include="..\ApiInadimplencia.Infrastructure\ApiInadimplencia.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="api-inadimplencia.Api.Tests" />
+  </ItemGroup>
+
 </Project>

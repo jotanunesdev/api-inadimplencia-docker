@@ -43,15 +43,12 @@ public static class NotificationsSseEndpoints
         CancellationToken cancellationToken)
     {
         var logger = loggerFactory.CreateLogger("NotificationsSse");
-        var username = currentUserService.Username;
-
-        if (string.IsNullOrWhiteSpace(username) &&
-            context.Request.Query.TryGetValue("username", out var queryUsername))
-        {
-            username = queryUsername.ToString();
-        }
-
-        username = username?.Trim().ToLowerInvariant();
+        var requestedUsername = context.Request.Query.TryGetValue("username", out var queryUsername)
+            ? queryUsername.ToString()
+            : null;
+        var username = ResolveNotificationUsername(
+            currentUserService.Username,
+            requestedUsername);
 
         if (string.IsNullOrWhiteSpace(username))
         {
@@ -186,5 +183,34 @@ public static class NotificationsSseEndpoints
             // Remove connection from hub
             sseHub.RemoveConnection(username, connectionId);
         }
+    }
+
+    internal static string? ResolveNotificationUsername(
+        string? authenticatedUsername,
+        string? requestedUsername)
+    {
+        var authenticated = NormalizeUsername(authenticatedUsername);
+        var requested = NormalizeUsername(requestedUsername);
+
+        if (requested is null)
+        {
+            return authenticated;
+        }
+
+        if (authenticated is null)
+        {
+            return requested;
+        }
+
+        return UsernameMatcher.Matches(authenticated, requested)
+            ? requested
+            : authenticated;
+    }
+
+    private static string? NormalizeUsername(string? username)
+    {
+        return string.IsNullOrWhiteSpace(username)
+            ? null
+            : username.Trim().ToLowerInvariant();
     }
 }

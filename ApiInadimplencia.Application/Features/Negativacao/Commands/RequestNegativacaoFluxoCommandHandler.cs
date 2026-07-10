@@ -220,8 +220,12 @@ public sealed class RequestNegativacaoFluxoCommandHandler : ICommandHandler<Requ
 
         await _ocorrenciaRepository.AddAsync(ocorrencia, cancellationToken);
 
-        // 8. Dispatch notifications to all approvers
-        var aprovadores = _aprovadoresPolicy.ListAprovadores();
+        // 8. Notify only the other approvers. An approver who requested the
+        // negativacao cannot decide it and must not receive an approval alert.
+        var aprovadores = _aprovadoresPolicy.ListAprovadores()
+            .Where(aprovador => !UsernameMatcher.Matches(aprovador, username))
+            .ToList()
+            .AsReadOnly();
         _logger.LogInformation(
             "Solicitacao {SolicitacaoId} created for venda {NumVenda}. Notifying {Count} aprovador(es): [{Aprovadores}]",
             solicitacaoId, command.NumVenda, aprovadores.Count, string.Join(",", aprovadores));
