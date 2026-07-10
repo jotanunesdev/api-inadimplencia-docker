@@ -325,6 +325,81 @@ public class NegativacaoFluxoEndpointsIntegrationTests : IClassFixture<ApiTestWe
         }
     }
 
+    [Fact]
+    public async Task GetSolicitacaoById_ComHeaderFluigDaAracy_DeveRetornarPodeDecidirTrue()
+    {
+        await _factory.ResetStateAsync();
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var repository = scope.ServiceProvider.GetRequiredService<InMemorySerasaPefinRepository>();
+            var solicitacao = SerasaPefinSolicitacaoCompleta.CriarParaAprovacao(
+                numVendaFk: 295,
+                tipoRegistro: SerasaPefinRecordType.Principal,
+                documentoDevedor: "12345678900",
+                documentoCredor: "62173620000180",
+                contractNumber: "295/00",
+                areaInformante: "0001",
+                valor: 1000m,
+                dataVencimento: new DateOnly(2024, 1, 1),
+                solicitanteUsername: "adriano.oliveira");
+
+            await repository.AddAsync(solicitacao, CancellationToken.None);
+
+            var client = _factory.CreateClient();
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"/negativacao/solicitacoes/{solicitacao.Id}");
+            request.Headers.TryAddWithoutValidation("X-User-Name", "Aracy Mendonça");
+
+            var response = await client.SendAsync(request);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            Assert.True(json.RootElement.GetProperty("podeDecidir").GetBoolean());
+        }
+    }
+
+    [Theory]
+    [InlineData("aracy.mendonca", "aracy.mendonca", false)]
+    [InlineData("aracy.mendonca", "adriano.oliveira", true)]
+    [InlineData("aracy.mendonca", "gustavo.trindade", true)]
+    [InlineData("adriano.oliveira", "adriano.oliveira", false)]
+    [InlineData("adriano.oliveira", "aracy.mendonca", true)]
+    [InlineData("adriano.oliveira", "gustavo.trindade", true)]
+    public async Task GetSolicitacaoById_DevePermitirSomenteOutroAprovador(
+        string solicitanteUsername,
+        string aprovadorUserCode,
+        bool esperado)
+    {
+        await _factory.ResetStateAsync();
+
+        using var scope = _factory.Services.CreateScope();
+        var repository = scope.ServiceProvider.GetRequiredService<InMemorySerasaPefinRepository>();
+        var solicitacao = SerasaPefinSolicitacaoCompleta.CriarParaAprovacao(
+            numVendaFk: 295,
+            tipoRegistro: SerasaPefinRecordType.Principal,
+            documentoDevedor: "12345678900",
+            documentoCredor: "62173620000180",
+            contractNumber: "295/00",
+            areaInformante: "0001",
+            valor: 1000m,
+            dataVencimento: new DateOnly(2024, 1, 1),
+            solicitanteUsername: solicitanteUsername);
+
+        await repository.AddAsync(solicitacao, CancellationToken.None);
+
+        var client = _factory.CreateClient();
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"/negativacao/solicitacoes/{solicitacao.Id}");
+        request.Headers.Add("X-User-Code", aprovadorUserCode);
+
+        var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(esperado, json.RootElement.GetProperty("podeDecidir").GetBoolean());
+    }
+
     #endregion
 
     #region ListSolicitacoes Endpoint Tests

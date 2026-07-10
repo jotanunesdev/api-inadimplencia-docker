@@ -65,6 +65,63 @@ public class CurrentUserServiceTests
     }
 
     [Fact]
+    public void Username_WhenFluigSendsDisplayNameHeader_ReturnsNormalizedDisplayName()
+    {
+        // Arrange
+        var httpContextAccessor = new HttpContextAccessor();
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["X-User-Name"] = "  Aracy Mendonça  ";
+        httpContextAccessor.HttpContext = httpContext;
+
+        var userService = new CurrentUserService(httpContextAccessor);
+
+        // Act
+        var username = userService.Username;
+
+        // Assert
+        Assert.Equal("aracy mendonça", username);
+        Assert.True(userService.IsAuthenticated);
+    }
+
+    [Fact]
+    public void Username_WhenFluigSendsUserCodeHeader_ReturnsNormalizedUserCode()
+    {
+        // Arrange
+        var httpContextAccessor = new HttpContextAccessor();
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["X-User-Code"] = "  Aracy.Mendonca  ";
+        httpContextAccessor.HttpContext = httpContext;
+
+        var userService = new CurrentUserService(httpContextAccessor);
+
+        // Act
+        var username = userService.Username;
+
+        // Assert
+        Assert.Equal("aracy.mendonca", username);
+        Assert.True(userService.IsAuthenticated);
+    }
+
+    [Fact]
+    public void Username_WhenFluigSendsCodeAndDisplayName_PrefersUserCode()
+    {
+        // Arrange
+        var httpContextAccessor = new HttpContextAccessor();
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["X-User-Code"] = "aracy.mendonca";
+        httpContext.Request.Headers["X-User-Name"] = "Aracy Mendonça";
+        httpContextAccessor.HttpContext = httpContext;
+
+        var userService = new CurrentUserService(httpContextAccessor);
+
+        // Act
+        var username = userService.Username;
+
+        // Assert
+        Assert.Equal("aracy.mendonca", username);
+    }
+
+    [Fact]
     public void IsAuthenticated_WhenNotAuthenticated_ReturnsFalse()
     {
         // Arrange

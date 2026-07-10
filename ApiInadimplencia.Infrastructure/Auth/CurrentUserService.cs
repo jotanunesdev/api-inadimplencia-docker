@@ -11,12 +11,17 @@ namespace ApiInadimplencia.Infrastructure.Auth;
 /// Estratégia de identificação do usuário, em ordem:
 ///   1. <see cref="HttpContext.User"/> autenticado (caso um middleware real de
 ///      autenticação seja adicionado no futuro).
-///   2. Fallback: header HTTP <c>X-Username</c> — convenção atual do projeto,
-///      adotada também pelos endpoints de Configurações.
+///   2. Fallback: headers de identidade enviados pelo Fluig, priorizando
+///      <c>X-Username</c>, <c>X-User-Code</c> e <c>X-User-Name</c>.
 /// </summary>
 public sealed class CurrentUserService : ICurrentUserService
 {
-    private const string UsernameHeader = "X-Username";
+    private static readonly string[] UsernameHeaders =
+    [
+        "X-Username",
+        "X-User-Code",
+        "X-User-Name",
+    ];
 
     private readonly IHttpContextAccessor _httpContextAccessor;
 
@@ -41,7 +46,7 @@ public sealed class CurrentUserService : ICurrentUserService
                 return identity.Name.Trim().ToLowerInvariant();
             }
 
-            return GetUsernameFromHeader(httpContext);
+            return GetUsernameFromHeaders(httpContext);
         }
     }
 
@@ -60,18 +65,21 @@ public sealed class CurrentUserService : ICurrentUserService
                 return true;
             }
 
-            return !string.IsNullOrWhiteSpace(GetUsernameFromHeader(httpContext));
+            return !string.IsNullOrWhiteSpace(GetUsernameFromHeaders(httpContext));
         }
     }
 
-    private static string? GetUsernameFromHeader(HttpContext httpContext)
+    private static string? GetUsernameFromHeaders(HttpContext httpContext)
     {
-        if (!httpContext.Request.Headers.TryGetValue(UsernameHeader, out var values))
+        foreach (var headerName in UsernameHeaders)
         {
-            return null;
+            var raw = httpContext.Request.Headers[headerName].ToString();
+            if (!string.IsNullOrWhiteSpace(raw))
+            {
+                return raw.Trim().ToLowerInvariant();
+            }
         }
 
-        var raw = values.ToString();
-        return string.IsNullOrWhiteSpace(raw) ? null : raw.Trim().ToLowerInvariant();
+        return null;
     }
 }
