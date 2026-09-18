@@ -510,12 +510,16 @@ public static class InadimplenciaEndpoints
             string? score,
             string? qtd,
             string? nomeUsuario,
+            int? offset,
+            string? situacao,
+            int? numVenda,
+            string? cliente,
             [FromServices] IQueryHandler<GetMetricQuery, IReadOnlyList<Dictionary<string, object?>>> handler,
             CancellationToken ct) =>
         {
             try
             {
-                var result = await handler.HandleAsync(new GetMetricQuery(metric, dataInicio, dataFim, limit, faixa, score, qtd, nomeUsuario), ct);
+                var result = await handler.HandleAsync(new GetMetricQuery(metric, dataInicio, dataFim, limit, faixa, score, qtd, nomeUsuario, offset ?? 0, situacao, numVenda, cliente), ct);
                 object? data = IsSingleDashboardMetric(metric) ? result.FirstOrDefault() : result;
                 return Results.Ok(new { data });
             }
