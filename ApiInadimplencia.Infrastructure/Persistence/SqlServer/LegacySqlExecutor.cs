@@ -706,6 +706,26 @@ public sealed class LegacySqlExecutor(
 
     private static void ApplyDashboardQueries(Dictionary<string, SqlDefinition> queries)
     {
+        queries["Dashboard.ObservacoesDisponibilidade"] = new(InadimplenciaObservadaSql.Disponibilidade);
+        queries["Dashboard.RecuperacaoMensal"] = new(ValorRecuperadoSql.Mensal);
+        queries["Dashboard.RecuperacaoDetalhes"] = new(ValorRecuperadoSql.Detalhes);
+        queries["Dashboard.ObservacoesMensais"] = new(InadimplenciaObservadaSql.Mensais);
+        queries["Dashboard.ObservacoesDetalhes"] = new(InadimplenciaObservadaSql.Detalhes);
+        queries["Dashboard.CarteiraInadimplenteDetalhes"] = new(RecuperaDashboardSql.CarteiraInadimplenteDetalhes);
+        queries["Dashboard.CarteiraInadimplenteParcelas"] = new(RecuperaDashboardSql.CarteiraInadimplenteParcelas);
+        queries["Dashboard.Convertidos"] = new(RecuperaDashboardSql.Convertidos);
+        queries["Dashboard.ConvertidosMensais"] = new(RecuperaDashboardSql.ConvertidosMensais);
+        queries["Dashboard.ConvertidosMensaisDetalhes"] = new(RecuperaDashboardSql.ConvertidosMensaisDetalhes);
+        queries["Dashboard.SituacaoClientesDetalhes"] = new(RecuperaDashboardSql.SituacaoClientesDetalhes);
+        queries["Dashboard.SituacaoParcelasDetalhes"] = new(RecuperaDashboardSql.SituacaoParcelasDetalhes);
+        queries["Dashboard.Negativadas"] = new(RecuperaDashboardSql.Negativadas);
+        queries["Dashboard.OcorrenciasDiaDetalhes"] = new(RecuperaDashboardSql.OcorrenciasDiaDetalhes);
+        queries["Dashboard.CarteiraAtuacao"] = new(CarteiraAtuacaoSql.Resumo);
+        queries["Dashboard.CarteiraAtuacaoDetalhes"] = new(CarteiraAtuacaoSql.Detalhes);
+        queries["Dashboard.CarteiraAtuacaoContatos"] = new(CarteiraAtuacaoSql.Contatos);
+        queries["Dashboard.CarteiraJuridica"] = new(CarteiraJuridicaSql.Resumo);
+        queries["Dashboard.CarteiraJuridicaDetalhes"] = new(CarteiraJuridicaSql.Detalhes);
+        queries["Dashboard.CarteiraJuridicaProcessos"] = new(CarteiraJuridicaSql.ProcessosDetalhes);
         queries["Dashboard.Kpis"] = new("""
             SELECT
                 COUNT(*) AS TOTAL_VENDAS,

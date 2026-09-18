@@ -21,4 +21,8 @@ public sealed record GetMetricQuery(
     string? Faixa = null,
     string? Score = null,
     string? Qtd = null,
-    string? NomeUsuario = null) : IQuery<IReadOnlyList<Dictionary<string, object?>>>;
+    string? NomeUsuario = null,
+    int Offset = 0,
+    string? Situacao = null,
+    int? NumVenda = null,
+    string? Cliente = null) : IQuery<IReadOnlyList<Dictionary<string, object?>>>;
