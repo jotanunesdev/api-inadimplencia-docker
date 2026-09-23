@@ -36,8 +36,27 @@ public sealed class CarteiraAtuacaoReadOnlyTests
     private static string Sql(string query) => Sources + query.Replace("WITH TiposContato", "TiposContato")
         .Replace("DW.fat_analise_inadimplencia_v4", "Fonte").Replace("dbo.VENDA_RESPONSAVEL", "Atribuicoes")
         .Replace("dbo.OCORRENCIAS", "Ocorrencias");
-    private static object Parameters(string? category = null, int offset = 0, string? client = null, string? user = null, int? sale = null) =>
-        new { situacao = category, offset, limit = 1, cliente = client, nomeUsuario = user, numVenda = sale };
+    private static object Parameters(string? category = null, int offset = 0, string? client = null, string? user = null, int? sale = null, bool semResponsavel = false) =>
+        new { semResponsavel, situacao = category, offset, limit = 1, cliente = client, nomeUsuario = user, numVenda = sale };
+
+    [RecuperaReadOnlyFact]
+    public async Task AgendaFuturaVencidaESemResponsavel_SemConfundirComContatoRealizado()
+    {
+        await using var conn = new SqlConnection(Environment.GetEnvironmentVariable("RECUPERA_SQL_READONLY"));
+        string Agenda(string query) => Sql(query)
+            .Replace("CAST(NULL AS datetime) PROXIMA_ACAO", "CASE WHEN NUM_VENDA_FK IN (4,9) THEN DATEADD(year,1,GETDATE()) WHEN NUM_VENDA_FK=11 THEN DATEADD(day,-1,GETDATE()) END PROXIMA_ACAO")
+            .Replace("(5,11,'operador'", "(6,9,'outro',N'Retorno agendado com o cliente','2026-09-10'),(5,11,'operador'");
+        var rows = (await conn.QueryAsync(Agenda(CarteiraAtuacaoSql.Resumo), Parameters())).ToList();
+        Assert.Equal(2L, (long)rows.Single(r => r.CATEGORIA == "APTO_ACAO_FUTURA").QUANTIDADE);
+        Assert.Equal(1L, (long)rows.Single(r => r.CATEGORIA == "APTO_ACAO_VENCIDA").QUANTIDADE);
+        Assert.Equal(10L, rows.Sum(r => (long)r.QUANTIDADE));
+        var summary = (await conn.QueryAsync(Agenda(CarteiraAtuacaoSql.Resumo), Parameters(semResponsavel: true))).ToList();
+        Assert.Equal(1L, (long)summary[0].TOTAL_VENDAS);
+        Assert.Equal(1L, (long)summary.Single(r => r.CATEGORIA == "APTO_ACAO_FUTURA").QUANTIDADE);
+        var detail = Assert.Single(await conn.QueryAsync(Agenda(CarteiraAtuacaoSql.Detalhes), Parameters("APTO_ACAO_FUTURA", semResponsavel: true)));
+        Assert.Equal(9, (int)detail.NUM_VENDA); Assert.Null(detail.RESPONSAVEL);
+        Assert.Equal("outro", (string)detail.AUTOR_AGENDAMENTO);
+    }
 
     [RecuperaReadOnlyFact]
     public async Task ScoreCincoSeis_MultiplasVendas_Nulos_EHistoricoSemInventarCiclo()
@@ -46,8 +65,8 @@ public sealed class CarteiraAtuacaoReadOnlyTests
         var rows = (await conn.QueryAsync(Sql(CarteiraAtuacaoSql.Resumo), Parameters())).ToList();
         Assert.Equal(10L, (long)rows[0].TOTAL_VENDAS);
         Assert.Equal(2L, (long)rows.Single(r => r.CATEGORIA == "NAO_APTO").QUANTIDADE);
-        Assert.Equal(4L, (long)rows.Single(r => r.CATEGORIA == "APTO_SEM_REGISTRO").QUANTIDADE);
-        Assert.Equal(2L, (long)rows.Single(r => r.CATEGORIA == "CICLO_PENDENTE").QUANTIDADE);
+        Assert.Equal(3L, (long)rows.Single(r => r.CATEGORIA == "APTO_SEM_REGISTRO").QUANTIDADE);
+        Assert.Equal(3L, (long)rows.Single(r => r.CATEGORIA == "CICLO_PENDENTE").QUANTIDADE);
         Assert.Equal(1L, (long)rows.Single(r => r.CATEGORIA == "SEM_SCORE").QUANTIDADE);
         Assert.Equal(1L, (long)rows.Single(r => r.CATEGORIA == "RESPONSAVEL_AMBIGUO").QUANTIDADE);
         Assert.Equal(100m, rows.Sum(r => (decimal)r.PERCENTUAL));
@@ -55,10 +74,21 @@ public sealed class CarteiraAtuacaoReadOnlyTests
         using var distribution = JsonDocument.Parse((string)rows.Single(r => r.CATEGORIA == "APTO_SEM_REGISTRO").RESPONSAVEIS_JSON);
         var groups = distribution.RootElement.EnumerateArray().ToArray();
         Assert.Equal(2, groups.Length);
-        Assert.Equal(3, groups.Single(g => g.GetProperty("RESPONSAVEL").GetString() == "operador").GetProperty("QUANTIDADE").GetInt32());
+        Assert.Equal(2, groups.Single(g => g.GetProperty("RESPONSAVEL").GetString() == "operador").GetProperty("QUANTIDADE").GetInt32());
         Assert.Equal(1, groups.Single(g => g.GetProperty("RESPONSAVEL").ValueKind == JsonValueKind.Null).GetProperty("QUANTIDADE").GetInt32());
         using var history = JsonDocument.Parse((string)rows.Single(r => r.CATEGORIA == "CICLO_PENDENTE").RESPONSAVEIS_JSON);
-        Assert.Equal(2, Assert.Single(history.RootElement.EnumerateArray()).GetProperty("QUANTIDADE").GetInt32());
+        Assert.Equal(3, Assert.Single(history.RootElement.EnumerateArray()).GetProperty("QUANTIDADE").GetInt32());
+    }
+
+    [RecuperaReadOnlyFact]
+    public async Task AgendaUsaUltimaOcorrenciaENaoDataMaisDistante()
+    {
+        await using var conn = new SqlConnection(Environment.GetEnvironmentVariable("RECUPERA_SQL_READONLY"));
+        var sql = Sql(CarteiraAtuacaoSql.Detalhes).Replace("CAST(NULL AS datetime) PROXIMA_ACAO",
+            "CASE ID WHEN 1 THEN DATEADD(year,1,GETDATE()) WHEN 2 THEN CONVERT(datetime,CONVERT(date,GETDATE())) END PROXIMA_ACAO");
+        var row = Assert.Single(await conn.QueryAsync(sql, Parameters("APTO_ACAO_VENCIDA")));
+        Assert.Equal(3, (int)row.NUM_VENDA);
+        Assert.Equal(1L, (long)row.TOTAL_COUNT);
     }
 
     [RecuperaReadOnlyFact]
@@ -80,7 +110,7 @@ public sealed class CarteiraAtuacaoReadOnlyTests
     }
 
     [RecuperaReadOnlyFact]
-    public async Task ContatosSomenteDoResponsavel_ECategoriaFiltrosPreservados()
+    public async Task ContatosDaVendaInclusiveOutroAutor_ECategoriaFiltrosPreservados()
     {
         await using var conn = new SqlConnection(Environment.GetEnvironmentVariable("RECUPERA_SQL_READONLY"));
         var row = Assert.Single(await conn.QueryAsync(Sql(CarteiraAtuacaoSql.Contatos), Parameters("CICLO_PENDENTE", sale: 3)));

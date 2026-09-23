@@ -80,7 +80,7 @@ public sealed class GetMetricQueryHandler(ILegacySqlExecutor executor)
                 throw new ArgumentException("O responsável aceita até 150 caracteres.");
         }
         var atuacao = query.Metric.ToLowerInvariant() is "carteira-atuacao" or "carteira-atuacao-detalhes" or "carteira-atuacao-contatos";
-        var categoriasAtuacao = new[] { "NAO_APTO", "APTO_SEM_REGISTRO", "CICLO_PENDENTE", "SEM_SCORE", "RESPONSAVEL_AMBIGUO" };
+        var categoriasAtuacao = new[] { "NAO_APTO", "APTO_SEM_REGISTRO", "CICLO_PENDENTE", "APTO_ACAO_FUTURA", "APTO_ACAO_VENCIDA", "SEM_SCORE", "RESPONSAVEL_AMBIGUO" };
         if (atuacao)
         {
             var resumo = query.Metric.Equals("carteira-atuacao", StringComparison.OrdinalIgnoreCase);
@@ -122,6 +122,8 @@ public sealed class GetMetricQueryHandler(ILegacySqlExecutor executor)
 
         var recuperacao = query.Metric.Equals("recuperacao-parcelas", StringComparison.OrdinalIgnoreCase)
             || query.Metric.Equals("recuperacao-parcelas-detalhes", StringComparison.OrdinalIgnoreCase);
+        if (query.SemResponsavel && ((!atuacao && !juridico && !recuperacao && !query.Metric.Equals("carteira-inadimplente-detalhes", StringComparison.OrdinalIgnoreCase)) || !string.IsNullOrWhiteSpace(query.NomeUsuario)))
+            throw new ArgumentException("Sem responsável é permitido na carteira, Jurídico e recuperação; não combine com nomeUsuario.");
         if (recuperacao && (new[] { query.Faixa, query.Score, query.Qtd, query.NomeUsuario, query.Situacao }
                 .Any(value => !string.IsNullOrWhiteSpace(value)) || query.NumVenda is not null))
             throw new ArgumentException("A recuperação financeira aceita período de baixa e paginação; não utiliza filtros de conversão de vendas.");
@@ -228,6 +230,7 @@ public sealed class GetMetricQueryHandler(ILegacySqlExecutor executor)
             ["situacao"] = situacao,
             ["numVenda"] = query.NumVenda,
             ["cliente"] = clienteLike,
+            ["semResponsavel"] = query.SemResponsavel,
             ["dataInicio"] = dataInicio,
             ["dataFim"] = dataFim,
             ["faixa"] = faixa,

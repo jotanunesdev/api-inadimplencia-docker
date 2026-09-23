@@ -25,4 +25,5 @@ public sealed record GetMetricQuery(
     int Offset = 0,
     string? Situacao = null,
     int? NumVenda = null,
-    string? Cliente = null) : IQuery<IReadOnlyList<Dictionary<string, object?>>>;
+    string? Cliente = null,
+    bool SemResponsavel = false) : IQuery<IReadOnlyList<Dictionary<string, object?>>>;

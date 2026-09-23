@@ -47,12 +47,12 @@ public sealed class RecuperaDashboardReadOnlyTests
     public async Task Carteira_ListaVendasDosKpisSemMultiplicarValoresPorParcelas()
     {
         await using var connection = Connection();
-        var rows = (await connection.QueryAsync(CarteiraSql(RecuperaDashboardSql.CarteiraInadimplenteDetalhes), new { offset = 0, limit = 20, cliente = (string?)null })).ToList();
+        var rows = (await connection.QueryAsync(CarteiraSql(RecuperaDashboardSql.CarteiraInadimplenteDetalhes), new { semResponsavel = false, offset = 0, limit = 20, cliente = (string?)null })).ToList();
         Assert.Equal(2, rows.Count);
         Assert.Equal(5000m, rows.Sum(x => (decimal)x.VALOR_INADIMPLENTE));
         Assert.All(rows, row => Assert.Equal(2L, (long)row.TOTAL_COUNT));
         Assert.Null(rows[1].RESPONSAVEL);
-        var page = (await connection.QueryAsync(CarteiraSql(RecuperaDashboardSql.CarteiraInadimplenteDetalhes), new { offset = 1, limit = 1, cliente = (string?)null })).ToList();
+        var page = (await connection.QueryAsync(CarteiraSql(RecuperaDashboardSql.CarteiraInadimplenteDetalhes), new { semResponsavel = false, offset = 1, limit = 1, cliente = (string?)null })).ToList();
         Assert.Equal(2, (int)Assert.Single(page).NUM_VENDA);
     }
 
@@ -60,7 +60,7 @@ public sealed class RecuperaDashboardReadOnlyTests
     public async Task Carteira_ParcelasPreservamRegistrosRepetidosENulosSemInferirPagamento()
     {
         await using var connection = Connection();
-        var rows = (await connection.QueryAsync(CarteiraSql(RecuperaDashboardSql.CarteiraInadimplenteParcelas), new { offset = 0, limit = 20, numVenda = 1 })).ToList();
+        var rows = (await connection.QueryAsync(CarteiraSql(RecuperaDashboardSql.CarteiraInadimplenteParcelas), new { semResponsavel = false, offset = 0, limit = 20, numVenda = 1 })).ToList();
         Assert.Equal(3, rows.Count);
         Assert.Equal(2, rows.Count(row => row.IDLAN == "11"));
         Assert.Contains(rows, row => row.IDLAN == null && row.INADIMPLENTE == "NAO");
@@ -71,9 +71,9 @@ public sealed class RecuperaDashboardReadOnlyTests
     public async Task Carteira_ParcelaInadimplenteNaoAmpliaUniversoDoResumo()
     {
         await using var connection = Connection();
-        var rows = await connection.QueryAsync(CarteiraSql(RecuperaDashboardSql.CarteiraInadimplenteParcelas), new { offset = 0, limit = 20, numVenda = 3 });
+        var rows = await connection.QueryAsync(CarteiraSql(RecuperaDashboardSql.CarteiraInadimplenteParcelas), new { semResponsavel = false, offset = 0, limit = 20, numVenda = 3 });
         Assert.Empty(rows);
-        var emptyPage = await connection.QueryAsync(CarteiraSql(RecuperaDashboardSql.CarteiraInadimplenteDetalhes), new { offset = 20, limit = 20, cliente = (string?)null });
+        var emptyPage = await connection.QueryAsync(CarteiraSql(RecuperaDashboardSql.CarteiraInadimplenteDetalhes), new { semResponsavel = false, offset = 20, limit = 20, cliente = (string?)null });
         Assert.Empty(emptyPage);
     }
 
@@ -83,14 +83,14 @@ public sealed class RecuperaDashboardReadOnlyTests
         await using var connection = Connection();
         var sql = CarteiraSql(RecuperaDashboardSql.CarteiraInadimplenteDetalhes)
             .Replace("'Cliente sintético' CLIENTE", "CASE WHEN f.NUM_VENDA=1 THEN 'Ana' ELSE 'Maria 100%' END CLIENTE");
-        var rows = (await connection.QueryAsync(sql, new { offset = 0, limit = 1, cliente = "%Maria%" })).ToList();
+        var rows = (await connection.QueryAsync(sql, new { semResponsavel = false, offset = 0, limit = 1, cliente = "%Maria%" })).ToList();
         var row = Assert.Single(rows);
         Assert.Equal(2, (int)row.NUM_VENDA);
         Assert.Equal(1L, (long)row.TOTAL_COUNT);
-        Assert.Empty(await connection.QueryAsync(sql, new { offset = 1, limit = 1, cliente = "%Maria%" }));
-        Assert.Empty(await connection.QueryAsync(sql, new { offset = 0, limit = 20, cliente = "%Inexistente%" }));
-        Assert.Single(await connection.QueryAsync(sql, new { offset = 0, limit = 20, cliente = "%100~%%" }));
-        Assert.Empty(await connection.QueryAsync(sql, new { offset = 0, limit = 20, cliente = "%~_%" }));
+        Assert.Empty(await connection.QueryAsync(sql, new { semResponsavel = false, offset = 1, limit = 1, cliente = "%Maria%" }));
+        Assert.Empty(await connection.QueryAsync(sql, new { semResponsavel = false, offset = 0, limit = 20, cliente = "%Inexistente%" }));
+        Assert.Single(await connection.QueryAsync(sql, new { semResponsavel = false, offset = 0, limit = 20, cliente = "%100~%%" }));
+        Assert.Empty(await connection.QueryAsync(sql, new { semResponsavel = false, offset = 0, limit = 20, cliente = "%~_%" }));
     }
 
     private const string Sources = """

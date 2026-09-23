@@ -7,11 +7,39 @@ namespace ApiInadimplencia.Application.Tests.Features.Negativacao;
 public sealed class CarteiraAtuacaoQueryTests
 {
     [Theory]
+    [InlineData("carteira-atuacao")]
+    [InlineData("carteira-juridica")]
+    [InlineData("carteira-inadimplente-detalhes")]
+    [InlineData("recuperacao-parcelas")]
+    public async Task SemResponsavelEncaminhadoAoSqlSemNomeDeOperador(string metric)
+    {
+        var executor = new Mock<ILegacySqlExecutor>(MockBehavior.Strict);
+        executor.Setup(x => x.QueryAsync(It.IsAny<string>(), It.Is<IReadOnlyDictionary<string, object?>>(p =>
+            (bool)p["semResponsavel"]! && p["nomeUsuario"] == null), false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new LegacySqlResult(true, new List<Dictionary<string, object?>>()));
+        await new GetMetricQueryHandler(executor.Object).HandleAsync(new GetMetricQuery(metric, SemResponsavel: true));
+        executor.VerifyAll(); executor.VerifyNoOtherCalls();
+    }
+
+    [Theory]
+    [InlineData("carteira-atuacao", "Operador")]
+    [InlineData("conversoes-quantidade", null)]
+    [InlineData("aging", null)]
+    public async Task NaoIgnoraFiltroSemResponsavelIncompativel(string metric, string? owner)
+    {
+        var executor = new Mock<ILegacySqlExecutor>(MockBehavior.Strict);
+        await Assert.ThrowsAsync<ArgumentException>(() => new GetMetricQueryHandler(executor.Object).HandleAsync(
+            new GetMetricQuery(metric, NomeUsuario: owner, SemResponsavel: true)));
+        executor.VerifyNoOtherCalls();
+    }
+    [Theory]
     [InlineData("carteira-atuacao", "Dashboard.CarteiraAtuacao", null, null)]
     [InlineData("carteira-juridica", "Dashboard.CarteiraJuridica", null, null)]
     [InlineData("carteira-juridica-detalhes", "Dashboard.CarteiraJuridicaDetalhes", null, null)]
     [InlineData("carteira-juridica-processos", "Dashboard.CarteiraJuridicaProcessos", null, 10)]
     [InlineData("carteira-atuacao-detalhes", "Dashboard.CarteiraAtuacaoDetalhes", "NAO_APTO", null)]
+    [InlineData("carteira-atuacao-detalhes", "Dashboard.CarteiraAtuacaoDetalhes", "APTO_ACAO_FUTURA", null)]
+    [InlineData("carteira-atuacao-detalhes", "Dashboard.CarteiraAtuacaoDetalhes", "APTO_ACAO_VENCIDA", null)]
     [InlineData("CARTEIRA-ATUACAO-CONTATOS", "Dashboard.CarteiraAtuacaoContatos", "CICLO_PENDENTE", 10)]
     public async Task EncaminhaFiltrosEPaginacaoSemEscrita(string metric, string key, string? category, int? sale)
     {

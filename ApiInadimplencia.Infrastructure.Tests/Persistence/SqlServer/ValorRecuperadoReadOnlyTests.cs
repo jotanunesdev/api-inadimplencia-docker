@@ -11,7 +11,7 @@ public sealed class ValorRecuperadoReadOnlyTests
         WITH Recuperados AS (
             SELECT f.*, 'Teste' CLIENTE, '00000000000' CPF_CNPJ, 'Obra' EMPREENDIMENTO,
                 'Documento' NUM_DOCUMENTO, CAST('2025-01-01' AS date) DATA_VENCIMENTO,
-                CAST('2026-03-01' AS datetime2) DATA_CARGA, 0.00 SALDO_RECEBER
+                CAST('2026-03-01' AS datetime2) DATA_CARGA, 0.00 SALDO_RECEBER, 60 DIAS_ATRASO
             FROM (VALUES
                 (11,1,CAST('2026-01-15' AS date),CAST(2000.00 AS decimal(18,4)),'BAIXA PARCIAL'),
                 (12,1,CAST('2026-02-15' AS date),CAST(2000.00 AS decimal(18,4)),'BAIXADO'),
@@ -33,10 +33,35 @@ public sealed class ValorRecuperadoReadOnlyTests
     private static SqlConnection Connection() => new(Environment.GetEnvironmentVariable("RECUPERA_SQL_READONLY"));
 
     [RecuperaReadOnlyFact]
+    public async Task CorteEstritoTrintaDiasNaBaixa_MesEDetalheConferem_SemUsarAtrasoAtual()
+    {
+        await using var connection = Connection();
+        string Boundary(string query) => Sql(query).Replace("60 DIAS_ATRASO", "CASE IDLAN WHEN 11 THEN 29 WHEN 12 THEN 30 WHEN 21 THEN 31 ELSE NULL END DIAS_ATRASO");
+        var args = new { semResponsavel = false, dataInicio = new DateTime(2026,1,1), dataFim = new DateTime(2026,2,28), offset=0, limit=100 };
+        var months = (await connection.QueryAsync(Boundary(ValorRecuperadoSql.Mensal), args)).ToList();
+        var detail = Assert.Single(await connection.QueryAsync(Boundary(ValorRecuperadoSql.Detalhes), args));
+        Assert.Equal(21, (int)detail.IDLAN); Assert.Equal(31, (int)detail.DIAS_ATRASO);
+        Assert.Equal(1500m, months.Sum(x => (decimal)x.VALOR_RECUPERADO));
+        Assert.Equal(1500m, (decimal)detail.TOTAL_VALOR_RECUPERADO);
+    }
+
+    [RecuperaReadOnlyFact]
+    public async Task SemResponsavel_ExcluiQualquerVinculoPreenchido_SemDuplicarRecuperacao()
+    {
+        await using var connection = Connection();
+        var args = new { semResponsavel = true, dataInicio = new DateTime(2026,1,1), dataFim = new DateTime(2026,2,28), offset=0, limit=100 };
+        var months = await connection.QueryAsync(Sql(ValorRecuperadoSql.Mensal), args);
+        var details = (await connection.QueryAsync(Sql(ValorRecuperadoSql.Detalhes), args)).ToList();
+        Assert.Equal(2, details.Count); Assert.All(details, x => Assert.Null(x.RESPONSAVEL));
+        Assert.Equal(2000m, months.Sum(x => (decimal)x.VALOR_RECUPERADO));
+        Assert.Equal(2000m, details.Sum(x => (decimal)x.VALOR_RECUPERADO));
+    }
+
+    [RecuperaReadOnlyFact]
     public async Task Mensal_SomaParcelasIncluindoParcialSemContarVendasOuDuplicarValores()
     {
         await using var connection = Connection();
-        var rows = (await connection.QueryAsync(Sql(ValorRecuperadoSql.Mensal), new { dataInicio = new DateTime(2026,1,1), dataFim = new DateTime(2026,3,31) })).ToList();
+        var rows = (await connection.QueryAsync(Sql(ValorRecuperadoSql.Mensal), new { semResponsavel = false, dataInicio = new DateTime(2026,1,1), dataFim = new DateTime(2026,3,31) })).ToList();
         Assert.Equal(3, rows.Count);
         Assert.Equal(new[] { 3500m, 2500m, 0m }, rows.Select(x => (decimal)x.VALOR_RECUPERADO));
         Assert.Equal(2L, (long)rows[0].PARCELAS);
@@ -47,7 +72,7 @@ public sealed class ValorRecuperadoReadOnlyTests
     public async Task Detalhes_PreservamVendaAindaInadimplenteEHistoricaSemMultiplicarResponsaveis()
     {
         await using var connection = Connection();
-        var args = new { dataInicio = new DateTime(2026,1,1), dataFim = new DateTime(2026,2,28), offset = 0, limit = 100 };
+        var args = new { semResponsavel = false, dataInicio = new DateTime(2026,1,1), dataFim = new DateTime(2026,2,28), offset = 0, limit = 100 };
         var rows = (await connection.QueryAsync(Sql(ValorRecuperadoSql.Detalhes), args)).ToList();
         Assert.Equal(4, rows.Count);
         Assert.Equal(6000m, rows.Sum(x => (decimal)x.VALOR_RECUPERADO));
@@ -57,7 +82,7 @@ public sealed class ValorRecuperadoReadOnlyTests
         Assert.Equal("BAIXA PARCIAL", (string)partial.STATUSLAN);
         Assert.Equal("Atual", (string)partial.RESPONSAVEL);
         Assert.Null(rows.Single(x => (int)x.NUM_VENDA == 3).INADIMPLENTE_ATUAL);
-        var page = (await connection.QueryAsync(Sql(ValorRecuperadoSql.Detalhes), new { args.dataInicio, args.dataFim, offset = 1, limit = 1 })).ToList();
+        var page = (await connection.QueryAsync(Sql(ValorRecuperadoSql.Detalhes), new { semResponsavel = false, args.dataInicio, args.dataFim, offset = 1, limit = 1 })).ToList();
         Assert.Equal(31, (int)Assert.Single(page).IDLAN);
         Assert.Equal(6000m, (decimal)page[0].TOTAL_VALOR_RECUPERADO);
         Assert.Equal(0, (int)page[0].VALORES_AUSENTES);
@@ -68,9 +93,9 @@ public sealed class ValorRecuperadoReadOnlyTests
     public async Task PeriodoFiltraPelaBaixaEIncluiODiaFinal()
     {
         await using var connection = Connection();
-        var rows = (await connection.QueryAsync(Sql(ValorRecuperadoSql.Mensal), new { dataInicio = new DateTime(2026,1,16), dataFim = new DateTime(2026,1,31) })).ToList();
+        var rows = (await connection.QueryAsync(Sql(ValorRecuperadoSql.Mensal), new { semResponsavel = false, dataInicio = new DateTime(2026,1,16), dataFim = new DateTime(2026,1,31) })).ToList();
         Assert.Equal(1500m, (decimal)Assert.Single(rows).VALOR_RECUPERADO);
-        var empty = (await connection.QueryAsync(Sql(ValorRecuperadoSql.Detalhes), new { dataInicio = new DateTime(2026,3,1), dataFim = new DateTime(2026,3,31), offset = 0, limit = 20 })).ToList();
+        var empty = (await connection.QueryAsync(Sql(ValorRecuperadoSql.Detalhes), new { semResponsavel = false, dataInicio = new DateTime(2026,3,1), dataFim = new DateTime(2026,3,31), offset = 0, limit = 20 })).ToList();
         Assert.Empty(empty);
     }
 
@@ -79,7 +104,7 @@ public sealed class ValorRecuperadoReadOnlyTests
     {
         await using var connection = Connection();
         var sql = Sql(ValorRecuperadoSql.Mensal).Replace("CAST(2000.00 AS decimal(18,4)),'BAIXA PARCIAL'", "CAST(800.00 AS decimal(18,4)),'BAIXA PARCIAL'");
-        var rows = (await connection.QueryAsync(sql, new { dataInicio = new DateTime(2026,1,1), dataFim = new DateTime(2026,1,31) })).ToList();
+        var rows = (await connection.QueryAsync(sql, new { semResponsavel = false, dataInicio = new DateTime(2026,1,1), dataFim = new DateTime(2026,1,31) })).ToList();
         Assert.Equal(2300m, (decimal)Assert.Single(rows).VALOR_RECUPERADO);
     }
 
@@ -88,7 +113,7 @@ public sealed class ValorRecuperadoReadOnlyTests
     {
         await using var connection = Connection();
         var sql = Sql(ValorRecuperadoSql.Mensal).Replace("CAST(2000.00 AS decimal(18,4)),'BAIXA PARCIAL'", "CAST(NULL AS decimal(18,4)),'BAIXA PARCIAL'");
-        var row = Assert.Single(await connection.QueryAsync(sql, new { dataInicio = new DateTime(2026,1,1), dataFim = new DateTime(2026,1,31) }));
+        var row = Assert.Single(await connection.QueryAsync(sql, new { semResponsavel = false, dataInicio = new DateTime(2026,1,1), dataFim = new DateTime(2026,1,31) }));
         Assert.Null(row.VALOR_RECUPERADO);
         Assert.Equal(1, (int)row.VALORES_AUSENTES);
     }
@@ -99,7 +124,7 @@ public sealed class ValorRecuperadoReadOnlyTests
         await using var connection = Connection();
         var start = new DateTime(2026,1,16);
         var end = new DateTime(2026,2,15);
-        var months = (await connection.QueryAsync(Sql(ValorRecuperadoSql.Mensal), new { dataInicio = start, dataFim = end })).ToList();
+        var months = (await connection.QueryAsync(Sql(ValorRecuperadoSql.Mensal), new { semResponsavel = false, dataInicio = start, dataFim = end })).ToList();
         foreach (var month in months)
         {
             var monthStart = DateTime.Parse((string)month.MES);
@@ -109,7 +134,7 @@ public sealed class ValorRecuperadoReadOnlyTests
             decimal sum = 0;
             for (var offset = 0; offset < (long)month.PARCELAS; offset++)
             {
-                var row = Assert.Single(await connection.QueryAsync(Sql(ValorRecuperadoSql.Detalhes), new { dataInicio = begin, dataFim = finish, offset, limit = 1 }));
+                var row = Assert.Single(await connection.QueryAsync(Sql(ValorRecuperadoSql.Detalhes), new { semResponsavel = false, dataInicio = begin, dataFim = finish, offset, limit = 1 }));
                 sum += (decimal)row.VALOR_RECUPERADO;
                 Assert.Equal((decimal)month.VALOR_RECUPERADO, (decimal)row.TOTAL_VALOR_RECUPERADO);
                 Assert.Equal((DateTime)month.DATA_CARGA, (DateTime)row.DATA_CARGA_PERIODO);

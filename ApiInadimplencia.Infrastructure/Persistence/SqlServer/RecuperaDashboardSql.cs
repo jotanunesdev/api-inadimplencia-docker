@@ -16,6 +16,8 @@ public static class RecuperaDashboardSql
         LEFT JOIN dbo.VENDA_RESPONSAVEL r ON r.NUM_VENDA_FK = f.NUM_VENDA
         WHERE UPPER(LTRIM(RTRIM(COALESCE(f.INADIMPLENTE, '')))) = 'SIM'
           AND (@cliente IS NULL OR f.CLIENTE LIKE @cliente ESCAPE '~')
+          AND (@semResponsavel=0 OR NOT EXISTS (SELECT 1 FROM dbo.VENDA_RESPONSAVEL sr
+              WHERE sr.NUM_VENDA_FK=f.NUM_VENDA AND NULLIF(LTRIM(RTRIM(sr.NOME_USUARIO_FK)),'') IS NOT NULL))
         ORDER BY f.VALOR_INADIMPLENTE DESC, f.NUM_VENDA
         OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
         """;

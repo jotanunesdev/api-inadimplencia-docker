@@ -37,7 +37,7 @@ public sealed class CarteiraJuridicaReadOnlyTests
         .Replace("dw.fat_processos_juridicos_cv", "Juridico").Replace("dw.fat_processojur_cv", "Identificadores")
         .Replace("DW.fat_analise_inadimplencia_v4", "Analise").Replace("dbo.VENDA_RESPONSAVEL", "Atribuicoes");
     private static object Args(string? user = null, string? client = null, int offset = 0, int? sale = null) =>
-        new { nomeUsuario = user, cliente = client, offset, limit = 1, numVenda = sale };
+        new { semResponsavel = false, nomeUsuario = user, cliente = client, offset, limit = 1, numVenda = sale };
     private static SqlConnection Connection() => new(Environment.GetEnvironmentVariable("RECUPERA_SQL_READONLY"));
 
     [RecuperaReadOnlyFact]

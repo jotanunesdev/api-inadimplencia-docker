@@ -66,6 +66,8 @@ public static class CarteiraJuridicaSql
             WHERE UPPER(LTRIM(RTRIM(f.INADIMPLENTE)))='SIM'
                 AND (@cliente IS NULL OR f.CLIENTE LIKE @cliente ESCAPE '~')
                 AND (@nomeUsuario IS NULL OR LOWER(LTRIM(RTRIM(r.RESPONSAVEL)))=@nomeUsuario)
+                AND (@semResponsavel=0 OR NOT EXISTS (SELECT 1 FROM dbo.VENDA_RESPONSAVEL sr
+                    WHERE sr.NUM_VENDA_FK=f.NUM_VENDA AND NULLIF(LTRIM(RTRIM(sr.NOME_USUARIO_FK)),'') IS NOT NULL))
         ), Vinculos AS (
             SELECT v.NUM_VENDA,p.* FROM Vendas v JOIN Processos p
                 ON p.ID_CLIENTE=v.ID_CLIENTE AND p.DOCUMENTO=v.DOCUMENTO
